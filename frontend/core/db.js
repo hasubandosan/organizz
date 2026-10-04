@@ -39,7 +39,7 @@ const IMAGE_STORE = '_images';
 ════════════════════════════════════════════════════════════ */
 
 // Поменяйте на домен вашего задеплоенного db-connector
-const API_BASE  = 'https://db-connector.fly.dev';
+const API_BASE  = 'https://organizz.onrender.com';
 // Слаг модуля задаётся на странице ДО подключения db.js:
 //   <script>window.LIFEOS_APP_SLUG = 'purchases';</script>
 // Без этого по умолчанию 'projects' (так работают projects и hub).

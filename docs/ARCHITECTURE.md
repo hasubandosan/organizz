@@ -7,7 +7,7 @@
   (не `tsc`-сборка — см. причину в `backend/README.md`)
 - **Auth:** свой JWT (библиотека `jose`), один секрет на весь проект —
   токен, выданный в одном модуле, работает во всех остальных
-- **Хостинг backend:** Fly.io, приложение `db-connector` (`https://db-connector.fly.dev`), регион `waw`
+- **Хостинг backend:** Render Free Web Service (`https://organizz.onrender.com`), засыпает после ~15 мин простоя
 - **Хостинг frontend:** Netlify, ОДИН сайт `https://tranquil-halva-65395a.netlify.app`,
   публикуется папка `frontend/` целиком (`netlify.toml`), автодеплой при мерже в `main`.
   Модули — пути `/hub/`, `/projects/`, `/purchases/` ...; вход — `/login/`.

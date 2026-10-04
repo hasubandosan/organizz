@@ -1,5 +1,5 @@
 // Адрес вашего задеплоенного backend (db-connector). Поменяйте, если домен другой.
-const API_BASE = 'https://db-connector.fly.dev';
+const API_BASE = 'https://organizz.onrender.com';
 const APP_SLUG = 'app_1';
 
 const authBox = document.getElementById('authBox');
