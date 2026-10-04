@@ -67,7 +67,11 @@ async function _api(path, options = {}) {
   }
   if (res.status === 204) return null;
   const body = await res.json().catch(() => null);
-  if (!res.ok) throw new Error(body?.error || `Ошибка запроса: ${res.status}`);
+  if (!res.ok) {
+    const err = new Error(body?.error || `Ошибка запроса: ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
   return body;
 }
 
@@ -82,7 +86,13 @@ const _STORE = {
   },
 
   async get(col, id, appSlug = APP_SLUG) {
-    return _api(`/${appSlug}/${encodeURIComponent(col)}/${encodeURIComponent(id)}`);
+    // 404 = «записи нет» — это нормальный ответ (как null в старом localStorage-драйвере)
+    try {
+      return await _api(`/${appSlug}/${encodeURIComponent(col)}/${encodeURIComponent(id)}`);
+    } catch (e) {
+      if (e.status === 404) return null;
+      throw e;
+    }
   },
 
   async put(col, rec) {
