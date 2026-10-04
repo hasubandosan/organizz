@@ -1,0 +1,28 @@
+/* app.js — запуск модуля «Питание»: инициализация ядра, роуты, навигация */
+'use strict';
+
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    await lifeosInit();   // при отсутствии токена ядро само отправит на страницу входа
+  } catch (e) {
+    console.warn('[Питание] lifeosInit:', e.message);
+    if (!localStorage.getItem('token')) return;   // идёт редирект на логин
+  }
+
+  document.getElementById('bottom-nav').classList.remove('hidden');
+  document.getElementById('app-header').classList.remove('hidden');
+
+  Router.register('recipes',      RecipesScreen);
+  Router.register('recipe.view',  RecipeViewScreen);
+  Router.register('recipe.edit',  RecipeEditScreen);
+  Router.register('recipe.new',   RecipeEditScreen);
+  Router.register('collections',  CollectionsScreen);
+  Router.register('products',     ProductsScreen);
+  Router.register('product.new',  ProductEditScreen);
+  Router.register('product.edit', ProductEditScreen);
+
+  document.querySelectorAll('.nav-item').forEach(btn =>
+    btn.addEventListener('click', () => Router.go(btn.dataset.route, null, { reset: true })));
+
+  await Router.go('recipes', null, { reset: true });
+});
