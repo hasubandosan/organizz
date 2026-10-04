@@ -40,7 +40,10 @@ const IMAGE_STORE = '_images';
 
 // Поменяйте на домен вашего задеплоенного db-connector
 const API_BASE  = 'https://db-connector.fly.dev';
-const APP_SLUG  = 'projects';
+// Слаг модуля задаётся на странице ДО подключения db.js:
+//   <script>window.LIFEOS_APP_SLUG = 'purchases';</script>
+// Без этого по умолчанию 'projects' (так работают projects и hub).
+const APP_SLUG  = (typeof window !== 'undefined' && window.LIFEOS_APP_SLUG) || 'projects';
 // Куда отправлять, если токена нет (страница логина из db-connector-frontend)
 const LOGIN_URL = '/login.html';
 
