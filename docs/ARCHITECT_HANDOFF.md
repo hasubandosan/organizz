@@ -35,7 +35,7 @@
    Лечение: `git am --abort`, `git checkout main`, `git pull`, начать с чистой ветки.
 4. Мержим **по одному патчу** и после каждого проверяем сайт.
 5. Секреты (ключи B2, `DATABASE_URL`, `JWT_SECRET`) НИКОГДА не просить прислать в чат и не коммитить.
-   Они живут в `backend/.env` (локально, в .gitignore) и в `fly secrets`.
+   Они живут в `backend/.env` (локально, в .gitignore) и в Render Environment.
 
 ## Где что живёт
 | Что | Где |
@@ -43,7 +43,7 @@
 | Репозиторий | https://github.com/hasubandosan/organizz (публичный) |
 | Локальная копия заказчика | `C:\Users\y2katbat\Downloads\organizz-clone` |
 | Frontend | Netlify, один сайт https://tranquil-halva-65395a.netlify.app , публикуется `frontend/`, автодеплой с `main` |
-| Backend | Fly.io, приложение `db-connector`, https://db-connector.fly.dev , деплой: `fly deploy -a db-connector` (из `backend/`) |
+| Backend | Render (Free Web Service), https://organizz.onrender.com , Root Directory `backend`, Build `npm install`, Start `npm start`, автодеплой с `main`; секреты — в Render → Environment (Fly.io больше не используется) |
 | БД | Neon Postgres: схемы `registry`, `auth`, `app_1`, `projects`, `meals`, `purchases`, `cosplays` |
 | Файлы | Backblaze B2, бакет `organizz-files` (приватный), CORS настроен |
 | Миграции | `cd backend && npm run db:migrate` (нужен `backend/.env` с `DATABASE_URL`) |
@@ -75,7 +75,7 @@
       `npm run db:migrate`, INSERT в `registry.apps`, `fly deploy`. Проверить, смержено ли.
 - [ ] **ИИ-разбор рецептов:** в `legacy-source/meals/ai-import.js` только заглушка, ключа нет.
       Нужен backend-маршрут (новый файл `backend/src/ai/routes.ts`, например `POST /ai/parse-recipe`),
-      ключ ИИ в `fly secrets`, НЕ в браузере. Открытое решение: у заказчика нет карты → API Anthropic
+      ключ ИИ в Render Environment, НЕ в браузере. Открытое решение: у заказчика нет карты → API Anthropic
       (платный) может быть недоступен; рассмотреть бесплатные тарифы других LLM-API (условия
       проверять поиском, они меняются). Спросить заказчика.
 - [ ] Хаб: переключить покупки на модуль `purchases` (после мержа бота).
