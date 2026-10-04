@@ -94,12 +94,17 @@ async function onAuthSuccess(token, email) {
   const appSlug = params.get('app') || 'projects';
   const redirect = params.get('redirect');
 
-  if (appSlug && appSlug !== APP_SLUG) {
+  // Роль выдаём сразу во всех модулях LifeOS (повторный join безопасен): модули читают
+  // и пишут друг в друга (общие теги в 'shared', хаб читает покупки и т.д.).
+  const ALL_MODULES = ['projects', 'shared', 'purchases', 'meals', 'cosplays'];
+  const toJoin = new Set([...ALL_MODULES, appSlug]);
+  for (const slug of toJoin) {
+    if (slug === APP_SLUG) continue;
     try {
       await fetch(`${API_BASE}/auth/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ appSlug }),
+        body: JSON.stringify({ appSlug: slug }),
       });
     } catch { /* модуль не найден в registry — не критично, просто не даём роль */ }
   }
