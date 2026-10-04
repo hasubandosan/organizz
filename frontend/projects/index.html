@@ -540,8 +540,9 @@
     <div class="form-row">
       <div class="form-group"><label class="form-label">Status</label>
         <select id="pu-status"><option value="wish">Wish</option><option value="ordered">Ordered</option><option value="in_stock">In Stock</option></select></div>
-      <div class="form-group"><label class="form-label">Project</label><select id="pu-proj"><option value="">— none —</option></select></div>
+      <div class="form-group"><label class="form-label">Project</label><select id="pu-proj" onchange="purFillTasks(this.value)"><option value="">— none —</option></select></div>
     </div>
+    <div class="form-group"><label class="form-label">Task</label><select id="pu-task"><option value="">— none —</option></select></div>
     <div class="form-group">
       <label class="form-label">Variants</label>
       <div class="pv-empty-hint" id="pv-empty-hint" style="display:none">Без вариантов — просто идея. Бренд, цену, магазин и фото можно добавить позже, в любом варианте.</div>
@@ -549,7 +550,6 @@
       <button type="button" class="pv-add-btn" id="pv-add-var" style="margin-top:8px">+ Add variant</button>
     </div>
     <div class="form-group"><label class="form-label">Notes</label><textarea id="pu-notes" style="min-height:60px" placeholder="Notes…"></textarea></div>
-    <div class="form-group"><label class="form-label">Tags</label><div class="tag-grid" id="pu-tg"></div></div>
   </div>
   <div class="modal-footer"><button class="btn btn-ghost" onclick="UI.closeModal('m-pur')">Cancel</button><button class="btn btn-primary" onclick="savePur()">Save</button></div>
 </div></div>
@@ -621,6 +621,7 @@ let pFilter   = 'all';
 let pGroupByArea = false;
 let tFilter   = 'active';
 let curDetail = null;
+const PU = 'purchases';   // покупки живут в модуле «Покупки»
 let shops     = [];       // loaded once at boot; used by the purchase variant editor
 let pu_formVariants = [];      // [{ id|null, title, price, shopId, url, notes, isPrimary, imageIds, _imgData }]
 let pu_removedVariantIds = [];
@@ -656,9 +657,6 @@ async function seed() {
   await DB.create('tasks', { name:'Написать ТЗ', status:'completed', priority:'medium', projectId:p2.id, areaId:am['Работа'], tags:['dev'], selfBudget:0 });
   await DB.create('tasks', { name:'К врачу', status:'planned', priority:'medium', areaId:am['Здоровье'], dueDate:new Date().toISOString().split('T')[0], selfBudget:0 });
 
-  await DB.create('purchases', { name:'Плитка керамика 30м²', price:45000, status:'wish', projectId:p1.id, notes:'Leroy Merlin', sourceType:'task' });
-  await DB.create('purchases', { name:'Смеситель Grohe', price:12000, status:'in_stock', projectId:p1.id, sourceType:'manual' });
-  await DB.create('purchases', { name:'Ноутбук', price:80000, status:'wish', projectId:p2.id, sourceType:'manual' });
 }
 
 /* ═══════════════════════════════════════════
@@ -705,8 +703,25 @@ function showDetail(html) {
    legacy flat price/imageIds for purchases created before this model
    (e.g. the seeded demo data below).
 ═══════════════════════════════════════════ */
+// Связи покупки с проектом/задачей: refs [{module:'projects', type:'projects'|'tasks', id}]
+function purRefs(p) {
+  const r = (p.refs || []).filter(x => x.module === 'projects');
+  return { projectId: r.find(x => x.type === 'projects')?.id || p.projectId || null,
+           taskId:    r.find(x => x.type === 'tasks')?.id || null };
+}
+function purTaskTag(pu, tasksList) {
+  const tid = purRefs(pu).taskId; if (!tid) return '';
+  const t = tasksList.find(x => x.id === tid); if (!t) return '';
+  return ` <span style="color:var(--text3);font-size:11px">· ${t.name}</span>`;
+}
+async function purFillTasks(projId, selectedId) {
+  const sel = document.getElementById('pu-task');
+  const all = projId ? (await DB.getAll('tasks')).filter(t => t.projectId === projId) : [];
+  sel.innerHTML = '<option value="">— none —</option>' + all.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+  sel.value = selectedId && all.some(t => t.id === selectedId) ? selectedId : '';
+}
 async function primaryVariantOfPurchase(pu) {
-  const pv = await DB.getPrimaryVariant(pu.id);
+  const pv = await DB.getPrimaryVariant(pu.id, PU);
   if (pv) return pv;
   if (pu.price != null || (pu.imageIds && pu.imageIds.length)) {
     return { price: pu.price ?? null, imageIds: pu.imageIds || [], shopId: null, title: null, url: pu.notes?.startsWith('http') ? pu.notes : null, notes: null, _legacy: true };
@@ -1076,8 +1091,8 @@ document.getElementById('pv-add-var').addEventListener('click', () => {
 /* ═══════════════════════════════════════════
    PURCHASE MODAL
 ═══════════════════════════════════════════ */
-async function openPurModal(pur = null, preProjId = null) {
-  _selTags.pu = [...(pur?.tags || [])];
+async function openPurModal(pur = null, preProjId = null, preTaskId = null) {
+  if (pur && pur.target) pur = null;   // вызов из обработчика клика (event)
   pu_removedVariantIds = [];
   const projs = await DB.getAll('projects');
   document.getElementById('pu-proj').innerHTML = '<option value="">— none —</option>' + projs.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
@@ -1085,13 +1100,15 @@ async function openPurModal(pur = null, preProjId = null) {
   const f = (id, v) => document.getElementById(id).value = v ?? '';
   f('pue-id', pur?.id); f('pu-name', pur?.name);
   f('pu-status', pur?.status ?? 'wish');
-  f('pu-proj', pur?.projectId || preProjId); f('pu-notes', pur?.notes);
+  const lk = pur ? purRefs(pur) : { projectId: preProjId, taskId: preTaskId };
+  f('pu-proj', lk.projectId); f('pu-notes', pur?.notes);
+  await purFillTasks(lk.projectId, lk.taskId);
 
   // Load existing variants; if none exist but legacy flat price/imageIds are
   // present on the purchase itself, seed one variant so editing migrates
   // old records (e.g. the seeded demo data) into the new model.
   if (pur) {
-    const existing = await DB.getVariants(pur.id);
+    const existing = await DB.getVariants(pur.id, PU);
     if (existing.length) {
       pu_formVariants = existing.map(v => ({ ...v, imageIds: v.imageIds || [] }));
     } else if (pur.price != null || (pur.imageIds && pur.imageIds.length)) {
@@ -1101,7 +1118,7 @@ async function openPurModal(pur = null, preProjId = null) {
     }
     for (const v of pu_formVariants) {
       if (v.imageIds?.length && !v._imgData) {
-        const img = await DB.getImage(v.imageIds[0]);
+        const img = await DB.getImage(v.imageIds[0], PU);
         if (img) v._imgPreview = img.data;
       }
     }
@@ -1110,34 +1127,39 @@ async function openPurModal(pur = null, preProjId = null) {
   }
   pv_renderVarsEditor();
 
-  await UI.renderTagGrid('pu-tg', _selTags.pu, tags => { _selTags.pu = tags; });
   UI.openModal('m-pur');
 }
 
 async function savePur() {
   const id = document.getElementById('pue-id').value;
-  const ex = id ? await DB.getById('purchases', id) : null;
+  const ex = id ? await DB.getById('purchases', id, PU) : null;
   const name = document.getElementById('pu-name').value.trim();
+  let projectId = document.getElementById('pu-proj').value || null;
+  const taskId  = document.getElementById('pu-task').value || null;
+  if (taskId) { const t = await DB.getById('tasks', taskId); if (t?.projectId) projectId = t.projectId; }
+  const refs = [...(ex?.refs || []).filter(x => x.module !== 'projects')];
+  if (projectId) refs.push({ module: 'projects', type: 'projects', id: projectId });
+  if (taskId)    refs.push({ module: 'projects', type: 'tasks',    id: taskId });
   const data = {
     name,
     status:     document.getElementById('pu-status').value,
-    projectId:  document.getElementById('pu-proj').value || null,
+    projectId:  null,
+    refs,
     notes:      document.getElementById('pu-notes').value.trim(),
     sourceType: ex?.sourceType || 'project',
-    tags:       [..._selTags.pu],
   };
   try {
     let purchaseId = id;
-    if (id) await DB.update('purchases', id, data);
-    else    { const rec = await DB.create('purchases', data); purchaseId = rec.id; }
+    if (id) await DB.update('purchases', id, data, PU);
+    else    { const rec = await DB.create('purchases', data, PU); purchaseId = rec.id; }
 
-    for (const vid of pu_removedVariantIds) await DB.delete('purchase_variants', vid);
+    for (const vid of pu_removedVariantIds) await DB.delete('purchase_variants', vid, PU);
 
     if (pu_formVariants.length && !pu_formVariants.some(v => v.isPrimary)) pu_formVariants[0].isPrimary = true;
 
     for (const v of pu_formVariants) {
       let imageIds = v.imageIds || [];
-      if (v._imgData) imageIds = [await DB.saveImage(v._imgData, { name: 'variant-photo' })];
+      if (v._imgData) imageIds = [await DB.saveImage(v._imgData, { name: 'variant-photo' }, PU)];
       const varPayload = {
         purchaseId,
         title:  v.title?.trim() || null,
@@ -1148,8 +1170,8 @@ async function savePur() {
         isPrimary: !!v.isPrimary,
         imageIds,
       };
-      if (v.id) await DB.update('purchase_variants', v.id, varPayload);
-      else      await DB.create('purchase_variants', varPayload);
+      if (v.id) await DB.update('purchase_variants', v.id, varPayload, PU);
+      else      await DB.create('purchase_variants', varPayload, PU);
     }
 
     UI.closeModal('m-pur');
@@ -1702,7 +1724,9 @@ async function showProject(id) {
   const allT = await DB.getAll('tasks');
   const projT  = allT.filter(t => t.projectId === id);
   const rootT  = projT.filter(t => !t.parentId);
-  const purs   = await DB.query('purchases', { projectId: id });
+  const allPu  = await DB.getAll('purchases', PU).catch(() => []);
+  const taskIds = new Set(projT.map(t => t.id));
+  const purs   = allPu.filter(pu => { const l = purRefs(pu); return l.projectId === id || (l.taskId && taskIds.has(l.taskId)); });
 
   // Price now lives on the purchase's primary variant, not on the purchase
   // itself — resolve each purchase's displayed variant once up front.
@@ -1744,17 +1768,17 @@ async function showProject(id) {
   let tasksH = ''; for (const t of rootT) tasksH += await mkTaskRow(t, allT, true, 0, { [p.id]: p });
   const purH = await Promise.all(purs.map(async (pu, i) => {
     const pv = purPrimaries[i];
-    const variantCount = (await DB.getVariants(pu.id)).length;
+    const variantCount = (await DB.getVariants(pu.id, PU)).length;
     let imgHtml = '';
     if (pv?.imageIds?.length) {
-      const img = await DB.getImage(pv.imageIds[0]);
+      const img = await DB.getImage(pv.imageIds[0], PU);
       if (img) imgHtml = `<img class="img-thumb" src="${img.data}" style="width:28px;height:28px;border-radius:4px;object-fit:cover;flex-shrink:0;cursor:pointer" onclick="event.stopPropagation();UI.previewImage('${img.data}')">`;
     }
     const shop = pv?.shopId ? (shops.find(s => s.id === pv.shopId)) : null;
     return `<div class="pur-row">
       <div class="pur-check ${pu.status==='in_stock'?'bought':''}" onclick="togglePurchase('${pu.id}','${id}')"></div>
       ${imgHtml}
-      <div class="pur-name ${pu.status==='in_stock'?'bought':''}" onclick="editPur('${pu.id}')">${pu.name}${variantCount>1?` <span style="color:var(--text3);font-size:11px;font-family:var(--m)">(${variantCount})</span>`:''}${shop?` <span style="color:var(--text3);font-size:11px">@ ${shop.name}</span>`:''}</div>
+      <div class="pur-name ${pu.status==='in_stock'?'bought':''}" onclick="editPur('${pu.id}')">${pu.name}${purTaskTag(pu, projT)}${variantCount>1?` <span style="color:var(--text3);font-size:11px;font-family:var(--m)">(${variantCount})</span>`:''}${shop?` <span style="color:var(--text3);font-size:11px">@ ${shop.name}</span>`:''}</div>
       <div class="pur-price">${pv?.price ? UI.money(pv.price) : ''}</div>
       <button class="task-edit" onclick="editPur('${pu.id}')" aria-label="Edit purchase">✎</button>
     </div>`;
@@ -1803,11 +1827,11 @@ async function deleteProject(id) {
 }
 
 async function togglePurchase(id, projId) {
-  const p = await DB.getById('purchases', id); if (!p) return;
-  await DB.update('purchases', id, { status: p.status === 'in_stock' ? 'wish' : 'in_stock' });
+  const p = await DB.getById('purchases', id, PU); if (!p) return;
+  await DB.update('purchases', id, { status: p.status === 'in_stock' ? 'wish' : 'in_stock' }, PU);
   showProject(projId);
 }
-async function editPur(id) { const p = await DB.getById('purchases', id); if (p) openPurModal(p, p.projectId); }
+async function editPur(id) { const p = await DB.getById('purchases', id, PU); if (p) openPurModal(p); }
 
 /* ═══════════════════════════════════════════
    DETAIL: AREA
@@ -1903,7 +1927,7 @@ async function _doGlobalSearch() {
   const box  = document.getElementById('global-search-results');
   if (!term) { box.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:10px 0">Start typing to search…</div>'; return; }
 
-  const results = await DB.search(['projects', 'tasks', 'purchases'], term);
+  const results = await DB.search(['projects', 'tasks'], term);
   if (!results.length) { box.innerHTML = UI.emptyState('🔍', 'No results', `Nothing matches "${term}"`); return; }
 
   const ICONS = { projects: '📁', tasks: '✅', purchases: '🛒' };
@@ -1970,7 +1994,7 @@ function handleUrlParams() {
 async function init() {
   await lifeosInit();
   await seed();
-  shops = await DB.getAll('shops');
+  shops = await DB.getAll('shops', PU).catch(() => []);
   handleUrlParams();
   if (curPage === 'dashboard') await renderDash();
 }
