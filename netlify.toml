@@ -1,0 +1,15 @@
+# Netlify публикует папку frontend целиком: /login/, /core/, /projects/, /hub/ ...
+[build]
+  publish = "frontend"
+
+# core/db.js отправляет на /login.html, а страница входа лежит в /login/
+[[redirects]]
+  from = "/login.html"
+  to = "/login/login.html"
+  status = 301
+
+# корень сайта -> дашборд
+[[redirects]]
+  from = "/"
+  to = "/hub/"
+  status = 302
