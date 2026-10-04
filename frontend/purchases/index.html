@@ -314,6 +314,10 @@
     .tc button:hover{opacity:1}
     .tags-wrap input{flex:1;min-width:80px;font-size:14px}
     .tags-wrap input::placeholder{color:var(--muted)}
+    .tc.cat{background:rgba(167,139,250,.18);color:var(--purple)}
+    .tc.cat button{color:var(--purple)}
+    .ts-o.cat{background:rgba(167,139,250,.14);color:var(--purple)}
+    .ts-new{display:inline-block;margin:4px 4px 0;padding:4px 10px;border-radius:100px;font-size:12px;border:1px dashed var(--border);color:var(--text)}
     .tc.legacy{background:rgba(255,255,255,.08);color:var(--muted)}
     .tc.legacy span{cursor:pointer}
     .tag-suggest{display:none;max-height:190px;overflow-y:auto;margin-top:6px;padding:6px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r)}
@@ -518,9 +522,9 @@
       </div>
     </div>
     <div class="fg">
-      <label class="fl">Теги</label>
+      <label class="fl">Категории и теги</label>
       <div class="tags-wrap" id="tagsWrap">
-        <input id="tagIn" type="text" placeholder="выбери или впиши + Enter"/>
+        <input id="tagIn" type="text" placeholder="категория или тег: выбери / впиши"/>
       </div>
       <div class="tag-suggest" id="tagSuggest"></div>
     </div>
@@ -1501,18 +1505,30 @@ function syncStatusBtns() {
 // tags (системные + личные, хранится tagIds)
 const tagIn = $('tagIn');
 function tagSuggestions() {
-  const q = tagIn.value.trim().toLowerCase(), box = $('tagSuggest');
-  const list = tagOpts.filter(o => !curTagIds.includes(o.id) && (!q || o.name.toLowerCase().includes(q))).slice(0, 40);
-  if (!list.length) { box.style.display = 'none'; return; }
-  let html = '', g = null;
-  list.forEach(o => {
-    const grp = o.group || 'Мои теги';
-    if (grp !== g) { g = grp; html += `<div class="ts-g">${esc(g)}</div>`; }
-    html += `<button type="button" class="ts-o" data-id="${esc(o.id)}">${esc(o.name)}</button>`;
-  });
+  const q = tagIn.value.trim(), ql = q.toLowerCase(), box = $('tagSuggest');
+  const list = tagOpts.filter(o => !curTagIds.includes(o.id) && (!ql || o.name.toLowerCase().includes(ql))).slice(0, 60);
+  let html = '';
+  for (const [kind, title] of [['category', 'Категории'], ['tag', 'Теги']]) {
+    const part = list.filter(o => (o.kind || 'tag') === kind);
+    if (!part.length) continue;
+    html += `<div class="ts-g" style="font-size:11px">${title}</div>`;
+    let g = null;
+    part.forEach(o => {
+      const grp = o.group || (kind === 'category' ? 'Мои категории' : 'Мои теги');
+      if (grp !== g) { g = grp; html += `<div class="ts-g">${esc(g)}</div>`; }
+      html += `<button type="button" class="ts-o ${kind === 'category' ? 'cat' : ''}" data-id="${esc(o.id)}">${esc(o.name)}</button>`;
+    });
+  }
+  if (q && !tagOpts.some(o => o.name.toLowerCase() === ql)) {
+    html += `<div><button type="button" class="ts-new" data-new="tag">＋ тег «${esc(q)}»</button>` +
+            `<button type="button" class="ts-new" data-new="category">＋ категория «${esc(q)}»</button></div>`;
+  }
+  if (!html) { box.style.display = 'none'; return; }
   box.innerHTML = html; box.style.display = 'block';
 }
 $('tagSuggest').addEventListener('mousedown', e => {
+  const n = e.target.closest('.ts-new');
+  if (n) { e.preventDefault(); addTagByName(tagIn.value.trim(), n.dataset.new); return; }
   const b = e.target.closest('.ts-o'); if (!b) return;
   e.preventDefault(); addTagId(b.dataset.id);
 });
@@ -1520,13 +1536,13 @@ function addTagId(id) {
   if (!curTagIds.includes(id)) curTagIds.push(id);
   tagIn.value = ''; renderTagChips();
 }
-async function addTagByName(v) {
+async function addTagByName(v, kind = 'tag') {
   if (!v) return;
   const o = tagOpts.find(x => x.name.toLowerCase() === v.toLowerCase());
   if (o) { addTagId(o.id); return; }
   try {   // новый личный тег (хранится в общем модуле 'shared', виден во всех твоих модулях)
-    const rec = await DB.create('tags', { name: v, group: 'Мои теги', scope: ['purchases'] }, 'shared');
-    const opt = { ...rec, system: false };
+    const rec = await DB.create('tags', { name: v, kind, group: kind === 'category' ? 'Мои категории' : 'Мои теги', scope: ['purchases'] }, 'shared');
+    const opt = { ...rec, kind, system: false };
     tagOpts.push(opt); tagMap[rec.id] = opt; addTagId(rec.id);
   } catch (e) { toast('Не удалось создать тег', 'err'); tagIn.value = ''; }
 }
@@ -1548,7 +1564,7 @@ function renderTagChips() {
   $('tagsWrap').querySelectorAll('.tc').forEach(el => el.remove());
   curTagIds.forEach((id, i) => {
     const chip = document.createElement('span');
-    chip.className = 'tc';
+    chip.className = 'tc' + (tagMap[id]?.kind === 'category' ? ' cat' : '');
     chip.innerHTML = `${esc(tagMap[id]?.name || id)}<button type="button">×</button>`;
     chip.querySelector('button').addEventListener('click', () => { curTagIds.splice(i, 1); renderTagChips(); });
     $('tagsWrap').insertBefore(chip, tagIn);
