@@ -12,5 +12,6 @@ INSERT INTO registry.apps (slug, name, db_schema, is_guest, status) VALUES
   ('projects', 'LifeOS: Проекты и задачи', 'projects', false, 'active'),
   ('meals', 'LifeOS: Питание', 'meals', false, 'active'),
   ('purchases', 'LifeOS: Покупки', 'purchases', false, 'active'),
-  ('cosplays', 'LifeOS: Косплеи', 'cosplays', false, 'active')
+  ('cosplays', 'LifeOS: Косплеи', 'cosplays', false, 'active'),
+  ('shared', 'LifeOS: Общие теги и зоны', 'shared', false, 'active')
 ON CONFLICT (slug) DO NOTHING;

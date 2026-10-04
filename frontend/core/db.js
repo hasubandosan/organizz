@@ -79,6 +79,7 @@ async function _api(path, options = {}) {
 }
 
 const _imgUrlCache = new Map();
+let _sysTagsCache = null;
 
 const _STORE = {
   // appSlug — необязательный: по умолчанию свой модуль (APP_SLUG).
@@ -98,16 +99,16 @@ const _STORE = {
     }
   },
 
-  async put(col, rec) {
-    await _api(`/${APP_SLUG}/${encodeURIComponent(col)}/${encodeURIComponent(rec.id)}`, {
+  async put(col, rec, appSlug = APP_SLUG) {
+    await _api(`/${appSlug}/${encodeURIComponent(col)}/${encodeURIComponent(rec.id)}`, {
       method: 'PUT',
       body: JSON.stringify(rec),
     });
     return rec.id;
   },
 
-  async delete(col, id) {
-    await _api(`/${APP_SLUG}/${encodeURIComponent(col)}/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  async delete(col, id, appSlug = APP_SLUG) {
+    await _api(`/${appSlug}/${encodeURIComponent(col)}/${encodeURIComponent(id)}`, { method: 'DELETE' });
     return true;
   },
 
@@ -220,16 +221,17 @@ const _V = {
   const DB = {
 
   /* ── CRUD ── */
-  async create(col, data = {}) {
+  // appSlug — необязательный: писать в ДРУГОЙ модуль (например теги в 'shared'). По умолчанию свой.
+  async create(col, data = {}, appSlug) {
     const err = _V[col] ? _V[col](data) : null;
     if (err) throw new Error(err);
     const entity = _makeEntity(col, data);
-    await _STORE.put(col, entity);
+    await _STORE.put(col, entity, appSlug);
     return entity;
   },
 
-  async update(col, id, patch = {}) {
-    const existing = await _STORE.get(col, id);
+  async update(col, id, patch = {}, appSlug) {
+    const existing = await _STORE.get(col, id, appSlug);
     if (!existing) return null;
     const updated = {
       ...existing,
@@ -241,13 +243,35 @@ const _V = {
       createdAt:     existing.createdAt,
       updatedAt:     new Date().toISOString(),
     };
-    await _STORE.put(col, updated);
+    await _STORE.put(col, updated, appSlug);
     return updated;
   },
 
-  async delete(col, id) {
-    await _STORE.delete(col, id);
+  async delete(col, id, appSlug) {
+    await _STORE.delete(col, id, appSlug);
     return true;
+  },
+
+  /* ── ТЕГИ И ЗОНЫ: один источник правды (см. docs/TAGS_AND_REFS.md) ──
+     Системные (встроенные, общие для всех) — с backend, кэшируются.
+     Личные — коллекции 'tags' / 'zones' в модуле 'shared', у каждого пользователя свои. */
+  async getSystemTags(scope, kind) {
+    if (!_sysTagsCache) {
+      const r = await _api('/shared/system-tags');
+      _sysTagsCache = r.items || [];
+    }
+    return _sysTagsCache.filter(t =>
+      (!kind || t.kind === kind) &&
+      (!scope || t.scope.includes('all') || t.scope.includes(scope)));
+  },
+
+  // Для выпадашек: системные + личные, отфильтрованные по модулю. system:true — нельзя редактировать.
+  async getTagOptions(scope, kind = 'tag') {
+    const sys = (await DB.getSystemTags(scope, kind)).map(t => ({ ...t, system: true }));
+    const mine = (await _STORE.getAll(kind === 'zone' ? 'zones' : 'tags', 'shared'))
+      .filter(t => !t.scope || t.scope.includes('all') || t.scope.includes(scope))
+      .map(t => ({ ...t, system: false }));
+    return [...sys, ...mine];
   },
 
   async getById(col, id, appSlug) {

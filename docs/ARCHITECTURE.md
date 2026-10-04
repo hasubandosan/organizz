@@ -83,6 +83,11 @@ PRIMARY KEY (owner_id, entity_type, id)   -- id уникален только в
 `DB.getById(col, id, appSlug)`, `DB.query(col, filter, appSlug)` — необязательный
 последний параметр. Запись всегда идёт только в свой модуль.
 
+## Теги, зоны, связи
+
+Системные (встроенные) теги/зоны — `backend/src/shared/systemTags.ts`, личные — модуль `shared`.
+Связи между модулями — `refs`. Подробно: `docs/TAGS_AND_REFS.md`.
+
 ## Картинки
 
 `DB.saveImage(base64, meta) -> id` и `DB.getImage(id) -> { ..., data }` (`data` годится
