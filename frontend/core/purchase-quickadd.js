@@ -210,14 +210,14 @@ const PurchaseQuickAdd = (() => {
       category: opts.category || null,
       projectId: opts.projectId || null,
       cosplayId: opts.cosplayId || null,
-    });
+    }, 'purchases');
 
     let firstVariant = null;
     for (let i = 0; i < draftVariants.length; i++) {
       const v = draftVariants[i];
       let imageIds = [];
       if (v._imgData) {
-        const imgId = await DB.saveImage(v._imgData, { name: 'variant-photo' });
+        const imgId = await DB.saveImage(v._imgData, { name: 'variant-photo' }, 'purchases');
         imageIds = [imgId];
       }
       const rec = await DB.create('purchase_variants', {
@@ -229,7 +229,7 @@ const PurchaseQuickAdd = (() => {
         notes: v.notes || null,
         isPrimary: i === 0,
         imageIds,
-      });
+      }, 'purchases');
       if (i === 0) firstVariant = rec;
     }
 

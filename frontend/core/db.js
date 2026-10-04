@@ -381,7 +381,7 @@ const _V = {
      запись {id, key, contentType}. Контракт прежний: saveImage(base64) -> id,
      getImage(id) -> { ..., data } где data пригоден для <img src>.
      Старые записи с base64 в поле data продолжают работать как есть. */
-  async saveImage(base64, meta = {}) {
+  async saveImage(base64, meta = {}, appSlug) {
     const id = _uid();
     const createdAt = new Date().toISOString();
     try {
@@ -391,17 +391,17 @@ const _V = {
       });
       const up = await fetch(uploadUrl, { method: 'PUT', body: blob, headers: { 'Content-Type': blob.type } });
       if (!up.ok) throw new Error(`Загрузка в хранилище: ${up.status}`);
-      await _STORE.put(IMAGE_STORE, { id, key, contentType: blob.type, createdAt, ...meta });
+      await _STORE.put(IMAGE_STORE, { id, key, contentType: blob.type, createdAt, ...meta }, appSlug);
     } catch (e) {
       // Хранилище недоступно — не теряем картинку, кладём по-старому (base64 в базу)
       console.warn('[LifeOS] S3 недоступен, сохраняю base64:', e.message);
-      await _STORE.put(IMAGE_STORE, { id, data: base64, createdAt, ...meta });
+      await _STORE.put(IMAGE_STORE, { id, data: base64, createdAt, ...meta }, appSlug);
     }
     return id;
   },
 
-  async getImage(id) {
-    const rec = await _STORE.get(IMAGE_STORE, id);
+  async getImage(id, appSlug) {
+    const rec = await _STORE.get(IMAGE_STORE, id, appSlug);
     if (!rec || rec.data || !rec.key) return rec;               // старый формат или нет записи
     const hit = _imgUrlCache.get(rec.key);
     if (hit && hit.exp > Date.now()) return { ...rec, data: hit.url };
@@ -410,10 +410,10 @@ const _V = {
     return { ...rec, data: url };
   },
 
-  async deleteImage(id) {
-    const rec = await _STORE.get(IMAGE_STORE, id);
+  async deleteImage(id, appSlug) {
+    const rec = await _STORE.get(IMAGE_STORE, id, appSlug);
     if (rec?.key) await _api('/storage', { method: 'DELETE', body: JSON.stringify({ key: rec.key }) }).catch(() => {});
-    return _STORE.delete(IMAGE_STORE, id);
+    return _STORE.delete(IMAGE_STORE, id, appSlug);
   },
 
 

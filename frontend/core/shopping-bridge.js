@@ -18,12 +18,12 @@ const ShoppingBridge = {
     if (!Array.isArray(items) || !items.length) return;
     try {
       // Удаляем старые позиции этой недели (вместе с их вариантами)
-      const all = await DB.getAll('purchases');
+      const all = await DB.getAll('purchases', 'purchases');
       const old = all.filter(i => i.sourceType === 'meal_plan' && i.weekKey === weekKey);
-      const allVariants = await DB.getAll('purchase_variants');
+      const allVariants = await DB.getAll('purchase_variants', 'purchases');
       for (const e of old) {
-        for (const v of allVariants.filter(v => v.purchaseId === e.id)) await DB.delete('purchase_variants', v.id);
-        await DB.delete('purchases', e.id);
+        for (const v of allVariants.filter(v => v.purchaseId === e.id)) await DB.delete('purchase_variants', v.id, 'purchases');
+        await DB.delete('purchases', e.id, 'purchases');
       }
 
       // Записываем новые (покупка + один основной вариант с ценой)
@@ -44,7 +44,7 @@ const ShoppingBridge = {
             unit:         item.unit,
             fromMenuPlan: true,
           },
-        });
+        }, 'purchases');
         await DB.create('purchase_variants', {
           purchaseId: purchase.id,
           title:      null,
@@ -53,7 +53,7 @@ const ShoppingBridge = {
           url:        null,
           notes:      `${item.qty ?? ''} ${item.unit ?? ''}`.trim() || null,
           isPrimary:  true,
-        });
+        }, 'purchases');
       }
       console.info(`[ShoppingBridge] ✓ ${items.length} позиций → purchases (${weekKey})`);
     } catch (err) {
@@ -67,7 +67,7 @@ const ShoppingBridge = {
   async toggleInLifeOS(weekKey, productId, checked) {
     if (!window.DB) return;
     try {
-      const all   = await DB.getAll('purchases');
+      const all   = await DB.getAll('purchases', 'purchases');
       const match = all.find(
         i => i.sourceType === 'meal_plan' &&
              i.weekKey === weekKey &&
@@ -76,7 +76,7 @@ const ShoppingBridge = {
       if (match) {
         await DB.update('purchases', match.id, {
           status: checked ? 'in_stock' : 'wish',
-        });
+        }, 'purchases');
       }
     } catch (err) {
       console.warn('[ShoppingBridge] toggleInLifeOS error:', err);
@@ -87,12 +87,12 @@ const ShoppingBridge = {
   async clearWeek(weekKey) {
     if (!window.DB) return;
     try {
-      const all = await DB.getAll('purchases');
+      const all = await DB.getAll('purchases', 'purchases');
       const old = all.filter(i => i.sourceType === 'meal_plan' && i.weekKey === weekKey);
-      const allVariants = await DB.getAll('purchase_variants');
+      const allVariants = await DB.getAll('purchase_variants', 'purchases');
       for (const e of old) {
-        for (const v of allVariants.filter(v => v.purchaseId === e.id)) await DB.delete('purchase_variants', v.id);
-        await DB.delete('purchases', e.id);
+        for (const v of allVariants.filter(v => v.purchaseId === e.id)) await DB.delete('purchase_variants', v.id, 'purchases');
+        await DB.delete('purchases', e.id, 'purchases');
       }
     } catch (err) {
       console.warn('[ShoppingBridge] clearWeek error:', err);
