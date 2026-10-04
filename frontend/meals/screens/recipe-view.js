@@ -1,0 +1,59 @@
+// МенюПлан — screens/recipe-view.js
+'use strict';
+
+const RecipeViewScreen = {
+  async render(container, data) {
+    const r = data?.id ? await Recipes.get(data.id) : null;
+    if (!r) {
+      container.innerHTML = '<div class="empty"><div class="empty-icon">😕</div><div class="empty-title">Рецепт не найден</div></div>';
+      return;
+    }
+    const [tags, collections] = await Promise.all([mealTagOptions(), Collections.list()]);
+    const tagName = id => tags.find(t => t.id === id)?.name;
+    const col = collections.find(c => c.id === r.collectionId);
+
+    let h = '<div class="screen recipe-view"><div class="rv-header">';
+    h += '<button class="icon-btn" onclick="Router.back()">←</button><span style="flex:1"></span>';
+    h += `<button class="icon-btn" onclick="Router.go('recipe.edit', { id: '${esc(r.id)}' })">✏️</button>`;
+    h += `<button class="icon-btn" onclick="RecipeViewScreen._del('${esc(r.id)}')">🗑</button></div>`;
+
+    h += r.imageId ? `<img class="rv-image" data-img="${esc(r.imageId)}" alt="">` : `<div class="rv-emoji">${esc(r.emoji || '🍽️')}</div>`;
+    h += `<h2 class="rv-title">${esc(r.name)}</h2>`;
+    if (r.description) h += `<p class="rv-desc">${esc(r.description)}</p>`;
+    h += `<div class="rv-meta"><span>⏱ ${+r.cookTimeMin || 0} мин</span><span class="difficulty-stars">${MealComponents.stars(r.difficulty)}</span><span>👤 ${+r.portions || 4} порц.</span>`;
+    if (col) h += `<span>${esc(col.emoji || '📚')} ${esc(col.name)}</span>`;
+    h += '</div>';
+
+    const names = (r.tagIds || []).map(tagName).filter(Boolean);
+    if (names.length) h += '<div class="rv-tags">' + names.map(n => `<span class="rv-tag">${esc(n)}</span>`).join('') + '</div>';
+
+    if ((r.ingredients || []).length) {
+      h += '<div class="rv-section"><h3>🧂 Ингредиенты</h3><ul class="rv-ingredients">';
+      for (const i of r.ingredients) h += `<li><span class="ing-qty">${i.qty ? esc(i.qty) + ' ' + esc(i.unit || '') : ''}</span> <span class="ing-name">${esc(i.name)}</span></li>`;
+      h += '</ul></div>';
+    }
+    if ((r.steps || []).length) {
+      h += '<div class="rv-section"><h3>📝 Приготовление</h3><ol class="rv-steps">';
+      r.steps.forEach((s, n) => {
+        h += `<li><span class="step-num">${n + 1}</span><span class="step-text">${esc(s.text)}</span>`;
+        if (s.timerMin) h += `<span class="step-timer">⏱ ${+s.timerMin} мин</span>`;
+        if (s.tip) h += `<span class="step-tip">💡 ${esc(s.tip)}</span>`;
+        h += '</li>';
+      });
+      h += '</ol></div>';
+    }
+    if ((r.recommendedMeals || []).length) h += '<div class="rv-section"><h3>🍽️ Рекомендуется для</h3><div class="rv-tags">' + r.recommendedMeals.map(m => `<span class="rv-tag">${esc(m)}</span>`).join('') + '</div></div>';
+    if (r.sourceUrl) h += `<div class="rv-section"><a href="${esc(r.sourceUrl)}" target="_blank" rel="noopener noreferrer">🔗 Источник</a></div>`;
+    h += '</div>';
+
+    container.innerHTML = h;
+    document.getElementById('header-title').textContent = r.name;
+    document.getElementById('header-icon').textContent = r.emoji || '🍽️';
+  },
+
+  async _del(id) {
+    if (!confirm('Удалить рецепт?')) return;
+    try { await Recipes.del(id); toast('Рецепт удалён'); Router.go('recipes', null, { reset: true }); }
+    catch (e) { toast('Ошибка: ' + e.message, 'err'); }
+  },
+};
