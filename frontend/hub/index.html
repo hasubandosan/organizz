@@ -51,12 +51,14 @@
     <button class="topbar-btn" id="btn-search" title="Поиск">  
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>  
     </button>  
+    <button class="topbar-btn" id="btn-logout" title="Выйти">⎋</button>  
   </header>  
 
   <main class="content">  
     <div class="section" style="padding-top:20px">  
       <div id="greeting" style="font-size:22px;font-weight:800;margin-bottom:4px"></div>  
       <div id="hub-date" style="font-size:13px;color:var(--text3);font-family:var(--m)"></div>  
+      <div id="hub-user" style="font-size:12px;color:var(--text3);font-family:var(--m);margin-top:2px"></div>  
     </div>  
 
     <div class="storage-warn" id="storageWarn"></div>  
@@ -241,6 +243,18 @@ document.getElementById('btn-search').addEventListener('click', async () => {
   if (!results.length) { UI.toast('Ничего не найдено', 'info'); return; }  
   location.href = `../projects/?q=${encodeURIComponent(term)}`;  
 });  
+
+/* ── Пользователь и выход ── */
+(function () {
+  const email = localStorage.getItem('email');
+  if (email) document.getElementById('hub-user').textContent = email;
+  document.getElementById('btn-logout').addEventListener('click', () => {
+    if (!confirm('Выйти из аккаунта?')) return;
+    localStorage.removeItem('token');
+    localStorage.removeItem('email');
+    location.href = '/login.html';
+  });
+})();
 
 document.getElementById('btn-export').addEventListener('click', async () => {  
   const b = await DB.exportAll();  
