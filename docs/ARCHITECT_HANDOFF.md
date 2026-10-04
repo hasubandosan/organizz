@@ -71,6 +71,17 @@
 4. `cosplays` — позже.
 
 ## Открытые задачи (за архитектором)
+- [ ] **Каталог продуктов (catalog) — backend готов, ветка `feature/catalog-moderation`,
+      патч ниже.** После мержа: `npm run db:migrate`, выполнить INSERT из
+      `registry.apps` (уже в seed.sql) и выдать себе `admin` в `catalog`
+      (шаблон SQL — в конце `drizzle/seed.sql`), затем
+      `npx tsx scripts/import-catalog-products.ts scripts/seed-products.json`
+      для заполнения стартовым списком (~190 продуктов). Подробности — `docs/ARCHITECTURE.md`,
+      раздел "Каталог продуктов". Дальше по плану: 1) meals-бот переделывает
+      «Продукты» в `frontend/meals` на чтение из `/catalog/products` + экран
+      «Предложка»; 2) нужно решить новый модуль `frontend/admin/` (отдельный
+      бот) для очереди модерации — ждём ответа заказчика, отдельным модулем
+      или вкладкой в meals видимой только admin.
 - [ ] Применить `modules-base.patch` (backend для meals/purchases/cosplays + docs), затем
       `npm run db:migrate`, INSERT в `registry.apps`, `fly deploy`. Проверить, смержено ли.
 - [ ] **ИИ-разбор рецептов:** в `legacy-source/meals/ai-import.js` только заглушка, ключа нет.
