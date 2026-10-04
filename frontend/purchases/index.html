@@ -314,6 +314,11 @@
     .tc button:hover{opacity:1}
     .tags-wrap input{flex:1;min-width:80px;font-size:14px}
     .tags-wrap input::placeholder{color:var(--muted)}
+    .tc.legacy{background:rgba(255,255,255,.08);color:var(--muted)}
+    .tc.legacy span{cursor:pointer}
+    .tag-suggest{display:none;max-height:190px;overflow-y:auto;margin-top:6px;padding:6px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r)}
+    .ts-g{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:6px 4px 3px}
+    .ts-o{display:inline-block;margin:2px;padding:4px 10px;border-radius:100px;font-size:12px;background:rgba(212,245,66,.10);color:var(--accent)}
 
     /* image upload */
     .img-up{width:100%;height:110px;border-radius:var(--r);border:1.5px dashed var(--border);background:var(--s2);display:flex;align-items:center;justify-content:center;gap:8px;color:var(--muted);font-size:13px;cursor:pointer;position:relative;overflow:hidden;transition:border-color .15s}
@@ -515,8 +520,9 @@
     <div class="fg">
       <label class="fl">Теги</label>
       <div class="tags-wrap" id="tagsWrap">
-        <input id="tagIn" type="text" placeholder="тег + Enter"/>
+        <input id="tagIn" type="text" placeholder="выбери или впиши + Enter"/>
       </div>
+      <div class="tag-suggest" id="tagSuggest"></div>
     </div>
     <div class="fg">
       <label class="fl">Заметка</label>
@@ -664,7 +670,10 @@ let variantFav       = false;
 let editingZone      = null;  // zone object being edited (null = new)
 let quickAddZoneId   = null;  // zone context for quick-add modal
 
-let curTags     = [];
+let curTagIds   = [];   // выбранные теги (id: системные 'sys:...' и личные)
+let curLegacy   = [];   // старые текстовые теги (пока не превращены в настоящие)
+let tagOpts     = [];   // системные + личные теги для модуля purchases
+let tagMap      = {};
 let curPriority = 1;
 let curStatus   = 'want';
 
@@ -757,7 +766,8 @@ const toProduct = r => ({
   id: r.id, name: r.name || '',
   zone_id: r.zoneId !== undefined ? (r.zoneId || null) : zoneIdByCategory(r.category),
   status: ST_TO_UI[r.status] || 'want',
-  priority: r.priority ?? 1, tags: r.tags || [], notes: r.notes || null,
+  priority: r.priority ?? 1, tagIds: r.tagIds || [], legacy: r.tags || [],
+  tags: [...(r.tagIds || []).map(id => tagMap[id]?.name).filter(Boolean), ...(r.tags || [])], notes: r.notes || null,
   source_module: r.sourceType === 'cosplay' ? 'cosplay' : null,
   created_at: r.createdAt,
 });
@@ -771,9 +781,11 @@ const byCreated = (a, b) => new Date(a.created_at) - new Date(b.created_at);
 
 // ── LOAD ──
 async function loadAll() {
-  const [z, p, v, s] = await Promise.all([
+  const [z, p, v, s, to] = await Promise.all([
     DB.getAll('zones'), DB.getAll('purchases'), DB.getAll('purchase_variants'), DB.getAll('shops'),
+    DB.getTagOptions('purchases').catch(() => []),
   ]);
+  tagOpts = to; tagMap = {}; to.forEach(o => { tagMap[o.id] = o; });
   const open = {}; zones.forEach(x => open[x.id] = x._open);
   zones = z.map(toZone).map(x => ({ ...x, _open: open[x.id] }));
   products = p.map(toProduct);
@@ -798,6 +810,7 @@ async function saveProduct(id, payload) {
   if ('status' in payload)   patch.status = ST_FROM_UI[payload.status] || 'wish';
   if ('priority' in payload) patch.priority = payload.priority;
   if ('tags' in payload)     patch.tags = payload.tags;
+  if ('tagIds' in payload)   patch.tagIds = payload.tagIds;
   if ('notes' in payload)    patch.notes = payload.notes;
   if ('zone_id' in payload) {
     patch.zoneId = payload.zone_id || null;
@@ -1306,7 +1319,7 @@ $('btnQuickAddSave').addEventListener('click', async () => {
   if (!name) { toast('Введи название', 'err'); return; }
   try {
     const id = await saveProduct(null, {
-      name, zone_id: quickAddZoneId || null, status: 'want', priority: 1, tags: [], notes: null,
+      name, zone_id: quickAddZoneId || null, status: 'want', priority: 1, tags: [], tagIds: [], notes: null,
     });
     closeQuickAdd();
     render();
@@ -1429,7 +1442,11 @@ function openEditModal(id) {
   $('eName').value  = item.name || '';
   $('eNotes').value = item.notes || '';
   buildZoneOptions($('eZone'), item.zone_id);
-  curTags     = [...(item.tags || [])];
+  curTagIds = [...(item.tagIds || [])]; curLegacy = [];
+  for (const t of (item.legacy || [])) {      // старый текстовый тег -> настоящий, если есть с таким именем
+    const o = tagOpts.find(x => x.name.toLowerCase() === String(t).toLowerCase());
+    if (o) { if (!curTagIds.includes(o.id)) curTagIds.push(o.id); } else curLegacy.push(t);
+  }
   curPriority = item.priority ?? 1;
   curStatus   = item.status || 'want';
   renderTagChips(); syncPrioBtns(); syncStatusBtns();
@@ -1449,7 +1466,8 @@ $('btnSaveEdit').addEventListener('click', async () => {
       name,
       zone_id: $('eZone').value || null,
       notes:   $('eNotes').value.trim() || null,
-      tags:    curTags,
+      tags:    curLegacy,
+      tagIds:  curTagIds,
       priority: curPriority,
       status:   curStatus,
     });
@@ -1480,27 +1498,70 @@ function syncStatusBtns() {
   document.querySelectorAll('.status-opt').forEach(btn => btn.classList.toggle('on', btn.dataset.sv === curStatus));
 }
 
-// tags
+// tags (системные + личные, хранится tagIds)
 const tagIn = $('tagIn');
-tagIn.addEventListener('keydown', e => {
-  if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(tagIn.value.trim()); }
-  if (e.key === 'Backspace' && !tagIn.value && curTags.length) { curTags.pop(); renderTagChips(); }
-});
-tagIn.addEventListener('blur', () => { if (tagIn.value.trim()) addTag(tagIn.value.trim()); });
-$('tagsWrap').addEventListener('click', () => tagIn.focus());
-function addTag(v) {
-  if (!v || curTags.includes(v)) { tagIn.value = ''; return; }
-  curTags.push(v); tagIn.value = ''; renderTagChips();
+function tagSuggestions() {
+  const q = tagIn.value.trim().toLowerCase(), box = $('tagSuggest');
+  const list = tagOpts.filter(o => !curTagIds.includes(o.id) && (!q || o.name.toLowerCase().includes(q))).slice(0, 40);
+  if (!list.length) { box.style.display = 'none'; return; }
+  let html = '', g = null;
+  list.forEach(o => {
+    const grp = o.group || 'Мои теги';
+    if (grp !== g) { g = grp; html += `<div class="ts-g">${esc(g)}</div>`; }
+    html += `<button type="button" class="ts-o" data-id="${esc(o.id)}">${esc(o.name)}</button>`;
+  });
+  box.innerHTML = html; box.style.display = 'block';
 }
+$('tagSuggest').addEventListener('mousedown', e => {
+  const b = e.target.closest('.ts-o'); if (!b) return;
+  e.preventDefault(); addTagId(b.dataset.id);
+});
+function addTagId(id) {
+  if (!curTagIds.includes(id)) curTagIds.push(id);
+  tagIn.value = ''; renderTagChips();
+}
+async function addTagByName(v) {
+  if (!v) return;
+  const o = tagOpts.find(x => x.name.toLowerCase() === v.toLowerCase());
+  if (o) { addTagId(o.id); return; }
+  try {   // новый личный тег (хранится в общем модуле 'shared', виден во всех твоих модулях)
+    const rec = await DB.create('tags', { name: v, group: 'Мои теги', scope: ['purchases'] }, 'shared');
+    const opt = { ...rec, system: false };
+    tagOpts.push(opt); tagMap[rec.id] = opt; addTagId(rec.id);
+  } catch (e) { toast('Не удалось создать тег', 'err'); tagIn.value = ''; }
+}
+tagIn.addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTagByName(tagIn.value.trim()); }
+  if (e.key === 'Backspace' && !tagIn.value) {
+    if (curLegacy.length) curLegacy.pop(); else curTagIds.pop();
+    renderTagChips();
+  }
+});
+tagIn.addEventListener('input', tagSuggestions);
+tagIn.addEventListener('focus', tagSuggestions);
+tagIn.addEventListener('blur', () => {
+  if (tagIn.value.trim()) addTagByName(tagIn.value.trim());
+  setTimeout(() => { $('tagSuggest').style.display = 'none'; }, 150);
+});
+$('tagsWrap').addEventListener('click', () => tagIn.focus());
 function renderTagChips() {
   $('tagsWrap').querySelectorAll('.tc').forEach(el => el.remove());
-  curTags.forEach((t, i) => {
+  curTagIds.forEach((id, i) => {
     const chip = document.createElement('span');
     chip.className = 'tc';
-    chip.innerHTML = `${esc(t)}<button type="button" data-i="${i}">×</button>`;
-    chip.querySelector('button').addEventListener('click', () => { curTags.splice(i, 1); renderTagChips(); });
+    chip.innerHTML = `${esc(tagMap[id]?.name || id)}<button type="button">×</button>`;
+    chip.querySelector('button').addEventListener('click', () => { curTagIds.splice(i, 1); renderTagChips(); });
     $('tagsWrap').insertBefore(chip, tagIn);
   });
+  curLegacy.forEach((t, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'tc legacy';
+    chip.innerHTML = `<span title="Нажми, чтобы сделать настоящим тегом">${esc(t)}</span><button type="button">×</button>`;
+    chip.querySelector('span').addEventListener('click', e => { e.stopPropagation(); curLegacy.splice(i, 1); renderTagChips(); addTagByName(t); });
+    chip.querySelector('button').addEventListener('click', () => { curLegacy.splice(i, 1); renderTagChips(); });
+    $('tagsWrap').insertBefore(chip, tagIn);
+  });
+  if (document.activeElement === tagIn) tagSuggestions();
 }
 
 // ══════════════════════════════════════════════════
