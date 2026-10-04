@@ -6,6 +6,9 @@ import { app1Router } from './apps/app1Routes.js';
 import { createEntityRouter } from './apps/entityRoutes.js';
 import { storageRouter } from './storage/routes.js';
 import { entities as projectsEntities } from './db/schema/projects.js';
+import { mealsEntities } from './db/schema/meals.js';
+import { purchasesEntities } from './db/schema/purchases.js';
+import { cosplaysEntities } from './db/schema/cosplays.js';
 
 const app = express();
 
@@ -22,6 +25,9 @@ app.use('/auth', authRouter);       // /auth/register, /auth/login
 app.use('/app_1', app1Router);      // пример реальных данных: /app_1/items
 app.use('/storage', storageRouter);   // файлы: подписанные ссылки на S3-совместимое хранилище
 app.use('/projects', createEntityRouter('projects', projectsEntities)); // LifeOS: areas/projects/tasks/tags...
+app.use('/meals', createEntityRouter('meals', mealsEntities));
+app.use('/purchases', createEntityRouter('purchases', purchasesEntities));
+app.use('/cosplays', createEntityRouter('cosplays', cosplaysEntities));
 
 const port = Number(process.env.PORT ?? 3000);
 app.listen(port, () => {
