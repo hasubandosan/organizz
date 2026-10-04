@@ -47,3 +47,8 @@ curl localhost:3000/app_1/items -H "Authorization: Bearer <TOKEN>"
 4. `npm run db:generate && npm run db:migrate`.
 5. Добавьте запись в `registry.apps` (аналогично app_1 в seed.sql).
 6. Скопируйте `src/apps/app1Routes.ts` → `app2Routes.ts`, подключите в `src/index.ts`.
+
+## Хранилище картинок (S3-совместимое: Backblaze B2 / R2)
+Env-переменные (на Fly.io: `fly secrets set ...`): `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_KEY_ID`, `S3_APP_KEY`.
+Маршруты: `POST /storage/upload-url`, `POST /storage/read-url`, `DELETE /storage` (только с JWT).
+Для загрузки из браузера у бакета должны быть настроены CORS-правила (PUT/GET с домена фронтенда).

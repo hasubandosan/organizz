@@ -71,6 +71,8 @@ async function _api(path, options = {}) {
   return body;
 }
 
+const _imgUrlCache = new Map();
+
 const _STORE = {
   // appSlug — необязательный: по умолчанию свой модуль (APP_SLUG).
   // Нужен только hub для кросс-модульного чтения.
@@ -335,25 +337,46 @@ const _V = {
     return _STORE.delete('tags', id);
   },
 
-  /* ── IMAGES (base64, хранятся отдельно) ── */
+  /* ── IMAGES ──
+     Файл лежит в S3-совместимом хранилище (Backblaze B2), в базе — только
+     запись {id, key, contentType}. Контракт прежний: saveImage(base64) -> id,
+     getImage(id) -> { ..., data } где data пригоден для <img src>.
+     Старые записи с base64 в поле data продолжают работать как есть. */
   async saveImage(base64, meta = {}) {
-    const img = {
-      id:        _uid(),
-      data:      base64,
-      createdAt: new Date().toISOString(),
-      ...meta,
-    };
-    await _STORE.put(IMAGE_STORE, img);
-    return img.id;
+    const id = _uid();
+    const createdAt = new Date().toISOString();
+    try {
+      const blob = await (await fetch(base64)).blob();          // data:URL -> Blob
+      const { key, uploadUrl } = await _api('/storage/upload-url', {
+        method: 'POST', body: JSON.stringify({ contentType: blob.type }),
+      });
+      const up = await fetch(uploadUrl, { method: 'PUT', body: blob, headers: { 'Content-Type': blob.type } });
+      if (!up.ok) throw new Error(`Загрузка в хранилище: ${up.status}`);
+      await _STORE.put(IMAGE_STORE, { id, key, contentType: blob.type, createdAt, ...meta });
+    } catch (e) {
+      // Хранилище недоступно — не теряем картинку, кладём по-старому (base64 в базу)
+      console.warn('[LifeOS] S3 недоступен, сохраняю base64:', e.message);
+      await _STORE.put(IMAGE_STORE, { id, data: base64, createdAt, ...meta });
+    }
+    return id;
   },
 
   async getImage(id) {
-    return _STORE.get(IMAGE_STORE, id);
+    const rec = await _STORE.get(IMAGE_STORE, id);
+    if (!rec || rec.data || !rec.key) return rec;               // старый формат или нет записи
+    const hit = _imgUrlCache.get(rec.key);
+    if (hit && hit.exp > Date.now()) return { ...rec, data: hit.url };
+    const { url } = await _api('/storage/read-url', { method: 'POST', body: JSON.stringify({ key: rec.key }) });
+    _imgUrlCache.set(rec.key, { url, exp: Date.now() + 50 * 60 * 1000 });  // ссылка живёт 1 ч, кэш 50 мин
+    return { ...rec, data: url };
   },
 
   async deleteImage(id) {
+    const rec = await _STORE.get(IMAGE_STORE, id);
+    if (rec?.key) await _api('/storage', { method: 'DELETE', body: JSON.stringify({ key: rec.key }) }).catch(() => {});
     return _STORE.delete(IMAGE_STORE, id);
   },
+
 
   /* ── STATS ── */
   async stats() {
