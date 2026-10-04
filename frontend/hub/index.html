@@ -212,12 +212,14 @@ async function renderTasks() {
 }  
 
 async function renderPurchases() {  
-  const all = (await DB.getAll('purchases')).filter(p => p.status !== 'in_stock');  
+  const all = (await DB.getAll('purchases', 'purchases').catch(() => [])).filter(p => p.status !== 'in_stock');
+  const allVariants = await DB.getAll('purchase_variants', 'purchases').catch(() => []);  
   // Цена теперь живёт на основном (primary) варианте покупки, а не на самой
   // покупке — читаем её через DB.getPrimaryVariant, с фолбэком на старое
   // плоское поле price для записей, созданных до модели вариантов.
   const withPrice = await Promise.all(all.map(async p => {
-    const pv = await DB.getPrimaryVariant(p.id);
+    const vs = allVariants.filter(v => v.purchaseId === p.id);
+    const pv = vs.find(v => v.isPrimary) || vs[0] || null;
     const price = pv ? pv.price : (p.price ?? null);
     return { ...p, _price: price };
   }));
@@ -239,7 +241,7 @@ async function renderPurchases() {
 document.getElementById('btn-search').addEventListener('click', async () => {  
   const term = prompt('Поиск по LifeOS:');  
   if (!term) return;  
-  const results = await DB.search(['projects','tasks','purchases'], term);  
+  const results = await DB.search(['projects','tasks'], term);  
   if (!results.length) { UI.toast('Ничего не найдено', 'info'); return; }  
   location.href = `../projects/?q=${encodeURIComponent(term)}`;  
 });  

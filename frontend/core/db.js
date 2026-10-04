@@ -28,6 +28,8 @@ const COLLECTIONS = [
   'meal_products', 'meal_recipes', 'meal_weeks', 'meal_settings',
   // Новые глобальные коллекции
   'spaces', 'members', 'relations',
+  // Модуль purchases
+  'zones',
 ];
 const META_STORE  = '_meta';
 const IMAGE_STORE = '_images';
@@ -314,15 +316,15 @@ const _V = {
      Покупка (purchases) — абстрактная сущность ("хочу купить X").
      Вариант (purchase_variants) — конкретное предложение: бренд/имя, цена, магазин.
      Один вариант может быть отмечен isPrimary — он показывается в сетке/карточке. */
-  async getVariants(purchaseId) {
-    return _STORE.getAll('purchase_variants').then(all =>
+  async getVariants(purchaseId, appSlug) {
+    return _STORE.getAll('purchase_variants', appSlug).then(all =>
       all.filter(v => v.purchaseId === purchaseId)
          .sort((a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0) || new Date(a.createdAt) - new Date(b.createdAt))
     );
   },
 
-  async getPrimaryVariant(purchaseId) {
-    const vars = await this.getVariants(purchaseId);
+  async getPrimaryVariant(purchaseId, appSlug) {
+    const vars = await this.getVariants(purchaseId, appSlug);
     return vars.find(v => v.isPrimary) || vars[0] || null;
   },
 
@@ -420,7 +422,7 @@ const _V = {
     const [p, t, pu, a] = await Promise.all([
       _STORE.getAll('projects'),
       _STORE.getAll('tasks'),
-      _STORE.getAll('purchases'),
+      _STORE.getAll('purchases', 'purchases').catch(() => []),
       _STORE.getAll('areas'),
     ]);
     return {
