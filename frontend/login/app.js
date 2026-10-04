@@ -90,7 +90,8 @@ async function onAuthSuccess(token, email) {
   // Если пришли из другого модуля (?app=projects) — выдаём роль и там тоже,
   // без повторной регистрации (один логин работает везде).
   const params = new URLSearchParams(location.search);
-  const appSlug = params.get('app');
+  // Без ?app= заходят напрямую — ведём в хаб, который работает с модулем projects
+  const appSlug = params.get('app') || 'projects';
   const redirect = params.get('redirect');
 
   if (appSlug && appSlug !== APP_SLUG) {
@@ -103,12 +104,8 @@ async function onAuthSuccess(token, email) {
     } catch { /* модуль не найден в registry — не критично, просто не даём роль */ }
   }
 
-  if (redirect) {
-    window.location.href = redirect; // возвращаемся туда, откуда редиректнуло (projects/hub)
-    return;
-  }
-
-  showApp(token, email);
+  // Возвращаемся туда, откуда редиректнуло; если пришли напрямую — в хаб
+  window.location.href = redirect || '/hub/';
 }
 
 function showApp(token, email) {
@@ -181,5 +178,6 @@ itemForm.addEventListener('submit', async (e) => {
 const savedToken = localStorage.getItem('token');
 const savedEmail = localStorage.getItem('email');
 if (savedToken && savedEmail) {
-  showApp(savedToken, savedEmail);
+  const back = new URLSearchParams(location.search).get('redirect');
+  window.location.href = back || '/hub/';
 }
