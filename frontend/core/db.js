@@ -256,7 +256,8 @@ const _V = {
 
   /* ── ТЕГИ И ЗОНЫ: один источник правды (см. docs/TAGS_AND_REFS.md) ──
      Системные (встроенные, общие для всех) — с backend, кэшируются.
-     Личные — коллекции 'tags' / 'zones' в модуле 'shared', у каждого пользователя свои. */
+     Личные — коллекция 'tags' в модуле 'shared' (поле kind: 'tag' | 'category'), у каждого свои.
+     Категории и теги — одно и то же хранилище (tagIds), различие только в kind. */
   async getSystemTags(scope, kind) {
     if (!_sysTagsCache) {
       const r = await _api('/shared/system-tags');
@@ -268,11 +269,13 @@ const _V = {
   },
 
   // Для выпадашек: системные + личные, отфильтрованные по модулю. system:true — нельзя редактировать.
-  async getTagOptions(scope, kind = 'tag') {
+  // kind: не задан — и категории, и теги; 'category' или 'tag' — только они.
+  async getTagOptions(scope, kind) {
     const sys = (await DB.getSystemTags(scope, kind)).map(t => ({ ...t, system: true }));
-    const mine = (await _STORE.getAll(kind === 'zone' ? 'zones' : 'tags', 'shared'))
+    const mine = (await _STORE.getAll('tags', 'shared'))
+      .filter(t => !kind || (t.kind || 'tag') === kind)
       .filter(t => !t.scope || t.scope.includes('all') || t.scope.includes(scope))
-      .map(t => ({ ...t, system: false }));
+      .map(t => ({ ...t, kind: t.kind || 'tag', system: false }));
     return [...sys, ...mine];
   },
 
