@@ -72,13 +72,15 @@ async function _api(path, options = {}) {
 }
 
 const _STORE = {
-  async getAll(col) {
-    const rows = await _api(`/${APP_SLUG}/${encodeURIComponent(col)}`);
+  // appSlug — необязательный: по умолчанию свой модуль (APP_SLUG).
+  // Нужен только hub для кросс-модульного чтения.
+  async getAll(col, appSlug = APP_SLUG) {
+    const rows = await _api(`/${appSlug}/${encodeURIComponent(col)}`);
     return rows || [];
   },
 
-  async get(col, id) {
-    return _api(`/${APP_SLUG}/${encodeURIComponent(col)}/${encodeURIComponent(id)}`);
+  async get(col, id, appSlug = APP_SLUG) {
+    return _api(`/${appSlug}/${encodeURIComponent(col)}/${encodeURIComponent(id)}`);
   },
 
   async put(col, rec) {
@@ -233,17 +235,17 @@ const _V = {
     return true;
   },
 
-  async getById(col, id) {
-    return _STORE.get(col, id);
+  async getById(col, id, appSlug) {
+    return _STORE.get(col, id, appSlug);
   },
 
-  async getAll(col) {
-    return _STORE.getAll(col);
+  async getAll(col, appSlug) {
+    return _STORE.getAll(col, appSlug);
   },
 
   /* ── QUERY (простая фильтрация по полям) ── */
-  async query(col, filter = {}) {
-    let items = await _STORE.getAll(col);
+  async query(col, filter = {}, appSlug) {
+    let items = await _STORE.getAll(col, appSlug);
     for (const [k, v] of Object.entries(filter)) {
       if (v == null || v === '') continue;
       items = Array.isArray(v)
