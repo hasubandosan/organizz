@@ -33,6 +33,9 @@ authRouter.post('/register', async (req, res) => {
 
   // Базовая роль 'user' в приложении, где произошла регистрация
   await grantRole(user.id, appSlug, 'user');
+  // Каталог продуктов общий для всех модулей — роль выдаётся сразу всем,
+  // не нужно отдельно "вступать" в него через /auth/join
+  await grantRole(user.id, 'catalog', 'user');
 
   const token = await signToken({ userId: user.id, email: user.email });
   res.status(201).json({ token, user: { id: user.id, email: user.email } });
@@ -70,6 +73,7 @@ authRouter.post('/join', requireAuth, async (req: AuthedRequest, res) => {
 
   try {
     await grantRole(req.userId!, parsed.data.appSlug, 'user');
+    await grantRole(req.userId!, 'catalog', 'user'); // подчищаем для пользователей, заведённых до каталога
     res.json({ ok: true });
   } catch (e) {
     res.status(404).json({ error: e instanceof Error ? e.message : 'Ошибка' });

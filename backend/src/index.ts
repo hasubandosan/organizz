@@ -8,6 +8,7 @@ import { storageRouter } from './storage/routes.js';
 import { systemTagsRouter } from './shared/routes.js';
 import { sharedEntities } from './db/schema/shared.js';
 import { entities as projectsEntities } from './db/schema/projects.js';
+import { catalogRouter } from './catalog/routes.js';
 import { mealsEntities } from './db/schema/meals.js';
 import { purchasesEntities } from './db/schema/purchases.js';
 import { cosplaysEntities } from './db/schema/cosplays.js';
@@ -32,6 +33,7 @@ app.use('/shared/system-tags', systemTagsRouter);   // системные тег
 app.use('/shared', createEntityRouter('shared', sharedEntities));   // личные теги/зоны пользователя
 app.use('/purchases', createEntityRouter('purchases', purchasesEntities));
 app.use('/cosplays', createEntityRouter('cosplays', cosplaysEntities));
+app.use('/catalog', catalogRouter); // общий каталог продуктов: чтение всем, модерация — admin
 
 const port = Number(process.env.PORT ?? 3000);
 app.listen(port, () => {

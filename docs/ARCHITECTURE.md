@@ -88,6 +88,36 @@ PRIMARY KEY (owner_id, entity_type, id)   -- id уникален только в
 Системные (встроенные) категории/теги — `backend/src/shared/systemTags.ts`, личные — модуль `shared`.
 Связи между модулями — `refs`. Подробно: `docs/TAGS_AND_REFS.md`.
 
+## Каталог продуктов (catalog) — единственная НЕ owner-scoped схема
+
+В отличие от всех остальных модулей, `catalog.products` общий для всех
+пользователей — не фильтруется по `owner_id`. Обычный generic-паттерн
+entity-таблицы здесь не подходит, поэтому у `catalog` свой роутер
+(`backend/src/catalog/routes.ts`), не через `createEntityRouter`.
+
+Таблицы: `catalog.products` (сам каталог), `catalog.suggestions` (заявки на
+новый продукт или правку — `type: 'new_product' | 'edit_product'`, статус
+`pending/approved/rejected`), `catalog.votes` (один голос на заявку от
+пользователя, `PRIMARY KEY (suggestion_id, user_id)`).
+
+Права — та же ролевая модель, что везде (`auth.user_app_roles`, appSlug
+`'catalog'`), но с другой логикой выдачи: роль `user` в `catalog` выдаётся
+**автоматически всем** при `/auth/register` и `/auth/join` (это общая
+инфраструктура, не модуль, в который осознанно "вступают"). Роль `admin`
+в `catalog` выдаётся вручную через SQL (шаблон — в конце `drizzle/seed.sql`).
+
+- `GET /catalog/products` — читает любой `user`
+- `POST /catalog/suggestions`, `POST/DELETE /catalog/suggestions/:id/vote` — `user`
+- `GET /catalog/suggestions` — список с подсчётом голосов (сортировка по голосам)
+- `POST /catalog/suggestions/:id/approve|reject`, прямые `POST/PATCH/DELETE /catalog/products/*` — только `admin`
+
+Одобрение по голосам НЕ автоматическое — голоса только сортируют заявки
+для админа, решение всегда ручное.
+
+Сидирование: `backend/scripts/import-catalog-products.ts` + `scripts/seed-products.json`
+(стартовый набор ~190 базовых продуктов). Идемпотентно по `name`, можно
+дозапускать с расширенным JSON (например, при импорте из Open Food Facts).
+
 ## Картинки
 
 `DB.saveImage(base64, meta) -> id` и `DB.getImage(id) -> { ..., data }` (`data` годится

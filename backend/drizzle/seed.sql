@@ -13,5 +13,15 @@ INSERT INTO registry.apps (slug, name, db_schema, is_guest, status) VALUES
   ('meals', 'LifeOS: Питание', 'meals', false, 'active'),
   ('purchases', 'LifeOS: Покупки', 'purchases', false, 'active'),
   ('cosplays', 'LifeOS: Косплеи', 'cosplays', false, 'active'),
-  ('shared', 'LifeOS: Общие теги и зоны', 'shared', false, 'active')
+  ('shared', 'LifeOS: Общие теги и зоны', 'shared', false, 'active'),
+  ('catalog', 'LifeOS: Каталог продуктов', 'catalog', false, 'active')
 ON CONFLICT (slug) DO NOTHING;
+
+-- Выдать себе admin в каталоге продуктов (нужно для модерации заявок).
+-- Выполнить ОДИН раз вручную, подставив свой email:
+--
+-- INSERT INTO auth.user_app_roles (user_id, app_id, role_id)
+-- SELECT u.id, a.id, r.id
+-- FROM auth.users u, registry.apps a, auth.roles r
+-- WHERE u.email = 'ваш-email@example.com' AND a.slug = 'catalog' AND r.code = 'admin'
+-- ON CONFLICT DO NOTHING;

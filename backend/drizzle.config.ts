@@ -11,6 +11,7 @@ export default defineConfig({
     './src/db/schema/purchases.ts',
     './src/db/schema/shared.ts',
     './src/db/schema/cosplays.ts',
+    './src/db/schema/catalog.ts',
   ],
   out: './drizzle/migrations',
   dialect: 'postgresql',
@@ -19,5 +20,5 @@ export default defineConfig({
     url: process.env.DATABASE_URL as string,
   },
   // Когда добавляете app_2, app_3... — дописывайте сюда их пути и slug ниже
-  schemaFilter: ['registry', 'auth', 'app_1', 'projects', 'meals', 'purchases', 'cosplays', 'shared'],
+  schemaFilter: ['registry', 'auth', 'app_1', 'projects', 'meals', 'purchases', 'cosplays', 'shared', 'catalog'],
 });

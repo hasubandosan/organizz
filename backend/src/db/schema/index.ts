@@ -6,3 +6,4 @@ export * from './meals.js';
 export * from './purchases.js';
 export * from './cosplays.js';
 export * from './shared.js';
+export * from './catalog.js';
