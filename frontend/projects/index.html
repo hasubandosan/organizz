@@ -1,0 +1,1982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0a0f">
+<title>LifeOS — Projects</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../core/styles.css">
+<style>
+/* ── Project Grid (gallery) ── */
+.proj-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  padding: 0 16px;
+}
+.proj-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px;
+  cursor: pointer;
+  transition: .15s;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+}
+.proj-card:hover { border-color: var(--accent2); transform: translateY(-2px); }
+.proj-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.proj-card-name {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  flex: 1;
+  word-break: break-word;
+}
+.proj-card-status {
+  flex-shrink: 0;
+}
+.proj-card-budget {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--yellow);
+  font-family: var(--m);
+}
+.proj-card-desc {
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.proj-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+.proj-card-priority {
+  flex-shrink: 0;
+}
+.proj-card-last-task {
+  font-size: 11px;
+  color: var(--text3);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: var(--bg3);
+  border-radius: 100px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+/* ── Progress Circle ── */
+.progress-ring {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  position: relative;
+}
+.progress-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.progress-ring-bg { fill: none; stroke: var(--bg3); stroke-width: 4; }
+.progress-ring-fg { fill: none; stroke: var(--green); stroke-width: 4; stroke-linecap: round; transition: stroke-dashoffset .5s ease; }
+.progress-ring-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--m);
+  color: var(--green);
+}
+
+/* ── Purchases Gallery inside project detail ── */
+.pur-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+}
+.pur-gal-item {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--r2);
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: .15s;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pur-gal-item:hover { border-color: var(--accent2); }
+.pur-gal-name {
+  font-size: 13px;
+  font-weight: 600;
+  word-break: break-word;
+}
+.pur-gal-price {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--m);
+  color: var(--yellow);
+}
+.pur-gal-meta {
+  font-size: 11px;
+  color: var(--text3);
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* ── Breadcrumb path for task detail ── */
+.task-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text3);
+  margin-bottom: 10px;
+  padding: 6px 12px;
+  background: var(--bg3);
+  border-radius: var(--r2);
+}
+.task-breadcrumbs span {
+  color: var(--text3);
+}
+.task-breadcrumbs a {
+  color: var(--accent2);
+  cursor: pointer;
+  text-decoration: none;
+}
+.task-breadcrumbs a:hover { text-decoration: underline; }
+.task-breadcrumbs .sep {
+  color: var(--text3);
+  opacity: .5;
+}
+
+/* ── Compact, centered layout on PC ──
+   Mobile-first .shell/.topbar/.bottom-nav otherwise stretch edge-to-edge
+   on wide screens, which reads as sparse and hard to scan. We only need
+   to cap width + center; if .topbar/.bottom-nav are position:fixed with
+   left:0/right:0 (the usual mobile-app pattern), max-width+auto margins
+   center them too — no layout assumptions broken either way. */
+@media (min-width: 860px) {
+  body { background: var(--bg1, #05050a); }
+  .shell {
+    max-width: 1080px;
+    margin-left: auto;
+    margin-right: auto;
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    min-height: 100vh;
+  }
+  .topbar, .bottom-nav {
+    max-width: 1080px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .proj-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+}
+
+@media (min-width: 1400px) {
+  .shell, .topbar, .bottom-nav { max-width: 1280px; }
+}
+
+/* ── Compact modals on PC ──
+   (previous rule targeted .modal-box/.modal-inner, classes that don't
+   exist anywhere in this file's markup, so it silently did nothing —
+   every modal rendered full mobile width even on desktop.) */
+@media (min-width: 768px) {
+  .modal-overlay { justify-content: center; align-items: center; }
+  .modal-overlay .modal { max-width: 480px; border-radius: var(--r); max-height: 86dvh; }
+  #m-task .modal { max-width: 540px; }
+  .modal-body { padding: 18px 20px; }
+}
+
+/* ── Project gallery group headers (Group by Area) ── */
+.proj-group-header {
+  padding: 0 16px;
+  margin: 18px 0 8px;
+}
+.proj-group-header:first-child { margin-top: 4px; }
+
+/* ── Compact read-only image gallery for detail views ──
+   .img-grid (shared styles.css) is a fixed 3-col grid meant for the small
+   image-picker inside modals; on a full-width detail page that stretches
+   into huge tiles. This auto-fill variant stays compact at any width. */
+.detail-img-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.detail-img-gallery .img-thumb { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--r2); cursor: pointer; }
+
+/* ── Purchase variant editor (mirrors the Purchases module) ── */
+.pv-vars-editor { display: flex; flex-direction: column; gap: 8px; margin-top: 5px; }
+.pv-row { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; background: var(--bg3); border: 1px solid var(--border2); border-radius: var(--r2); position: relative; }
+.pv-row.pref { border-color: var(--purple, #a070f0); }
+.pv-thumb {
+  width: 48px; height: 48px; border-radius: var(--r2); flex-shrink: 0;
+  background: var(--bg4, var(--bg3)); border: 1px dashed var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; color: var(--text3); overflow: hidden; position: relative; cursor: pointer;
+}
+.pv-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.pv-thumb input[type=file] { display: none; }
+.pv-fields { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pv-fields-row { display: flex; gap: 6px; }
+.pv-fields input, .pv-fields select { font-size: 13px; background: var(--bg4, var(--bg2)); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border2); color: var(--text); width: 100%; box-sizing: border-box; }
+.pv-fields input::placeholder { color: var(--text3); }
+.pv-right { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; flex-shrink: 0; padding-top: 2px; }
+.pv-star { font-size: 17px; opacity: .35; transition: opacity .15s; cursor: pointer; background: none; border: none; padding: 4px; }
+.pv-star.on { opacity: 1; color: var(--yellow); }
+.pv-del { font-size: 17px; color: var(--text3); cursor: pointer; transition: color .15s; background: none; border: none; padding: 4px; }
+.pv-del:hover { color: var(--red); }
+.pv-add-btn {
+  width: 100%; padding: 10px; border: 1.5px dashed var(--border2); border-radius: var(--r2);
+  font-size: 13px; font-weight: 600; color: var(--text3); background: none; cursor: pointer; transition: all .15s;
+}
+.pv-add-btn:hover { border-color: var(--accent); color: var(--accent2); }
+.pv-empty-hint { font-size: 12px; color: var(--text3); padding: 4px 2px 8px; }
+
+/* ── Subtask combined add/search field ── */
+.sub-combo { position: relative; }
+.sub-combo-results {
+  margin-top: 6px; max-height: 160px; overflow-y: auto; display: none;
+  border: 1px solid var(--border2); border-radius: var(--r2); background: var(--bg3);
+}
+.sub-combo-results.show { display: block; }
+.sub-combo-hit { padding: 8px 10px; font-size: 13px; cursor: pointer; }
+.sub-combo-hit:hover { background: var(--bg4, var(--bg2)); }
+.sub-combo-hint { font-size: 11px; color: var(--text3); margin: 4px 0 8px; }
+
+/* ── Task view modal (compact, read-first; edit is an explicit action) ── */
+#m-task-view .modal { max-width: 480px; }
+.tv-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin: 10px 0 14px; }
+.tv-meta { background: var(--bg3); border-radius: var(--r2); padding: 9px 11px; }
+.tv-meta-lbl { font-size: 10px; color: var(--text3); font-weight: 700; letter-spacing: .6px; text-transform: uppercase; margin-bottom: 2px; }
+.tv-meta-val { font-size: 13px; font-weight: 700; }
+.tv-actions { display: flex; gap: 8px; margin-top: 14px; }
+.tv-actions button { flex: 1; padding: 11px; border-radius: var(--r2); font-size: 13px; font-weight: 700; cursor: pointer; }
+
+/* ── Priority / Status chip pickers (edit forms) ──
+   Colors carry priority (matches the read-only badges); status uses
+   icons/emoji only, no color-coding, per design decision. */
+.prio-sel { display: flex; gap: 6px; }
+.prio-opt {
+  flex: 1; padding: 8px 4px; border-radius: var(--r2); text-align: center;
+  border: 1px solid var(--border2); background: var(--bg3);
+  font-size: 11px; font-weight: 700; font-family: var(--m); color: var(--text3);
+  transition: all .15s; cursor: pointer;
+}
+.prio-opt.on-high   { background: rgba(240,80,96,.12);  color: var(--red);    border-color: rgba(240,80,96,.4); }
+.prio-opt.on-medium { background: rgba(240,192,64,.10); color: var(--yellow); border-color: rgba(240,192,64,.4); }
+.prio-opt.on-low    { background: var(--bg4, var(--bg2)); color: var(--text); border-color: var(--border2); }
+
+.stat-sel { display: flex; gap: 6px; flex-wrap: wrap; }
+.stat-opt {
+  padding: 7px 10px; border-radius: var(--r2); font-size: 12px; font-weight: 600;
+  border: 1px solid var(--border2); color: var(--text3); background: var(--bg3);
+  cursor: pointer; transition: .15s;
+}
+.stat-opt.on { background: rgba(91,110,245,.12); color: var(--accent2); border-color: rgba(91,110,245,.4); }
+
+/* ── Task tree drag-and-drop ──
+   Drag a task row onto another to make it a subtask; drop on the "root"
+   strip to detach it back to the top level. Mouse/trackpad only — the
+   native HTML5 DnD API isn't reliably draggable via touch. */
+.task-row[draggable="true"] { cursor: grab; }
+.task-row.tt-dragging { opacity: .35; }
+.task-row.tt-drop-target { outline: 2px dashed var(--accent); outline-offset: -2px; background: rgba(91,110,245,.08); border-radius: var(--r2); }
+.tt-root-drop {
+  border: 1.5px dashed var(--border2); border-radius: var(--r2);
+  padding: 8px 12px; margin-bottom: 8px; text-align: center;
+  font-size: 11px; color: var(--text3); transition: .15s;
+}
+.tt-root-drop.tt-drop-target { border-color: var(--accent); color: var(--accent2); background: rgba(91,110,245,.08); }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="topbar">
+    <a href="../hub/index.html" onclick="return openHub(event)" style="color:var(--text3);display:flex;align-items:center;gap:4px;font-size:13px;text-decoration:none">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+    </a>
+    <div class="topbar-logo">Projects</div>
+    <div class="topbar-spacer"></div>
+    <button class="topbar-btn" id="btn-search" aria-label="Search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    </button>
+    <button class="topbar-btn" id="btn-add" aria-label="Create new">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+  </header>
+
+  <main class="content">
+    <div class="page active" id="page-dashboard">
+      <div class="section" style="padding-top:20px">
+        <div class="section-header"><span class="section-title">Dashboard</span><span class="section-count" id="d-date"></span></div>
+      </div>
+      <div class="stat-grid" id="d-stats"></div>
+      <div class="section"><div class="section-header"><span class="section-title">Quick Actions</span></div></div>
+      <div class="quick-actions">
+        <button class="qa-btn" id="qa-project">＋ Project</button>
+        <button class="qa-btn" id="qa-task">＋ Task</button>
+        <button class="qa-btn" id="qa-purchase">＋ Purchase</button>
+        <button class="qa-btn" id="qa-area">＋ Area</button>
+        <button class="qa-btn" id="qa-export">↓ Export</button>
+      </div>
+      <div class="section" style="margin-top:14px">
+        <div class="section-header"><span class="section-title">Active Projects</span><button class="section-action" onclick="navTo('projects')">See all</button></div>
+        <div id="d-projects" class="proj-grid"></div>
+      </div>
+      <div class="section">
+        <div class="section-header"><span class="section-title">Open Tasks</span><button class="section-action" onclick="navTo('tasks')">See all</button></div>
+        <div id="d-tasks"></div>
+      </div>
+    </div>
+
+    <div class="page" id="page-projects">
+      <div class="search-bar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input id="proj-search" placeholder="Search projects…" oninput="renderProjects()">
+      </div>
+      <div class="filter-row" id="proj-filters"></div>
+      <div id="proj-list" style="padding-top:8px"></div>
+    </div>
+
+    <div class="page" id="page-tasks">
+      <div class="search-bar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input id="task-search" placeholder="Search tasks…" oninput="renderTasks()">
+      </div>
+      <div class="filter-row" id="task-filters"></div>
+      <div class="section" style="padding-top:0"><div id="task-list"></div></div>
+    </div>
+
+    <div class="page" id="page-areas">
+      <div class="area-grid" id="area-grid"></div>
+    </div>
+
+    <div class="page" id="page-settings">
+      <div class="section"><div class="section-header"><span class="section-title">Data</span></div></div>
+      <div class="settings-list">
+        <div class="settings-item" id="s-export"><span class="settings-label">Export All Data</span><span class="settings-value">↓ JSON</span></div>
+        <div class="settings-item" id="s-import"><span class="settings-label">Import Data</span><span class="settings-value">↑ JSON</span></div>
+        <div class="settings-item"><span class="settings-label">Storage</span><span class="settings-value" id="s-storage">localStorage</span></div>
+        <div class="settings-item"><span class="settings-label">Schema Version</span><span class="settings-value" id="s-schema">v1</span></div>
+        <div class="settings-item"><span class="settings-label">Records</span><span class="settings-value" id="s-records">—</span></div>
+        <div class="settings-item" id="s-tags"><span class="settings-label">Manage Tags</span><span class="settings-value">→</span></div>
+        <div class="settings-item" id="s-clear" style="color:var(--red)"><span class="settings-label">Clear All Data</span><span class="settings-value" style="color:var(--red)">✕</span></div>
+      </div>
+    </div>
+
+    <div class="page" id="page-detail"><div id="detail-content"></div></div>
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-page="dashboard" onclick="navTo('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>DASH
+    </button>
+    <button class="nav-item" data-page="projects" onclick="navTo('projects')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>PROJECTS
+    </button>
+    <button class="nav-item" data-page="tasks" onclick="navTo('tasks')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>TASKS
+    </button>
+    <button class="nav-item" data-page="areas" onclick="navTo('areas')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>AREAS
+    </button>
+    <button class="nav-item" data-page="settings" onclick="navTo('settings')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>SETTINGS
+    </button>
+  </nav>
+</div>
+
+<!-- ═══ MODALS ═══ -->
+
+<!-- Quick Add -->
+<div class="modal-overlay" id="m-add" onclick="UI.closeModalOnBackdrop(event,'m-add')"><div class="modal">
+  <div class="modal-header"><span class="modal-title">Create New</span><button class="modal-close" onclick="UI.closeModal('m-add')">×</button></div>
+  <div class="modal-body" style="display:flex;flex-direction:column;gap:8px">
+    <button class="qa-btn" style="width:100%;justify-content:flex-start;padding:14px 16px;font-size:15px" onclick="UI.closeModal('m-add');openProjModal()">📁 New Project</button>
+    <button class="qa-btn" style="width:100%;justify-content:flex-start;padding:14px 16px;font-size:15px" onclick="UI.closeModal('m-add');openTaskModal()">✅ New Task</button>
+    <button class="qa-btn" style="width:100%;justify-content:flex-start;padding:14px 16px;font-size:15px" onclick="UI.closeModal('m-add');openPurModal()">🛒 New Purchase</button>
+    <button class="qa-btn" style="width:100%;justify-content:flex-start;padding:14px 16px;font-size:15px" onclick="UI.closeModal('m-add');openAreaModal()">🌐 New Area</button>
+  </div>
+</div></div>
+
+<!-- Project Modal -->
+<div class="modal-overlay" id="m-proj" onclick="UI.closeModalOnBackdrop(event,'m-proj')"><div class="modal">
+  <div class="modal-header"><span class="modal-title" id="mpt">New Project</span><button class="modal-close" onclick="UI.closeModal('m-proj')">×</button></div>
+  <div class="modal-body">
+    <input type="hidden" id="pe-id">
+    <div class="form-group"><label class="form-label">Name *</label><input id="p-name" placeholder="Project name…"></div>
+    <div class="form-group"><label class="form-label">Description</label><textarea id="p-desc" placeholder="What is this project about?"></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Status</label>
+        <div class="stat-sel" id="p-status-sel">
+          <button type="button" class="stat-opt" data-sv="idea">💡 Idea</button>
+          <button type="button" class="stat-opt" data-sv="planned">📋 Planned</button>
+          <button type="button" class="stat-opt" data-sv="in_progress">🔄 In Progress</button>
+          <button type="button" class="stat-opt" data-sv="paused">⏸ Paused</button>
+          <button type="button" class="stat-opt" data-sv="completed">✅ Completed</button>
+          <button type="button" class="stat-opt" data-sv="archived">📦 Archived</button>
+        </div>
+        <input type="hidden" id="p-status" value="planned"></div>
+      <div class="form-group"><label class="form-label">Priority</label>
+        <div class="prio-sel" id="p-pri-sel">
+          <button type="button" class="prio-opt" data-p="high">🔴 High</button>
+          <button type="button" class="prio-opt" data-p="medium">📅 Medium</button>
+          <button type="button" class="prio-opt" data-p="low">○ Low</button>
+        </div>
+        <input type="hidden" id="p-pri" value="medium"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Area</label><select id="p-area"></select></div>
+      <div class="form-group"><label class="form-label">Budget (₽)</label><input id="p-budget" type="number" placeholder="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Start</label><input id="p-start" type="date"></div>
+      <div class="form-group"><label class="form-label">End</label><input id="p-end" type="date"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Tags</label><div class="tag-grid" id="p-tg"></div></div>
+    <div class="form-group"><label class="form-label">Images</label>
+      <div class="img-grid" id="p-ig"></div>
+      <input type="file" id="p-ii" accept="image/*" multiple style="display:none" onchange="handleImgFiles('p',event)">
+    </div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-ghost" onclick="UI.closeModal('m-proj')">Cancel</button><button class="btn btn-primary" onclick="saveProj()">Save</button></div>
+</div></div>
+
+<!-- Task Modal -->
+<div class="modal-overlay" id="m-task" onclick="UI.closeModalOnBackdrop(event,'m-task')"><div class="modal">
+  <div class="modal-header"><span class="modal-title" id="mtt">New Task</span><button class="modal-close" onclick="UI.closeModal('m-task')">×</button></div>
+  <div class="modal-body">
+    <input type="hidden" id="te-id">
+    <div class="form-group"><label class="form-label">Title *</label><input id="t-name" placeholder="What needs to be done?"></div>
+    <div class="form-group"><label class="form-label">Notes</label><textarea id="t-notes" placeholder="Details, links…"></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Status</label>
+        <div class="stat-sel" id="t-status-sel">
+          <button type="button" class="stat-opt" data-sv="idea">💡 Idea</button>
+          <button type="button" class="stat-opt" data-sv="planned">📋 Planned</button>
+          <button type="button" class="stat-opt" data-sv="in_progress">🔄 In Progress</button>
+          <button type="button" class="stat-opt" data-sv="paused">⏸ Paused</button>
+          <button type="button" class="stat-opt" data-sv="completed">✅ Completed</button>
+        </div>
+        <input type="hidden" id="t-status" value="planned"></div>
+      <div class="form-group"><label class="form-label">Priority</label>
+        <div class="prio-sel" id="t-pri-sel">
+          <button type="button" class="prio-opt" data-p="high">🔴 High</button>
+          <button type="button" class="prio-opt" data-p="medium">📅 Medium</button>
+          <button type="button" class="prio-opt" data-p="low">○ Low</button>
+        </div>
+        <input type="hidden" id="t-pri" value="medium"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Project</label><select id="t-proj"><option value="">— none —</option></select></div>
+      <div class="form-group"><label class="form-label">Area</label><select id="t-area"><option value="">— none —</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Due Date</label><input id="t-due" type="date"></div>
+      <div class="form-group"><label class="form-label">Own Cost (₽)</label><input id="t-cost" type="number" placeholder="0"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Parent Task</label><select id="t-parent"><option value="">— root task —</option></select></div>
+    <div class="form-group"><label class="form-label">Tags</label><div class="tag-grid" id="t-tg"></div></div>
+    <div id="sub-sec" style="display:none">
+      <div class="divider"></div>
+      <div class="form-group">
+        <label class="form-label">Subtasks</label>
+        <div id="sub-list"></div>
+        <div class="sub-combo-hint">Type a name — matching tasks show up below to link; press Enter or ＋ Add to create a new one.</div>
+        <div class="sub-combo">
+          <div class="subtask-add-row">
+            <input id="sub-inp" placeholder="Search or add a subtask…" oninput="searchExistingTasks()" onkeydown="if(event.key==='Enter'){event.preventDefault();addSubtask();}" autocomplete="off">
+            <button class="subtask-add-btn" onclick="addSubtask()">＋ Add</button>
+          </div>
+          <div id="sub-search-results" class="sub-combo-results"></div>
+        </div>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Images</label>
+      <div class="img-grid" id="t-ig"></div>
+      <input type="file" id="t-ii" accept="image/*" multiple style="display:none" onchange="handleImgFiles('t',event)">
+    </div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-ghost" onclick="UI.closeModal('m-task')">Cancel</button><button class="btn btn-primary" onclick="saveTask()">Save</button></div>
+</div></div>
+
+<!-- Purchase Modal -->
+<div class="modal-overlay" id="m-pur" onclick="UI.closeModalOnBackdrop(event,'m-pur')"><div class="modal">
+  <div class="modal-header"><span class="modal-title" id="mput">New Purchase</span><button class="modal-close" onclick="UI.closeModal('m-pur')">×</button></div>
+  <div class="modal-body">
+    <input type="hidden" id="pue-id">
+    <div class="form-group"><label class="form-label">Name *</label><input id="pu-name" placeholder="What to buy?"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Status</label>
+        <select id="pu-status"><option value="wish">Wish</option><option value="ordered">Ordered</option><option value="in_stock">In Stock</option></select></div>
+      <div class="form-group"><label class="form-label">Project</label><select id="pu-proj"><option value="">— none —</option></select></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Variants</label>
+      <div class="pv-empty-hint" id="pv-empty-hint" style="display:none">Без вариантов — просто идея. Бренд, цену, магазин и фото можно добавить позже, в любом варианте.</div>
+      <div class="pv-vars-editor" id="pv-vars-editor"></div>
+      <button type="button" class="pv-add-btn" id="pv-add-var" style="margin-top:8px">+ Add variant</button>
+    </div>
+    <div class="form-group"><label class="form-label">Notes</label><textarea id="pu-notes" style="min-height:60px" placeholder="Notes…"></textarea></div>
+    <div class="form-group"><label class="form-label">Tags</label><div class="tag-grid" id="pu-tg"></div></div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-ghost" onclick="UI.closeModal('m-pur')">Cancel</button><button class="btn btn-primary" onclick="savePur()">Save</button></div>
+</div></div>
+
+<!-- Task View Modal (read-first; ✎ switches to the edit modal) -->
+<div class="modal-overlay" id="m-task-view" onclick="UI.closeModalOnBackdrop(event,'m-task-view')"><div class="modal">
+  <div class="modal-header">
+    <span class="modal-title">Task</span>
+    <div style="display:flex;gap:6px;align-items:center">
+      <button class="topbar-btn" onclick="editTaskFromView()" aria-label="Edit task">✎</button>
+      <button class="modal-close" onclick="UI.closeModal('m-task-view')">×</button>
+    </div>
+  </div>
+  <div class="modal-body" id="task-view-body"></div>
+</div></div>
+
+<!-- Area Modal -->
+<div class="modal-overlay" id="m-area" onclick="UI.closeModalOnBackdrop(event,'m-area')"><div class="modal">
+  <div class="modal-header"><span class="modal-title" id="mat">New Area</span><button class="modal-close" onclick="UI.closeModal('m-area')">×</button></div>
+  <div class="modal-body">
+    <input type="hidden" id="ae-id">
+    <div class="form-group"><label class="form-label">Name *</label><input id="a-name" placeholder="e.g. Home, Work…"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Emoji</label><input id="a-emoji" placeholder="🏠" maxlength="4"></div>
+      <div class="form-group"><label class="form-label">Color (hex)</label><input id="a-color" placeholder="#5b6ef5" maxlength="7"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Description</label><textarea id="a-desc" style="min-height:60px" placeholder="What belongs here?"></textarea></div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-ghost" onclick="UI.closeModal('m-area')">Cancel</button><button class="btn btn-primary" onclick="saveArea()">Save</button></div>
+</div></div>
+
+<!-- Tags Manager -->
+<div class="modal-overlay" id="m-tags" onclick="UI.closeModalOnBackdrop(event,'m-tags')"><div class="modal">
+  <div class="modal-header"><span class="modal-title">Manage Tags</span><button class="modal-close" onclick="UI.closeModal('m-tags')">×</button></div>
+  <div class="modal-body">
+    <div class="form-group"><label class="form-label">All Tags</label><div class="tag-grid" id="all-tags-grid"></div></div>
+    <div class="subtask-add-row">
+      <input id="new-tag-inp" placeholder="New tag…" onkeydown="if(event.key==='Enter')addGlobalTag()">
+      <button class="subtask-add-btn" onclick="addGlobalTag()">＋ Add</button>
+    </div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-primary" onclick="UI.closeModal('m-tags')">Done</button></div>
+</div></div>
+
+<!-- Global Search -->
+<div class="modal-overlay" id="m-search" onclick="UI.closeModalOnBackdrop(event,'m-search')"><div class="modal">
+  <div class="modal-header"><span class="modal-title">Search</span><button class="modal-close" onclick="UI.closeModal('m-search')">×</button></div>
+  <div class="modal-body">
+    <div class="search-bar" style="margin-bottom:10px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input id="global-search-inp" placeholder="Search projects, tasks, purchases…" oninput="runGlobalSearch()" autocomplete="off">
+    </div>
+    <div id="global-search-results"></div>
+  </div>
+</div></div>
+
+<input type="file" id="file-import" accept=".json" style="display:none" onchange="handleImport(event)">
+
+<script src="../core/db.js"></script>
+<script src="../core/ui.js"></script>
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════ */
+let curPage   = 'dashboard';
+let pFilter   = 'all';
+let pGroupByArea = false;
+let tFilter   = 'active';
+let curDetail = null;
+let shops     = [];       // loaded once at boot; used by the purchase variant editor
+let pu_formVariants = [];      // [{ id|null, title, price, shopId, url, notes, isPrimary, imageIds, _imgData }]
+let pu_removedVariantIds = [];
+
+// image buffers per modal key
+const _imgBuf = { p: [], t: [], pu: [] };
+// selected tags per modal key
+const _selTags = { p: [], t: [], pu: [] };
+
+/* ═══════════════════════════════════════════
+   SEED (first run)
+═══════════════════════════════════════════ */
+async function seed() {
+  const areas = await DB.getAll('areas');
+  if (areas.length) return;
+
+  const am = {};
+  for (const x of [
+    { name:'Дом',      emoji:'🏠', description:'Домашние дела и ремонт' },
+    { name:'Работа',   emoji:'💼', description:'Карьера и проекты' },
+    { name:'Здоровье', emoji:'💪', description:'Физическое и ментальное' },
+    { name:'Финансы',  emoji:'💰', description:'Бюджет и инвестиции' },
+    { name:'Семья',    emoji:'👨‍👩‍👧', description:'Отношения и близкие' },
+    { name:'Участок',  emoji:'🌿', description:'Сад и дача' },
+  ]) { const r = await DB.create('areas', x); am[x.name] = r.id; }
+
+  const p1 = await DB.create('projects', { name:'Ремонт кухни', description:'Стены, пол, мебель, техника', status:'in_progress', priority:'high', areaId:am['Дом'], budget:150000, tags:['ремонт'], startDate:'2025-06-01', endDate:'2025-09-01' });
+  const p2 = await DB.create('projects', { name:'Пет-проект', description:'SaaS для учёта задач', status:'planned', priority:'medium', areaId:am['Работа'], budget:20000, tags:['dev'] });
+
+  const t2 = await DB.create('tasks', { name:'Выбрать плитку', status:'planned', priority:'high', projectId:p1.id, areaId:am['Дом'], tags:['ремонт'], selfBudget:0, dueDate:'2025-07-01' });
+  await DB.create('tasks', { name:'Купить плитку 30м²', status:'planned', priority:'medium', projectId:p1.id, parentId:t2.id, selfBudget:45000, tags:[] });
+  await DB.create('tasks', { name:'Нанять бригаду', status:'in_progress', priority:'high', projectId:p1.id, areaId:am['Дом'], tags:['срочно'], selfBudget:0 });
+  await DB.create('tasks', { name:'Написать ТЗ', status:'completed', priority:'medium', projectId:p2.id, areaId:am['Работа'], tags:['dev'], selfBudget:0 });
+  await DB.create('tasks', { name:'К врачу', status:'planned', priority:'medium', areaId:am['Здоровье'], dueDate:new Date().toISOString().split('T')[0], selfBudget:0 });
+
+  await DB.create('purchases', { name:'Плитка керамика 30м²', price:45000, status:'wish', projectId:p1.id, notes:'Leroy Merlin', sourceType:'task' });
+  await DB.create('purchases', { name:'Смеситель Grohe', price:12000, status:'in_stock', projectId:p1.id, sourceType:'manual' });
+  await DB.create('purchases', { name:'Ноутбук', price:80000, status:'wish', projectId:p2.id, sourceType:'manual' });
+}
+
+/* ═══════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════ */
+function navTo(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const pg = document.getElementById(`page-${page}`);
+  if (pg) pg.classList.add('active');
+  const ni = document.querySelector(`.nav-item[data-page="${page}"]`);
+  if (ni) ni.classList.add('active');
+  curPage = page;
+  curDetail = null;
+  renderCurrentPage();
+}
+
+/* ── Hub navigation fix for file:// protocol ── */
+function openHub(e) {
+  e.preventDefault();
+  location.href = '../hub/index.html';
+  return false;
+}
+
+function renderCurrentPage() {
+  if (curPage === 'dashboard') renderDash();
+  else if (curPage === 'projects') renderProjects();
+  else if (curPage === 'tasks') renderTasks();
+  else if (curPage === 'areas') renderAreas();
+  else if (curPage === 'settings') renderSettings();
+}
+
+function showDetail(html) {
+  document.getElementById('detail-content').innerHTML = html;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-detail').classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  curPage = 'detail';
+}
+
+/* ═══════════════════════════════════════════
+   PURCHASE VARIANTS — shared helper
+   Price/photo live on the purchase's primary variant. Falls back to the
+   legacy flat price/imageIds for purchases created before this model
+   (e.g. the seeded demo data below).
+═══════════════════════════════════════════ */
+async function primaryVariantOfPurchase(pu) {
+  const pv = await DB.getPrimaryVariant(pu.id);
+  if (pv) return pv;
+  if (pu.price != null || (pu.imageIds && pu.imageIds.length)) {
+    return { price: pu.price ?? null, imageIds: pu.imageIds || [], shopId: null, title: null, url: pu.notes?.startsWith('http') ? pu.notes : null, notes: null, _legacy: true };
+  }
+  return null;
+}
+
+/* ═══════════════════════════════════════════
+   IMAGE HELPERS
+═══════════════════════════════════════════ */
+function handleImgFiles(key, event) {
+  UI.handleImageFiles(event.target.files, _imgBuf[key],
+    `${key}-ig`, `${key}-ii`, []);
+}
+async function flushImgs(key, existingIds = []) {
+  return UI.flushImageBuffer(_imgBuf[key], existingIds);
+}
+async function initImgGrid(key, savedIds = []) {
+  _imgBuf[key] = [];
+  await UI.renderImageGrid(`${key}-ig`, `${key}-ii`, savedIds, _imgBuf[key]);
+}
+
+/* ═══════════════════════════════════════════
+   CHIP PICKERS (priority / status)
+   Each picker is a row of buttons that mirrors a hidden <input>, so the
+   rest of the code (saveProj/saveTask reading .value) doesn't change.
+═══════════════════════════════════════════ */
+function wireChipPicker(containerId, hiddenInputId) {
+  document.getElementById(containerId).querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById(hiddenInputId).value = btn.dataset.p ?? btn.dataset.sv;
+      syncChipPicker(containerId, hiddenInputId);
+    });
+  });
+}
+function syncChipPicker(containerId, hiddenInputId) {
+  const val = document.getElementById(hiddenInputId).value;
+  document.getElementById(containerId).querySelectorAll('button').forEach(btn => {
+    const bval = btn.dataset.p ?? btn.dataset.sv;
+    if (btn.dataset.p) btn.className = 'prio-opt' + (bval === val ? ' on-' + val : '');
+    else btn.classList.toggle('on', bval === val);
+  });
+}
+['p-status-sel','p-pri-sel','t-status-sel','t-pri-sel'].forEach(id =>
+  wireChipPicker(id, id.replace('-sel','')));
+
+/* ═══════════════════════════════════════════
+   PROJECT MODAL
+═══════════════════════════════════════════ */
+async function openProjModal(proj = null) {
+  await initImgGrid('p', proj?.imageIds || []);
+  _selTags.p = [...(proj?.tags || [])];
+  const areas = await DB.getAll('areas');
+  document.getElementById('p-area').innerHTML =
+    '<option value="">— none —</option>' +
+    areas.map(a => `<option value="${a.id}">${a.emoji || ''} ${a.name}</option>`).join('');
+  document.getElementById('mpt').textContent = proj ? 'Edit Project' : 'New Project';
+  const f = (id, v) => document.getElementById(id).value = v ?? '';
+  f('pe-id', proj?.id); f('p-name', proj?.name); f('p-desc', proj?.description);
+  f('p-status', proj?.status ?? 'planned'); f('p-pri', proj?.priority ?? 'medium');
+  syncChipPicker('p-status-sel', 'p-status'); syncChipPicker('p-pri-sel', 'p-pri');
+  f('p-area', proj?.areaId); f('p-budget', proj?.budget || '');
+  f('p-start', proj?.startDate); f('p-end', proj?.endDate);
+  await UI.renderTagGrid('p-tg', _selTags.p, tags => { _selTags.p = tags; });
+  UI.openModal('m-proj');
+}
+
+async function saveProj() {
+  const id = document.getElementById('pe-id').value;
+  const ex = id ? await DB.getById('projects', id) : null;
+  const imageIds = await flushImgs('p', ex?.imageIds || []);
+  const data = {
+    name:        document.getElementById('p-name').value.trim(),
+    description: document.getElementById('p-desc').value.trim(),
+    status:      document.getElementById('p-status').value,
+    priority:    document.getElementById('p-pri').value,
+    areaId:      document.getElementById('p-area').value || null,
+    budget:      parseFloat(document.getElementById('p-budget').value) || 0,
+    startDate:   document.getElementById('p-start').value || null,
+    endDate:     document.getElementById('p-end').value || null,
+    tags:        [..._selTags.p],
+    imageIds,
+  };
+  try {
+    if (id) await DB.update('projects', id, data);
+    else    await DB.create('projects', data);
+    UI.closeModal('m-proj');
+    UI.toast(id ? 'Project updated' : 'Project created');
+    renderCurrentPage();
+  } catch (e) { UI.toast(e.message, 'err'); }
+}
+
+/* ═══════════════════════════════════════════
+   TASK MODAL
+═══════════════════════════════════════════ */
+async function openTaskModal(task = null, preProjId = null, preParentId = null) {
+  await initImgGrid('t', task?.imageIds || []);
+  _selTags.t = [...(task?.tags || [])];
+  const [areas, projs, allTasks] = await Promise.all([
+    DB.getAll('areas'), DB.getAll('projects'), DB.getAll('tasks'),
+  ]);
+  document.getElementById('t-area').innerHTML   = '<option value="">— none —</option>' + areas.map(a => `<option value="${a.id}">${a.emoji || ''} ${a.name}</option>`).join('');
+  document.getElementById('t-proj').innerHTML   = '<option value="">— none —</option>' + projs.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  document.getElementById('t-parent').innerHTML = '<option value="">— root task —</option>' + allTasks.filter(t => !task || t.id !== task.id).map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+  document.getElementById('mtt').textContent = task ? 'Edit Task' : 'New Task';
+  const f = (id, v) => document.getElementById(id).value = v ?? '';
+  f('te-id', task?.id); f('t-name', task?.name); f('t-notes', task?.notes);
+  f('t-status', task?.status ?? 'planned'); f('t-pri', task?.priority ?? 'medium');
+  syncChipPicker('t-status-sel', 't-status'); syncChipPicker('t-pri-sel', 't-pri');
+  f('t-proj',   task?.projectId || preProjId);
+  f('t-area',   task?.areaId);
+  f('t-due',    task?.dueDate);
+  f('t-cost',   task?.selfBudget || task?.cost || '');
+  f('t-parent', task?.parentId || preParentId);
+
+  // Блокировка зоны, если задан проект
+  const areaSelect = document.getElementById('t-area');
+  const projSelect = document.getElementById('t-proj');
+  if (projSelect.value) {
+    areaSelect.disabled = true;
+    areaSelect.style.opacity = '0.5';
+    // Если у проекта есть зона — подставляем её
+    const selProj = projs.find(p => p.id === projSelect.value);
+    if (selProj?.areaId) {
+      areaSelect.value = selProj.areaId;
+    }
+  } else {
+    areaSelect.disabled = false;
+    areaSelect.style.opacity = '1';
+  }
+  // При смене проекта — блокируем/разблокируем зону
+  projSelect.onchange = async function() {
+    if (this.value) {
+      areaSelect.disabled = true;
+      areaSelect.style.opacity = '0.5';
+      const sp = projs.find(p => p.id === this.value);
+      if (sp?.areaId) {
+        areaSelect.value = sp.areaId;
+      }
+    } else {
+      areaSelect.disabled = false;
+      areaSelect.style.opacity = '1';
+    }
+  };
+
+  // Добавляем быструю кнопку смены даты (+/- день)
+  const dueInput = document.getElementById('t-due');
+  if (dueInput) {
+    let quickBtns = dueInput.parentElement.querySelector('.quick-date-btns');
+    if (!quickBtns) {
+      quickBtns = document.createElement('div');
+      quickBtns.className = 'quick-date-btns';
+      quickBtns.style.cssText = 'display:flex;gap:4px;margin-top:6px';
+      quickBtns.innerHTML = `
+        <button class="subtask-add-btn" style="font-size:11px;padding:2px 8px" onclick="event.preventDefault();var i=document.getElementById('t-due');var d=i.valueAsDate||new Date();d.setDate(d.getDate()-1);i.valueAsDate=d">−1d</button>
+        <button class="subtask-add-btn" style="font-size:11px;padding:2px 8px" onclick="event.preventDefault();var i=document.getElementById('t-due');var d=new Date();i.valueAsDate=d">🗓 Today</button>
+        <button class="subtask-add-btn" style="font-size:11px;padding:2px 8px" onclick="event.preventDefault();var i=document.getElementById('t-due');var d=i.valueAsDate||new Date();d.setDate(d.getDate()+1);i.valueAsDate=d">+1d</button>
+        <button class="subtask-add-btn" style="font-size:11px;padding:2px 8px" onclick="event.preventDefault();document.getElementById('t-due').value=''">✕</button>`;
+      dueInput.parentElement.appendChild(quickBtns);
+    }
+  }
+
+  const sec = document.getElementById('sub-sec');
+  document.getElementById('sub-inp').value = '';
+  hideSubCombo();
+  if (task) {
+    sec.style.display = 'block';
+    renderSubtaskList(allTasks.filter(x => x.parentId === task.id));
+  } else {
+    sec.style.display = 'none';
+  }
+  await UI.renderTagGrid('t-tg', _selTags.t, tags => { _selTags.t = tags; });
+  UI.openModal('m-task');
+}
+
+function renderSubtaskList(subs) {
+  document.getElementById('sub-list').innerHTML = subs.length
+    ? subs.map(s => `
+      <div class="task-row" style="padding:6px 0">
+        <div class="task-check ${s.status === 'completed' ? 'done' : ''}" onclick="toggleSubtask('${s.id}')"></div>
+        <div class="task-body" onclick="editSubtask('${s.id}')">
+          <div class="task-title ${s.status === 'completed' ? 'done' : ''}">${s.name}</div>
+          ${s.selfBudget ? `<div class="task-meta"><span class="task-cost">${UI.money(s.selfBudget)}</span></div>` : ''}
+        </div>
+        <button class="task-edit" onclick="deleteSubtask('${s.id}')" aria-label="Delete subtask">×</button>
+      </div>`).join('')
+    : '<div style="color:var(--text3);font-size:13px;padding:6px 0">No subtasks yet</div>';
+}
+
+async function toggleSubtask(id) {
+  const t = await DB.getById('tasks', id); if (!t) return;
+  await DB.update('tasks', id, { status: t.status === 'completed' ? 'planned' : 'completed' });
+  const pid = document.getElementById('te-id').value;
+  renderSubtaskList((await DB.getAll('tasks')).filter(x => x.parentId === pid));
+}
+async function editSubtask(id) {
+  UI.closeModal('m-task');
+  const t = await DB.getById('tasks', id);
+  if (t) openTaskModal(t);
+}
+async function deleteSubtask(id) {
+  if (!confirm('Delete subtask?')) return;
+  await DB.delete('tasks', id);
+  const pid = document.getElementById('te-id').value;
+  renderSubtaskList((await DB.getAll('tasks')).filter(x => x.parentId === pid));
+  UI.toast('Subtask deleted');
+}
+async function addSubtask() {
+  const inp = document.getElementById('sub-inp');
+  const name = inp.value.trim(); if (!name) return;
+  const pid  = document.getElementById('te-id').value;
+  if (!pid) { UI.toast('Save task first', 'err'); return; }
+  await DB.create('tasks', { name, status:'planned', priority:'low', parentId:pid, projectId: document.getElementById('t-proj').value || null, tags:[], selfBudget:0 });
+  inp.value = '';
+  hideSubCombo();
+  renderSubtaskList((await DB.getAll('tasks')).filter(x => x.parentId === pid));
+  UI.toast('Subtask added');
+}
+
+/* ── Combined field: typing searches existing tasks to link; Enter/＋ Add
+   always creates a brand-new subtask with the typed name. ── */
+let _subSearchDebounce = null;
+function searchExistingTasks() {
+  clearTimeout(_subSearchDebounce);
+  _subSearchDebounce = setTimeout(_doSearchExistingTasks, 150);
+}
+function hideSubCombo() {
+  const box = document.getElementById('sub-search-results');
+  box.classList.remove('show'); box.innerHTML = '';
+}
+
+async function _collectDescendantIds(taskId, allTasks, acc = new Set()) {
+  for (const c of allTasks.filter(x => x.parentId === taskId)) {
+    acc.add(c.id);
+    await _collectDescendantIds(c.id, allTasks, acc);
+  }
+  return acc;
+}
+
+async function _doSearchExistingTasks() {
+  const pid   = document.getElementById('te-id').value;
+  const inp   = document.getElementById('sub-inp');
+  const box   = document.getElementById('sub-search-results');
+  const term  = inp.value.trim().toLowerCase();
+  if (!term) { hideSubCombo(); return; }
+
+  const allTasks = await DB.getAll('tasks');
+  const excluded = pid ? await _collectDescendantIds(pid, allTasks) : new Set();
+  if (pid) { excluded.add(pid); allTasks.filter(t => t.parentId === pid).forEach(t => excluded.add(t.id)); }
+
+  const matches = allTasks
+    .filter(t => !excluded.has(t.id) && t.name.toLowerCase().includes(term))
+    .slice(0, 8);
+
+  box.classList.add('show');
+  box.innerHTML = matches.length
+    ? matches.map(t => `<div class="sub-combo-hit" onclick="linkExistingSubtask('${t.id}')">${t.name}</div>`).join('')
+    : `<div class="sub-combo-hit" style="color:var(--text3);cursor:default">No matching tasks — press Enter or ＋ Add to create "${inp.value.trim()}"</div>`;
+}
+
+async function linkExistingSubtask(taskId) {
+  const pid = document.getElementById('te-id').value;
+  if (!pid) { UI.toast('Save task first', 'err'); return; }
+  await DB.update('tasks', taskId, { parentId: pid });
+  document.getElementById('sub-inp').value = '';
+  hideSubCombo();
+  renderSubtaskList((await DB.getAll('tasks')).filter(x => x.parentId === pid));
+  UI.toast('Task linked as subtask');
+}
+
+async function saveTask() {
+  const id = document.getElementById('te-id').value;
+  const ex = id ? await DB.getById('tasks', id) : null;
+  const imageIds = await flushImgs('t', ex?.imageIds || []);
+  const data = {
+    name:       document.getElementById('t-name').value.trim(),
+    notes:      document.getElementById('t-notes').value.trim(),
+    status:     document.getElementById('t-status').value,
+    priority:   document.getElementById('t-pri').value,
+    projectId:  document.getElementById('t-proj').value || null,
+    areaId:     document.getElementById('t-area').value || null,
+    dueDate:    document.getElementById('t-due').value || null,
+    selfBudget: parseFloat(document.getElementById('t-cost').value) || 0,
+    parentId:   document.getElementById('t-parent').value || null,
+    tags:       [..._selTags.t],
+    imageIds,
+  };
+  try {
+    if (id) await DB.update('tasks', id, data);
+    else    await DB.create('tasks', data);
+    UI.closeModal('m-task');
+    UI.toast(id ? 'Task updated' : 'Task created');
+    renderCurrentPage();
+  } catch (e) { UI.toast(e.message, 'err'); }
+}
+
+/* ═══════════════════════════════════════════
+   PURCHASE MODAL — variants editor
+   Each variant carries its own brand/title, price, shop, url, notes and
+   photo (mirrors the Purchases module's editor exactly).
+═══════════════════════════════════════════ */
+function pv_shopOptionsHtml(selectedId) {
+  return `<option value="">— no shop —</option>` +
+    shops.map(s => `<option value="${s.id}" ${s.id===selectedId?'selected':''}>${s.logo||'🛍️'} ${s.name}</option>`).join('');
+}
+
+function pv_renderVarsEditor() {
+  const el = document.getElementById('pv-vars-editor');
+  document.getElementById('pv-empty-hint').style.display = pu_formVariants.length ? 'none' : 'block';
+  el.innerHTML = pu_formVariants.map((v, idx) => {
+    const thumbSrc = v._imgData || v._imgPreview || null;
+    return `
+    <div class="pv-row ${v.isPrimary ? 'pref' : ''}" data-idx="${idx}">
+      <div class="pv-thumb" title="Variant photo">
+        ${thumbSrc ? `<img src="${thumbSrc}"/>` : '📷'}
+        <input type="file" class="pv-img-input" accept="image/*"/>
+      </div>
+      <div class="pv-fields">
+        <input type="text" class="pv-title" placeholder="Brand / exact name" value="${(v.title||'').replace(/"/g,'&quot;')}"/>
+        <div class="pv-fields-row">
+          <input type="number" class="pv-price" placeholder="Price" value="${v.price ?? ''}" style="max-width:110px"/>
+          <select class="pv-shop">${pv_shopOptionsHtml(v.shopId)}</select>
+        </div>
+        <input type="url" class="pv-url" placeholder="Link (optional)" value="${(v.url||'').replace(/"/g,'&quot;')}"/>
+        <input type="text" class="pv-notes" placeholder="Comment" value="${(v.notes||'').replace(/"/g,'&quot;')}"/>
+      </div>
+      <div class="pv-right">
+        <button type="button" class="pv-star ${v.isPrimary?'on':''}" title="Show this variant on the card">★</button>
+        <button type="button" class="pv-del" title="Remove variant">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('.pv-row').forEach(row => {
+    const idx = +row.dataset.idx;
+    row.querySelector('.pv-title').addEventListener('input', e => pu_formVariants[idx].title = e.target.value);
+    row.querySelector('.pv-price').addEventListener('input', e => pu_formVariants[idx].price = e.target.value === '' ? null : Number(e.target.value));
+    row.querySelector('.pv-shop').addEventListener('change', e => pu_formVariants[idx].shopId = e.target.value || null);
+    row.querySelector('.pv-url').addEventListener('input', e => pu_formVariants[idx].url = e.target.value);
+    row.querySelector('.pv-notes').addEventListener('input', e => pu_formVariants[idx].notes = e.target.value);
+    row.querySelector('.pv-star').addEventListener('click', () => {
+      pu_formVariants.forEach((v, i) => v.isPrimary = (i === idx));
+      pv_renderVarsEditor();
+    });
+    row.querySelector('.pv-del').addEventListener('click', () => {
+      const removed = pu_formVariants.splice(idx, 1)[0];
+      if (removed && removed.id) pu_removedVariantIds.push(removed.id);
+      if (removed && removed.isPrimary && pu_formVariants.length) pu_formVariants[0].isPrimary = true;
+      pv_renderVarsEditor();
+    });
+    const thumb = row.querySelector('.pv-thumb');
+    const fileInput = row.querySelector('.pv-img-input');
+    thumb.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => {
+      const f = e.target.files[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = ev => { pu_formVariants[idx]._imgData = ev.target.result; pv_renderVarsEditor(); };
+      r.readAsDataURL(f);
+    });
+  });
+}
+document.getElementById('pv-add-var').addEventListener('click', () => {
+  pu_formVariants.push({ id: null, title: '', price: null, shopId: null, url: '', notes: '', isPrimary: pu_formVariants.length === 0, imageIds: [] });
+  pv_renderVarsEditor();
+});
+
+/* ═══════════════════════════════════════════
+   PURCHASE MODAL
+═══════════════════════════════════════════ */
+async function openPurModal(pur = null, preProjId = null) {
+  _selTags.pu = [...(pur?.tags || [])];
+  pu_removedVariantIds = [];
+  const projs = await DB.getAll('projects');
+  document.getElementById('pu-proj').innerHTML = '<option value="">— none —</option>' + projs.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  document.getElementById('mput').textContent = pur ? 'Edit Purchase' : 'New Purchase';
+  const f = (id, v) => document.getElementById(id).value = v ?? '';
+  f('pue-id', pur?.id); f('pu-name', pur?.name);
+  f('pu-status', pur?.status ?? 'wish');
+  f('pu-proj', pur?.projectId || preProjId); f('pu-notes', pur?.notes);
+
+  // Load existing variants; if none exist but legacy flat price/imageIds are
+  // present on the purchase itself, seed one variant so editing migrates
+  // old records (e.g. the seeded demo data) into the new model.
+  if (pur) {
+    const existing = await DB.getVariants(pur.id);
+    if (existing.length) {
+      pu_formVariants = existing.map(v => ({ ...v, imageIds: v.imageIds || [] }));
+    } else if (pur.price != null || (pur.imageIds && pur.imageIds.length)) {
+      pu_formVariants = [{ id: null, title: null, price: pur.price ?? null, shopId: null, url: null, notes: null, isPrimary: true, imageIds: pur.imageIds || [] }];
+    } else {
+      pu_formVariants = [];
+    }
+    for (const v of pu_formVariants) {
+      if (v.imageIds?.length && !v._imgData) {
+        const img = await DB.getImage(v.imageIds[0]);
+        if (img) v._imgPreview = img.data;
+      }
+    }
+  } else {
+    pu_formVariants = [];
+  }
+  pv_renderVarsEditor();
+
+  await UI.renderTagGrid('pu-tg', _selTags.pu, tags => { _selTags.pu = tags; });
+  UI.openModal('m-pur');
+}
+
+async function savePur() {
+  const id = document.getElementById('pue-id').value;
+  const ex = id ? await DB.getById('purchases', id) : null;
+  const name = document.getElementById('pu-name').value.trim();
+  const data = {
+    name,
+    status:     document.getElementById('pu-status').value,
+    projectId:  document.getElementById('pu-proj').value || null,
+    notes:      document.getElementById('pu-notes').value.trim(),
+    sourceType: ex?.sourceType || 'project',
+    tags:       [..._selTags.pu],
+  };
+  try {
+    let purchaseId = id;
+    if (id) await DB.update('purchases', id, data);
+    else    { const rec = await DB.create('purchases', data); purchaseId = rec.id; }
+
+    for (const vid of pu_removedVariantIds) await DB.delete('purchase_variants', vid);
+
+    if (pu_formVariants.length && !pu_formVariants.some(v => v.isPrimary)) pu_formVariants[0].isPrimary = true;
+
+    for (const v of pu_formVariants) {
+      let imageIds = v.imageIds || [];
+      if (v._imgData) imageIds = [await DB.saveImage(v._imgData, { name: 'variant-photo' })];
+      const varPayload = {
+        purchaseId,
+        title:  v.title?.trim() || null,
+        price:  v.price != null && v.price !== '' ? Number(v.price) : null,
+        shopId: v.shopId || null,
+        url:    v.url?.trim() || null,
+        notes:  v.notes?.trim() || null,
+        isPrimary: !!v.isPrimary,
+        imageIds,
+      };
+      if (v.id) await DB.update('purchase_variants', v.id, varPayload);
+      else      await DB.create('purchase_variants', varPayload);
+    }
+
+    UI.closeModal('m-pur');
+    UI.toast(id ? 'Purchase updated' : 'Purchase added');
+    renderCurrentPage();
+  } catch (e) { UI.toast(e.message, 'err'); }
+}
+
+/* ═══════════════════════════════════════════
+   AREA MODAL
+═══════════════════════════════════════════ */
+function openAreaModal(area = null) {
+  document.getElementById('mat').textContent = area ? 'Edit Area' : 'New Area';
+  const f = (id, v) => document.getElementById(id).value = v ?? '';
+  f('ae-id', area?.id); f('a-name', area?.name); f('a-emoji', area?.emoji);
+  f('a-color', area?.color); f('a-desc', area?.description);
+  UI.openModal('m-area');
+}
+async function saveArea() {
+  const id   = document.getElementById('ae-id').value;
+  const data = { name:document.getElementById('a-name').value.trim(), emoji:document.getElementById('a-emoji').value.trim()||'🔹', color:document.getElementById('a-color').value.trim()||null, description:document.getElementById('a-desc').value.trim() };
+  try {
+    if (id) await DB.update('areas', id, data); else await DB.create('areas', data);
+    UI.closeModal('m-area'); UI.toast('Area saved'); renderCurrentPage();
+  } catch (e) { UI.toast(e.message, 'err'); }
+}
+
+/* ═══════════════════════════════════════════
+   TAGS MANAGER
+═══════════════════════════════════════════ */
+async function openTagsModal() {
+  const tags = await DB.getTags();
+  document.getElementById('all-tags-grid').innerHTML = tags.map(t =>
+    `<span class="tag-chip">${t.name} <span onclick="deleteGlobalTag('${t.id}')" style="cursor:pointer;color:var(--red);margin-left:3px">×</span></span>`
+  ).join('');
+  UI.openModal('m-tags');
+}
+async function addGlobalTag() {
+  const inp = document.getElementById('new-tag-inp');
+  const n = inp.value.trim(); if (!n) return;
+  await DB.createTag(n); inp.value = '';
+  await openTagsModal();
+}
+async function deleteGlobalTag(id) {
+  await DB.deleteTag(id); await openTagsModal();
+}
+
+/* ═══════════════════════════════════════════
+   RENDER: PROJECT CARD
+═══════════════════════════════════════════ */
+async function mkProjCard(p, ctx = {}) {
+  // ctx.areasMap / ctx.allTasks let callers batch-fetch once for a whole list
+  // instead of re-querying storage per card.
+  const area  = p.areaId ? (ctx.areasMap ? ctx.areasMap[p.areaId] || null : await DB.getById('areas', p.areaId)) : null;
+  const tasks = ctx.allTasks ? ctx.allTasks.filter(t => t.projectId === p.id) : await DB.query('tasks', { projectId: p.id });
+  const done  = tasks.filter(t => t.status === 'completed').length;
+  const pct   = tasks.length ? Math.round(done / tasks.length * 100) : 0;
+  let imgH = '';
+  if (p.imageIds?.length) {
+    const img = await DB.getImage(p.imageIds[0]);
+    if (img) imgH = `<img class="card-img" src="${img.data}" onclick="event.stopPropagation();UI.previewImage('${img.data}')">`;
+  }
+  return `<div class="card clickable" onclick="showProject('${p.id}')">
+    ${imgH}
+    <div class="card-head">
+      <div class="card-icon">${area ? area.emoji : '📁'}</div>
+      <div style="flex:1;min-width:0">
+        <div class="card-title">${p.name}</div>
+        <div class="card-meta">${area ? area.name : ''} ${p.endDate ? '· ' + UI.date(p.endDate) : ''}</div>
+      </div>
+      <button class="card-edit-btn" onclick="event.stopPropagation();editProj('${p.id}')" title="Edit">✎</button>
+    </div>
+    ${p.description ? `<div class="card-desc">${p.description}</div>` : ''}
+    <div class="card-footer">${UI.statusBadge(p.status)}${UI.priorityBadge(p.priority)}${(p.tags||[]).map(t=>UI.tagBadge(t)).join('')}</div>
+    ${tasks.length ? `<div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--text3);font-family:var(--m)"><span>${done}/${tasks.length} tasks</span><span>${pct}%</span></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>` : ''}
+  </div>`;
+}
+async function editProj(id) { const p = await DB.getById('projects', id); if (p) openProjModal(p); }
+
+/* ═══════════════════════════════════════════
+   RENDER: TASK ROW
+   — checkbox  → toggle done
+   — body / ✎  → open edit modal
+═══════════════════════════════════════════ */
+async function mkTaskRow(t, allTasks, showChildren = false, depth = 0, projMap = null) {
+  const done     = t.status === 'completed';
+  const overdue  = UI.isOverdue(t.dueDate, t.status);
+  const proj     = t.projectId ? (projMap ? projMap[t.projectId] || null : await DB.getById('projects', t.projectId)) : null;
+  const parent   = t.parentId ? allTasks.find(x => x.id === t.parentId) : null;
+  const total    = await calcTaskTotalCost(t.id, allTasks);
+  const children = allTasks.filter(c => c.parentId === t.id);
+  const indent   = depth > 0 ? `margin-left:${depth * 18}px;border-left:2px solid var(--border);padding-left:8px` : '';
+
+  let costStr = '';
+  if (total > 0) {
+    const own = t.selfBudget || t.cost || 0;
+    const sub = total - own;
+    costStr = sub > 0 ? `${UI.money(own)} + sub ${UI.money(sub)} = ${UI.money(total)}` : UI.money(total);
+  }
+  let imgH = '';
+  if (t.imageIds?.length) {
+    const img = await DB.getImage(t.imageIds[0]);
+    if (img) imgH = `<img src="${img.data}" style="width:30px;height:30px;border-radius:4px;object-fit:cover;flex-shrink:0;cursor:pointer;margin-top:2px" onclick="event.stopPropagation();UI.previewImage('${img.data}')">`;
+  }
+
+  let row = `<div style="${indent}"><div class="task-row" draggable="true" data-task-id="${t.id}"
+      ondragstart="ttDragStart(event,'${t.id}')" ondragend="ttDragEnd(event)"
+      ondragover="ttDragOver(event)" ondragleave="ttDragLeave(event)" ondrop="ttDrop(event,'${t.id}')">
+    <div class="task-check ${done ? 'done' : ''}" onclick="event.stopPropagation();toggleTask('${t.id}')"></div>
+    ${imgH}
+    <div class="task-body" onclick="showTask('${t.id}')">
+      <div class="task-title ${done ? 'done' : ''} ${t.status === 'paused' ? 'paused' : ''} ${overdue ? 'overdue' : ''}">${t.name}</div>
+      <div class="task-meta">
+        ${UI.priorityBadge(t.priority)}
+        ${t.status === 'paused' ? '<span style="color:var(--yellow)">⏸</span>' : ''}
+        ${parent ? `<span class="clickable" style="color:var(--accent2);cursor:pointer" onclick="event.stopPropagation();showTask('${parent.id}')">⬆ ${parent.name}</span>` : ''}
+        ${t.dueDate ? `<span class="${overdue ? 'task-overdue' : ''}">📅 ${UI.date(t.dueDate)}</span>` : ''}
+        ${proj ? `<span>📁 ${proj.name}</span>` : ''}
+        ${costStr ? `<span class="task-cost">${costStr}</span>` : ''}
+        ${children.length ? `<span style="color:var(--accent2);cursor:pointer" onclick="event.stopPropagation();showTask('${children[0].id}')">${children.length} sub ▸</span>` : ''}
+      </div>
+    </div>
+    <button class="task-edit" onclick="event.stopPropagation();editTask('${t.id}')" title="Edit">✎</button>
+  </div>`;
+
+  if (showChildren && children.length && depth < 4)
+    for (const ch of children) row += await mkTaskRow(ch, allTasks, true, depth + 1, projMap);
+
+  return row + '</div>';
+}
+let curViewTaskId = null; // task currently shown in the #m-task-view modal, if any
+
+/* ═══════════════════════════════════════════
+   TASK TREE DRAG-AND-DROP
+   Drag a row onto another task to make it a subtask; drop on the "root"
+   strip to detach a task back to the top level. Mouse/trackpad only —
+   the native HTML5 DnD API doesn't reliably fire via touch.
+═══════════════════════════════════════════ */
+let _ttDragId = null;
+function ttDragStart(e, id) {
+  _ttDragId = id;
+  e.currentTarget.classList.add('tt-dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', id); } catch (_) {}
+}
+function ttDragEnd(e) {
+  e.currentTarget.classList.remove('tt-dragging');
+  document.querySelectorAll('.tt-drop-target').forEach(el => el.classList.remove('tt-drop-target'));
+  _ttDragId = null;
+}
+function ttDragOver(e) {
+  if (!_ttDragId) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('tt-drop-target');
+}
+function ttDragLeave(e) { e.currentTarget.classList.remove('tt-drop-target'); }
+
+async function ttDrop(e, targetId) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('tt-drop-target');
+  const draggedId = _ttDragId; _ttDragId = null;
+  if (!draggedId || draggedId === targetId) return;
+
+  const allTasks = await DB.getAll('tasks');
+  const dragged = allTasks.find(x => x.id === draggedId);
+  if (!dragged) return;
+  if (dragged.parentId === targetId) return; // already there, nothing to do
+
+  const descendants = await _collectDescendantIds(draggedId, allTasks);
+  if (descendants.has(targetId)) { UI.toast("Can't move a task into its own subtask", 'err'); return; }
+
+  const target = allTasks.find(x => x.id === targetId);
+  await DB.update('tasks', draggedId, { parentId: targetId, projectId: target?.projectId ?? dragged.projectId });
+  UI.toast(`"${dragged.name}" is now a subtask of "${target?.name || '?'}"`);
+  renderCurrentPage();
+  if (curViewTaskId) await showTask(curViewTaskId);
+}
+
+async function ttDropRoot(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('tt-drop-target');
+  const draggedId = _ttDragId; _ttDragId = null;
+  if (!draggedId) return;
+  const t = await DB.getById('tasks', draggedId);
+  if (!t || !t.parentId) return;
+  await DB.update('tasks', draggedId, { parentId: null });
+  UI.toast(`"${t.name}" detached to top level`);
+  renderCurrentPage();
+  if (curViewTaskId) await showTask(curViewTaskId);
+}
+
+async function toggleTask(id) {
+  const t = await DB.getById('tasks', id); if (!t) return;
+  await DB.update('tasks', id, { status: t.status === 'completed' ? 'planned' : 'completed' });
+  if (curPage === 'detail' && curDetail) {
+    if (curDetail.type === 'project') await showProject(curDetail.id);
+    else if (curDetail.type === 'area') await showArea(curDetail.id);
+  } else {
+    renderCurrentPage();
+  }
+  // The task view modal (if open) sits on top of whatever page is behind it —
+  // keep it in sync too instead of only refreshing the page underneath.
+  if (curViewTaskId) await showTask(curViewTaskId);
+}
+
+async function showTask(id) {
+  curViewTaskId = id;
+  const t = await DB.getById('tasks', id);
+  if (!t) return;
+  const allT = await DB.getAll('tasks');
+  const parent = t.parentId ? allT.find(x => x.id === t.parentId) : null;
+  const children = allT.filter(c => c.parentId === t.id);
+  const total = await calcTaskTotalCost(t.id, allT);
+  const proj = t.projectId ? await DB.getById('projects', t.projectId) : null;
+  const done = t.status === 'completed';
+
+  let imgH = '';
+  if (t.imageIds?.length) {
+    let th = '';
+    for (const iid of t.imageIds) { const img = await DB.getImage(iid); if (img) th += `<img class="img-thumb" src="${img.data}" onclick="UI.previewImage('${img.data}')">`; }
+    imgH = `<div class="detail-section-title">Images</div><div class="detail-img-gallery">${th}</div>`;
+  }
+
+  const html = `
+    <div class="detail-title" style="margin-bottom:4px">${t.name}</div>
+    <div class="card-footer">${UI.statusBadge(t.status)}${UI.priorityBadge(t.priority)}${(t.tags||[]).map(tg=>UI.tagBadge(tg)).join('')}</div>
+    <div class="tv-meta-grid">
+      ${parent ? `<div class="tv-meta"><div class="tv-meta-lbl">Parent</div><div class="tv-meta-val clickable" style="color:var(--accent2);cursor:pointer" onclick="showTask('${parent.id}')">⬆ ${parent.name}</div></div>` : ''}
+      ${proj ? `<div class="tv-meta"><div class="tv-meta-lbl">Project</div><div class="tv-meta-val clickable" style="color:var(--accent2);cursor:pointer" onclick="UI.closeModal('m-task-view');showProject('${proj.id}')">📁 ${proj.name}</div></div>` : ''}
+      ${t.dueDate ? `<div class="tv-meta"><div class="tv-meta-lbl">Due</div><div class="tv-meta-val ${UI.isOverdue(t.dueDate,t.status)?'task-overdue':''}">${UI.date(t.dueDate)}</div></div>` : ''}
+      ${total ? `<div class="tv-meta"><div class="tv-meta-lbl">Cost</div><div class="tv-meta-val" style="color:var(--yellow)">${UI.money(total)}</div></div>` : ''}
+    </div>
+    ${t.notes ? `<div class="detail-section-title">Notes</div><div class="detail-desc" style="margin-bottom:14px">${t.notes}</div>` : ''}
+    ${imgH}
+    ${children.length ? `<div class="detail-section-title">Subtasks (${children.length})</div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:4px 14px;margin-bottom:14px">
+      ${children.map(ch => `
+        <div class="task-row">
+          <div class="task-check ${ch.status==='completed'?'done':''}" onclick="toggleTask('${ch.id}')"></div>
+          <div class="task-body" onclick="showTask('${ch.id}')">
+            <div class="task-title ${ch.status==='completed'?'done':''}">${ch.name}</div>
+          </div>
+        </div>`).join('')}
+    </div>` : ''}
+    <div class="tv-actions">
+      <button style="background:var(--bg3);border:1px solid var(--border2);color:var(--text2)" onclick="toggleTask('${t.id}')">${done ? '↺ Mark not done' : '✓ Mark done'}</button>
+      <button style="background:rgba(240,80,96,.12);border:1px solid rgba(240,80,96,.3);color:var(--red)" onclick="deleteTaskFromView('${t.id}')">Delete</button>
+    </div>
+  `;
+
+  document.getElementById('task-view-body').innerHTML = html;
+  UI.openModal('m-task-view');
+}
+
+function editTaskFromView() {
+  const id = curViewTaskId;
+  UI.closeModal('m-task-view');
+  if (id) editTask(id);
+}
+async function deleteTaskFromView(id) {
+  if (!confirm('Delete this task?')) return;
+  await DB.delete('tasks', id);
+  UI.closeModal('m-task-view');
+  curViewTaskId = null;
+  UI.toast('Task deleted');
+  renderCurrentPage();
+}
+
+async function editTask(id) { const t = await DB.getById('tasks', id); if (t) openTaskModal(t); }
+
+/* ═══════════════════════════════════════════
+   DASHBOARD
+═══════════════════════════════════════════ */
+async function renderDash() {
+  const now = new Date();
+  document.getElementById('d-date').textContent =
+    now.toLocaleDateString('ru-RU', { weekday:'short', day:'numeric', month:'long' });
+
+  const s = await DB.stats();
+  document.getElementById('d-stats').innerHTML = `
+    <div class="stat-card s-blue"><div class="stat-num">${s.projects}</div><div class="stat-lbl">Projects</div></div>
+    <div class="stat-card s-green"><div class="stat-num">${s.tasks}</div><div class="stat-lbl">Tasks</div></div>
+    <div class="stat-card s-yellow"><div class="stat-num">${s.active}</div><div class="stat-lbl">Active</div></div>
+    <div class="stat-card s-red"><div class="stat-num">${s.purchases}</div><div class="stat-lbl">Purchases</div></div>`;
+
+  // Группировка: области → проекты → задачи
+  const [areas, allProjs, allTasks] = await Promise.all([
+    DB.getAll('areas'),
+    DB.getAll('projects'),
+    DB.getAll('tasks')
+  ]);
+  
+  // Активные проекты
+  const active = allProjs.filter(p => p.status === 'in_progress' || p.status === 'planned');
+  
+  const dp = document.getElementById('d-projects');
+  dp.innerHTML = '';
+  
+  if (!active.length) {
+    dp.innerHTML = UI.emptyState('📁', 'No active projects', 'Create your first project');
+  } else {
+    // Группируем проекты по областям
+    const areasMap = Object.fromEntries(areas.map(a => [a.id, a]));
+    const grouped = {};
+    for (const p of active) {
+      const areaId = p.areaId || 'none';
+      if (!grouped[areaId]) grouped[areaId] = [];
+      grouped[areaId].push(p);
+    }
+    
+    // Сортируем области, сначала с проектами
+    let projHtml = '';
+    for (const [areaId, projs] of Object.entries(grouped)) {
+      const area = areasMap[areaId];
+      const areaEmoji = area ? area.emoji : '📁';
+      const areaName = area ? area.name : 'No area';
+      
+      projHtml += `<div style="margin-bottom:14px">`;
+      projHtml += `<div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);margin-bottom:8px">${areaEmoji} ${areaName}</div>`;
+      
+      for (const p of projs.slice(0, 3)) {
+        const pTasks = allTasks.filter(t => t.projectId === p.id && !['completed','archived'].includes(t.status) && !t.parentId);
+        projHtml += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;padding:12px;cursor:pointer" onclick="showProject('${p.id}')">`;
+        projHtml += `<div style="font-size:14px;font-weight:600;margin-bottom:4px">${p.name}</div>`;
+        
+        // Задачи проекта
+        if (pTasks.length > 0) {
+          projHtml += `<div style="margin-top:6px">`;
+          for (const pt of pTasks.slice(0, 3)) {
+            const overdue = UI.isOverdue(pt.dueDate, pt.status);
+            const done = pt.status === 'completed';
+            projHtml += `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px">`;
+            projHtml += `<span class="task-check ${done?'done':''}" style="width:14px;height:14px;min-width:14px;border-radius:4px"></span>`;
+            projHtml += `<span style="color:${overdue?'var(--red)':pt.status==='paused'?'var(--yellow)':'var(--text)'};${done?'text-decoration:line-through;color:var(--text3)':''}">${pt.name}</span>`;
+            if (pt.dueDate) {
+              const od = UI.isOverdue(pt.dueDate, pt.status);
+              projHtml += `<span style="margin-left:auto;font-size:10px;color:${od?'var(--red)':'var(--text3)'};font-family:var(--m)">${UI.date(pt.dueDate)}</span>`;
+            }
+            projHtml += `</div>`;
+          }
+          if (pTasks.length > 3) {
+            projHtml += `<div style="font-size:11px;color:var(--text3);margin-top:4px">+ ${pTasks.length - 3} more</div>`;
+          }
+          projHtml += `</div>`;
+        } else {
+          projHtml += `<div style="font-size:11px;color:var(--text3);margin-top:4px">No open tasks</div>`;
+        }
+        projHtml += `</div>`;
+      }
+      
+      projHtml += `</div>`;
+    }
+    
+    dp.innerHTML = projHtml;
+  }
+
+  // Открытые задачи (все, без родителя, не выполненные)
+  const openT = allTasks.filter(t => !['completed','archived'].includes(t.status) && !t.parentId).slice(0, 6);
+  const dt = document.getElementById('d-tasks');
+  if (!openT.length) { dt.innerHTML = UI.emptyState('✅', 'All clear!', 'No open tasks'); return; }
+  const projMap = Object.fromEntries(allProjs.map(p => [p.id, p]));
+  let taskHtml = `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:4px 14px">`;
+  for (const t of openT) taskHtml += await mkTaskRow(t, allTasks, false, 0, projMap);
+  taskHtml += '</div>';
+  dt.innerHTML = taskHtml;
+}
+
+/* ═══════════════════════════════════════════
+   RENDER: PROJECT GALLERY CARD
+   Compact card for the Projects gallery — status ring,
+   budget, and a pill for the most relevant open task.
+═══════════════════════════════════════════ */
+function _progressRing(pct) {
+  const r = 16, c = 2 * Math.PI * r;
+  const off = c * (1 - Math.min(100, Math.max(0, pct)) / 100);
+  return `<div class="progress-ring" title="${pct}% done">
+    <svg viewBox="0 0 42 42">
+      <circle class="progress-ring-bg" cx="21" cy="21" r="${r}"></circle>
+      <circle class="progress-ring-fg" cx="21" cy="21" r="${r}" style="stroke-dasharray:${c};stroke-dashoffset:${off}"></circle>
+    </svg>
+    <div class="progress-ring-text">${pct}%</div>
+  </div>`;
+}
+
+function _pickLastTask(tasks) {
+  const open = tasks.filter(t => !['completed', 'archived'].includes(t.status));
+  if (open.length) {
+    const withDue = open.filter(t => t.dueDate).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+    if (withDue.length) return withDue[0];
+    return [...open].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+  }
+  if (tasks.length) return [...tasks].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))[0];
+  return null;
+}
+
+async function mkProjGalleryCard(p, ctx = {}) {
+  const area  = p.areaId ? (ctx.areasMap ? ctx.areasMap[p.areaId] || null : await DB.getById('areas', p.areaId)) : null;
+  const tasks = ctx.allTasks ? ctx.allTasks.filter(t => t.projectId === p.id) : await DB.query('tasks', { projectId: p.id });
+  const done  = tasks.filter(t => t.status === 'completed').length;
+  const pct   = tasks.length ? Math.round(done / tasks.length * 100) : 0;
+  const last  = _pickLastTask(tasks);
+
+  return `<div class="proj-card" onclick="showProject('${p.id}')">
+    <div class="proj-card-top">
+      <div class="proj-card-name">${area ? area.emoji + ' ' : '📁 '}${p.name}</div>
+      ${tasks.length ? _progressRing(pct) : `<div class="proj-card-status">${UI.statusBadge(p.status)}</div>`}
+      <button class="card-edit-btn" onclick="event.stopPropagation();editProj('${p.id}')" aria-label="Edit project" title="Edit">✎</button>
+    </div>
+    ${p.budget ? `<div class="proj-card-budget">💰 ${UI.money(p.budget)}</div>` : ''}
+    ${p.description ? `<div class="proj-card-desc">${p.description}</div>` : ''}
+    <div class="proj-card-footer">
+      <div class="proj-card-priority">${UI.priorityBadge(p.priority)}</div>
+      ${tasks.length ? UI.statusBadge(p.status) : ''}
+      ${(p.tags || []).map(t => UI.tagBadge(t)).join('')}
+      ${last ? `<div class="proj-card-last-task" title="${last.name}">${last.status === 'completed' ? '✓' : '▸'} ${last.name}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+/* ═══════════════════════════════════════════
+   PROJECTS PAGE
+═══════════════════════════════════════════ */
+function toggleProjGroup() { pGroupByArea = !pGroupByArea; renderProjects(); }
+
+async function renderProjects() {
+  const statuses = ['all','idea','planned','in_progress','paused','completed','archived'];
+  document.getElementById('proj-filters').innerHTML =
+    statuses.map(s =>
+      `<button class="filter-chip ${pFilter === s ? 'active' : ''}" onclick="pFilter='${s}';renderProjects()">${s === 'all' ? 'All' : STATUS_LABEL[s]}</button>`
+    ).join('') +
+    `<button class="filter-chip ${pGroupByArea ? 'active' : ''}" onclick="toggleProjGroup()">🗂 ${pGroupByArea ? 'Grouped by area' : 'Group by area'}</button>`;
+
+  let ps = await DB.getAll('projects');
+  if (pFilter !== 'all') ps = ps.filter(p => p.status === pFilter);
+  const q = document.getElementById('proj-search').value.toLowerCase();
+  if (q) ps = ps.filter(p => (p.name + ' ' + (p.description || '')).toLowerCase().includes(q));
+
+  const el = document.getElementById('proj-list'); el.innerHTML = '';
+  if (!ps.length) { el.innerHTML = `<div style="padding:0 16px">${UI.emptyState('📁', 'No projects', 'Create a project or change filter')}</div>`; return; }
+
+  // Fetch areas/tasks once for the whole gallery instead of per-card.
+  const [areas, allTasks] = await Promise.all([DB.getAll('areas'), DB.getAll('tasks')]);
+  const areasMap = Object.fromEntries(areas.map(a => [a.id, a]));
+
+  if (!pGroupByArea) {
+    const cards = await Promise.all(ps.map(p => mkProjGalleryCard(p, { areasMap, allTasks })));
+    el.innerHTML = `<div class="proj-grid">${cards.join('')}</div>`;
+    return;
+  }
+
+  const grouped = {};
+  for (const p of ps) {
+    const k = p.areaId || 'none';
+    (grouped[k] = grouped[k] || []).push(p);
+  }
+  const groupKeys = Object.keys(grouped).sort((a, b) => {
+    if (a === 'none') return 1;
+    if (b === 'none') return -1;
+    return (areasMap[a]?.name || '').localeCompare(areasMap[b]?.name || '');
+  });
+
+  let html = '';
+  for (const k of groupKeys) {
+    const area = areasMap[k];
+    const label = area ? `${area.emoji || '🔹'} ${area.name}` : '📁 No area';
+    const cards = await Promise.all(grouped[k].map(p => mkProjGalleryCard(p, { areasMap, allTasks })));
+    html += `<div class="section-header proj-group-header"><span class="section-title">${label}</span><span class="section-count">${grouped[k].length}</span></div>`;
+    html += `<div class="proj-grid">${cards.join('')}</div>`;
+  }
+  el.innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════
+   TASKS PAGE
+═══════════════════════════════════════════ */
+async function renderTasks() {
+  const filters = [
+    { k:'active', l:'Active' }, { k:'all', l:'All' },
+    { k:'today', l:'Today' }, { k:'planned', l:'Planned' },
+    { k:'overdue', l:'Overdue' }, { k:'completed', l:'Done' },
+  ];
+  document.getElementById('task-filters').innerHTML = filters.map(f =>
+    `<button class="filter-chip ${tFilter === f.k ? 'active' : ''}" onclick="tFilter='${f.k}';renderTasks()">${f.l}</button>`
+  ).join('');
+
+  const today = new Date().toISOString().split('T')[0];
+  const allT  = await DB.getAll('tasks');
+  let tasks   = [...allT];
+
+  if      (tFilter === 'active')   tasks = tasks.filter(t => ['idea','planned','in_progress','paused'].includes(t.status));
+  else if (tFilter === 'today')    tasks = tasks.filter(t => t.dueDate === today && t.status !== 'completed');
+  else if (tFilter === 'overdue')  tasks = tasks.filter(t => UI.isOverdue(t.dueDate, t.status));
+  else if (tFilter === 'planned')  tasks = tasks.filter(t => t.status === 'planned');
+  else if (tFilter === 'completed')tasks = tasks.filter(t => t.status === 'completed');
+
+  const q = document.getElementById('task-search').value.toLowerCase();
+  if (q) tasks = tasks.filter(t => t.name.toLowerCase().includes(q));
+
+  const roots = tasks.filter(t => !t.parentId);
+  const el    = document.getElementById('task-list'); el.innerHTML = '';
+  if (!roots.length) { el.innerHTML = UI.emptyState('✅', 'No tasks', 'Add a new task'); return; }
+
+  // Fetch projects once for the whole list instead of per-row.
+  const allProjs = await DB.getAll('projects');
+  const projMap  = Object.fromEntries(allProjs.map(p => [p.id, p]));
+  let taskHtml = `<div class="tt-root-drop" ondragover="event.preventDefault();this.classList.add('tt-drop-target')" ondragleave="this.classList.remove('tt-drop-target')" ondrop="ttDropRoot(event)">⬇ Drag a task here to detach it from its parent</div>`;
+  taskHtml += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:4px 14px">`;
+  for (const t of roots) taskHtml += await mkTaskRow(t, allT, true, 0, projMap);
+  taskHtml += '</div>';
+  el.innerHTML = taskHtml;
+}
+
+/* ═══════════════════════════════════════════
+   AREAS PAGE
+═══════════════════════════════════════════ */
+async function renderAreas() {
+  const areas = await DB.getAll('areas');
+  const el    = document.getElementById('area-grid'); el.innerHTML = '';
+  if (!areas.length) { el.innerHTML = `<div style="grid-column:1/-1">${UI.emptyState('🌐', 'No areas', 'Create your first life domain')}</div>`; return; }
+  for (const a of areas) {
+    const pc = (await DB.query('projects', { areaId:a.id })).length;
+    const tc = (await DB.query('tasks',    { areaId:a.id })).length;
+    el.innerHTML += `<div class="area-tile" onclick="showArea('${a.id}')">
+      <div class="area-emoji">${a.emoji || '🔹'}</div>
+      <div class="area-name">${a.name}</div>
+      <div class="area-count">${pc} proj · ${tc} tasks</div>
+    </div>`;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   SETTINGS PAGE
+═══════════════════════════════════════════ */
+async function renderSettings() {
+  const s = await DB.stats();
+  const info = DB.storageInfo();
+  document.getElementById('s-schema').textContent = 'v' + SCHEMA_VERSION;
+  document.getElementById('s-storage').textContent = `${info.driver} · ${info.mb} МБ (${info.pct}%)`;
+  document.getElementById('s-records').textContent = s.projects + s.tasks + s.purchases + s.areas;
+}
+
+/* ═══════════════════════════════════════════
+   DETAIL: PROJECT
+═══════════════════════════════════════════ */
+async function showProject(id) {
+  curDetail = { type: 'project', id };
+  const p    = await DB.getById('projects', id); if (!p) return;
+  const area = p.areaId ? await DB.getById('areas', p.areaId) : null;
+  const allT = await DB.getAll('tasks');
+  const projT  = allT.filter(t => t.projectId === id);
+  const rootT  = projT.filter(t => !t.parentId);
+  const purs   = await DB.query('purchases', { projectId: id });
+
+  // Price now lives on the purchase's primary variant, not on the purchase
+  // itself — resolve each purchase's displayed variant once up front.
+  const purPrimaries = await Promise.all(purs.map(pu => primaryVariantOfPurchase(pu)));
+  const priceOfPur = pu => { const i = purs.findIndex(x => x.id === pu.id); return purPrimaries[i]?.price ?? null; };
+
+  const spent   = purs.filter(x => x.status === 'in_stock').reduce((a,b)=>a+(priceOfPur(b)||0),0);
+  const plannedC= purs.filter(x => ['wish','ordered'].includes(x.status)).reduce((a,b)=>a+(priceOfPur(b)||0),0);
+  const done    = projT.filter(t => t.status==='completed').length;
+  const tot     = projT.length;
+  const pct     = tot ? Math.round(done/tot*100) : 0;
+  let tCost = 0; for (const t of projT) tCost += await calcTaskTotalCost(t.id, allT);
+
+  // budget box
+  let budH = '';
+  if (p.budget) {
+    const u = Math.min(100, Math.round(spent/p.budget*100));
+    const bc = u>80?'var(--red)':u>50?'var(--yellow)':'var(--green)';
+    budH = `<div class="budget-box">
+      <div class="budget-row"><span style="font-weight:700">Budget: ${UI.money(p.budget)}</span><span style="color:var(--text3);font-family:var(--m)">${u}% used</span></div>
+      <div class="progress-bar" style="height:5px"><div class="progress-fill" style="width:${u}%;background:${bc}"></div></div>
+      <div class="budget-nums">
+        <span style="color:var(--green)">Spent: ${UI.money(spent)}</span>
+        <span style="color:var(--yellow)">Planned: ${UI.money(plannedC)}</span>
+        <span style="color:var(--text3)">Left: ${UI.money(p.budget-spent-plannedC)}</span>
+      </div>
+    </div>`;
+  }
+
+  // images — compact auto-fill gallery instead of the fixed 3-col picker grid
+  // (which stretches into huge tiles on a full-width page like this one).
+  let imgH = '';
+  if (p.imageIds?.length) {
+    let th = '';
+    for (const iid of p.imageIds) { const img = await DB.getImage(iid); if (img) th += `<img class="img-thumb" src="${img.data}" onclick="UI.previewImage('${img.data}')">`; }
+    imgH = `<div class="detail-section-title">Images</div><div class="detail-img-gallery">${th}</div>`;
+  }
+
+  let tasksH = ''; for (const t of rootT) tasksH += await mkTaskRow(t, allT, true, 0, { [p.id]: p });
+  const purH = await Promise.all(purs.map(async (pu, i) => {
+    const pv = purPrimaries[i];
+    const variantCount = (await DB.getVariants(pu.id)).length;
+    let imgHtml = '';
+    if (pv?.imageIds?.length) {
+      const img = await DB.getImage(pv.imageIds[0]);
+      if (img) imgHtml = `<img class="img-thumb" src="${img.data}" style="width:28px;height:28px;border-radius:4px;object-fit:cover;flex-shrink:0;cursor:pointer" onclick="event.stopPropagation();UI.previewImage('${img.data}')">`;
+    }
+    const shop = pv?.shopId ? (shops.find(s => s.id === pv.shopId)) : null;
+    return `<div class="pur-row">
+      <div class="pur-check ${pu.status==='in_stock'?'bought':''}" onclick="togglePurchase('${pu.id}','${id}')"></div>
+      ${imgHtml}
+      <div class="pur-name ${pu.status==='in_stock'?'bought':''}" onclick="editPur('${pu.id}')">${pu.name}${variantCount>1?` <span style="color:var(--text3);font-size:11px;font-family:var(--m)">(${variantCount})</span>`:''}${shop?` <span style="color:var(--text3);font-size:11px">@ ${shop.name}</span>`:''}</div>
+      <div class="pur-price">${pv?.price ? UI.money(pv.price) : ''}</div>
+      <button class="task-edit" onclick="editPur('${pu.id}')" aria-label="Edit purchase">✎</button>
+    </div>`;
+  }));
+
+  showDetail(`
+  <div class="detail-header">
+    <div class="detail-nav">
+      <button class="back-btn" onclick="navTo('projects')">← Projects</button>
+      <div style="margin-left:auto;display:flex;gap:6px">
+        <button class="topbar-btn" onclick="editProj('${p.id}')" aria-label="Edit project">✎</button>
+        <button class="topbar-btn" onclick="deleteProject('${p.id}')" aria-label="Delete project"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button>
+      </div>
+    </div>
+    <div class="detail-title">${area?area.emoji+' ':''}${p.name}</div>
+    ${p.description ? `<div class="detail-desc">${p.description}</div>` : ''}
+    <div class="card-footer" style="margin-top:8px">${UI.statusBadge(p.status)}${UI.priorityBadge(p.priority)}${(p.tags||[]).map(t=>UI.tagBadge(t)).join('')}</div>
+  </div>
+  <div class="detail-section">
+    ${budH}${imgH}
+    <div class="meta-grid">
+      ${area ? `<div class="meta-item"><div class="meta-label">Area</div><div class="meta-value">${area.emoji} ${area.name}</div></div>` : ''}
+      ${p.endDate ? `<div class="meta-item"><div class="meta-label">Deadline</div><div class="meta-value">${UI.date(p.endDate)}</div></div>` : ''}
+      <div class="meta-item"><div class="meta-label">Progress</div><div class="meta-value">${done}/${tot} (${pct}%)</div></div>
+      ${tCost ? `<div class="meta-item"><div class="meta-label">Tasks Cost</div><div class="meta-value" style="color:var(--yellow)">${UI.money(tCost)}</div></div>` : ''}
+    </div>
+    <div class="detail-section-title">Tasks (${tot})</div>
+    ${tasksH ? `<div class="tt-root-drop" ondragover="event.preventDefault();this.classList.add('tt-drop-target')" ondragleave="this.classList.remove('tt-drop-target')" ondrop="ttDropRoot(event)">⬇ Drag a task here to detach it from its parent</div>` : ''}
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:4px 14px;margin-bottom:10px">
+      ${tasksH || '<div style="padding:14px 0;text-align:center;color:var(--text3);font-size:13px">No tasks yet</div>'}
+    </div>
+    <button class="qa-btn" style="margin-bottom:16px" onclick="openTaskModal(null,'${p.id}')">＋ Add Task</button>
+    <div class="detail-section-title">Purchases (${purs.length})</div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:4px 14px;margin-bottom:10px">
+      ${purH || '<div style="padding:14px 0;text-align:center;color:var(--text3);font-size:13px">No purchases</div>'}
+    </div>
+    <button class="qa-btn" onclick="openPurModal(null,'${p.id}')">＋ Add Purchase</button>
+  </div>`);
+}
+
+async function deleteProject(id) {
+  if (!confirm('Delete project?')) return;
+  await DB.delete('projects', id);
+  UI.toast('Project deleted');
+  navTo('projects');
+}
+
+async function togglePurchase(id, projId) {
+  const p = await DB.getById('purchases', id); if (!p) return;
+  await DB.update('purchases', id, { status: p.status === 'in_stock' ? 'wish' : 'in_stock' });
+  showProject(projId);
+}
+async function editPur(id) { const p = await DB.getById('purchases', id); if (p) openPurModal(p, p.projectId); }
+
+/* ═══════════════════════════════════════════
+   DETAIL: AREA
+═══════════════════════════════════════════ */
+async function showArea(id) {
+  curDetail = { type: 'area', id };
+  const a     = await DB.getById('areas', id); if (!a) return;
+  const [allProjs, allT] = await Promise.all([DB.getAll('projects'), DB.getAll('tasks')]);
+  const projs = allProjs.filter(p => p.areaId === id);
+  const tasks = allT.filter(t => t.areaId === id && !t.parentId);
+  const areasMap = { [a.id]: a };
+  const projMap  = Object.fromEntries(allProjs.map(p => [p.id, p]));
+  let ph = ''; for (const p of projs) ph += await mkProjCard(p, { areasMap, allTasks: allT });
+  let th = ''; for (const t of tasks) th += await mkTaskRow(t, allT, true, 0, projMap);
+  showDetail(`
+  <div class="detail-header">
+    <div class="detail-nav">
+      <button class="back-btn" onclick="navTo('areas')">← Areas</button>
+      <button class="topbar-btn" style="margin-left:auto" onclick="openAreaModal_byId('${id}')">✎</button>
+    </div>
+    <div class="detail-title">${a.emoji || ''} ${a.name}</div>
+    ${a.description ? `<div class="detail-desc">${a.description}</div>` : ''}
+  </div>
+  <div class="detail-section">
+    <div class="detail-section-title">Projects (${projs.length})</div>
+    ${ph || '<div style="color:var(--text3);font-size:13px;margin-bottom:14px">No projects</div>'}
+    <div class="detail-section-title" style="margin-top:4px">Tasks (${tasks.length})</div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:4px 14px">
+      ${th || '<div style="padding:14px 0;text-align:center;color:var(--text3);font-size:13px">No tasks</div>'}
+    </div>
+  </div>`);
+}
+async function openAreaModal_byId(id) { const a = await DB.getById('areas', id); if (a) openAreaModal(a); }
+
+/* ═══════════════════════════════════════════
+   EXPORT / IMPORT / CLEAR
+═══════════════════════════════════════════ */
+async function doExport() {
+  const b    = await DB.exportAll();
+  const json = JSON.stringify(b, null, 2);
+  const blob = new Blob([json], { type:'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `lifeos-${new Date().toISOString().split('T')[0]}.json`;
+  a.click(); URL.revokeObjectURL(url);
+  UI.toast('Data exported!');
+}
+function doImport() { document.getElementById('file-import').click(); }
+async function handleImport(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    try {
+      const b = JSON.parse(ev.target.result);
+      if (!confirm(`Import from ${b.exportedAt || '?'}? Merges with current data.`)) return;
+      await DB.importAll(b);
+      UI.toast('Imported!');
+      renderCurrentPage();
+    } catch { UI.toast('Import failed', 'err'); }
+  };
+  reader.readAsText(file); e.target.value = '';
+}
+async function doClear() {
+  if (!confirm('Delete ALL data? Cannot be undone.')) return;
+  if (!confirm('Really sure?')) return;
+  await DB.clearAll();
+  UI.toast('All data cleared');
+  renderCurrentPage();
+}
+
+/* ═══════════════════════════════════════════
+   GLOBAL SEARCH
+   Searches projects, tasks and purchases via DB.search
+   and lets the user jump straight to a result.
+═══════════════════════════════════════════ */
+let _searchDebounce = null;
+document.getElementById('btn-search').addEventListener('click', () => {
+  const inp = document.getElementById('global-search-inp');
+  inp.value = '';
+  document.getElementById('global-search-results').innerHTML =
+    '<div style="color:var(--text3);font-size:13px;padding:10px 0">Start typing to search…</div>';
+  UI.openModal('m-search');
+  setTimeout(() => inp.focus(), 50);
+});
+
+function runGlobalSearch() {
+  clearTimeout(_searchDebounce);
+  _searchDebounce = setTimeout(_doGlobalSearch, 150);
+}
+
+async function _doGlobalSearch() {
+  const term = document.getElementById('global-search-inp').value.trim();
+  const box  = document.getElementById('global-search-results');
+  if (!term) { box.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:10px 0">Start typing to search…</div>'; return; }
+
+  const results = await DB.search(['projects', 'tasks', 'purchases'], term);
+  if (!results.length) { box.innerHTML = UI.emptyState('🔍', 'No results', `Nothing matches "${term}"`); return; }
+
+  const ICONS = { projects: '📁', tasks: '✅', purchases: '🛒' };
+  box.innerHTML = results.slice(0, 40).map(r => `
+    <div class="pur-row" onclick="openSearchResult('${r._col}','${r.id}')">
+      <div style="font-size:16px;flex-shrink:0">${ICONS[r._col] || '•'}</div>
+      <div class="pur-name" style="font-weight:600">${r.name || r.title || '(untitled)'}</div>
+      <div style="font-size:11px;color:var(--text3);flex-shrink:0">${r._col}</div>
+    </div>`).join('');
+}
+
+function openSearchResult(col, id) {
+  UI.closeModal('m-search');
+  if (col === 'projects') showProject(id);
+  else if (col === 'tasks') showTask(id);
+  else if (col === 'purchases') editPur(id);
+}
+
+/* ═══════════════════════════════════════════
+   WIRE UP BUTTONS
+═══════════════════════════════════════════ */
+document.getElementById('btn-add').addEventListener('click',  () => UI.openModal('m-add'));
+document.getElementById('qa-project').addEventListener('click', openProjModal);
+document.getElementById('qa-task').addEventListener('click',    openTaskModal);
+document.getElementById('qa-purchase').addEventListener('click',openPurModal);
+document.getElementById('qa-area').addEventListener('click',    openAreaModal);
+document.getElementById('qa-export').addEventListener('click',  doExport);
+document.getElementById('s-export').addEventListener('click',   doExport);
+document.getElementById('s-import').addEventListener('click',   doImport);
+document.getElementById('s-tags').addEventListener('click',     openTagsModal);
+document.getElementById('s-clear').addEventListener('click',    doClear);
+
+/* ═══════════════════════════════════════════
+   KEYBOARD
+═══════════════════════════════════════════ */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+    document.body.style.overflow = '';
+    UI.closeImagePreview();
+  }
+});
+
+/* ═══════════════════════════════════════════
+   URL PARAMS (deep links from hub)
+═══════════════════════════════════════════ */
+function handleUrlParams() {
+  const params = new URLSearchParams(location.search);
+  if (params.has('p')) { showProject(params.get('p')); return; }
+  if (params.has('t')) { showTask(params.get('t')); return; }
+  if (params.has('a')) { navTo('areas'); showArea(params.get('a')); return; }
+  if (params.has('q')) {
+    tFilter = 'all';
+    navTo('tasks');
+    setTimeout(() => { document.getElementById('task-search').value = params.get('q'); renderTasks(); }, 100);
+    return;
+  }
+  if (location.hash === '#tasks') { navTo('tasks'); return; }
+}
+
+/* ═══════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════ */
+async function init() {
+  await lifeosInit();
+  await seed();
+  shops = await DB.getAll('shops');
+  handleUrlParams();
+  if (curPage === 'dashboard') await renderDash();
+}
+init().catch(e => {
+  document.body.innerHTML = `<div style="padding:40px;color:#f05060;font-family:monospace">Error: ${e.message}</div>`;
+});
+</script>
+</body>
+</html>

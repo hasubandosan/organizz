@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>App 1</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="wrap">
+
+  <div id="authBox" class="card">
+    <div class="tabs">
+      <button id="tabLogin" class="tab active">Вход</button>
+      <button id="tabRegister" class="tab">Регистрация</button>
+    </div>
+
+    <form id="loginForm" class="form">
+      <input type="email" id="loginEmail" placeholder="Email" required>
+      <input type="password" id="loginPassword" placeholder="Пароль" required>
+      <button type="submit">Войти</button>
+    </form>
+
+    <form id="registerForm" class="form hidden">
+      <input type="email" id="registerEmail" placeholder="Email" required>
+      <input type="password" id="registerPassword" placeholder="Пароль (минимум 8 символов)" required minlength="8">
+      <button type="submit">Зарегистрироваться</button>
+    </form>
+
+    <p id="authError" class="error hidden"></p>
+  </div>
+
+  <div id="appBox" class="card hidden">
+    <div class="appHeader">
+      <span id="userEmail"></span>
+      <button id="logoutBtn" class="linkBtn">Выйти</button>
+    </div>
+
+    <form id="itemForm" class="form row">
+      <input type="text" id="itemTitle" placeholder="Новая запись" required>
+      <button type="submit">Добавить</button>
+    </form>
+
+    <ul id="itemsList" class="items"></ul>
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>МенюПлан — LifeOS</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+
+<!-- Шрифты LifeOS: Syne + DM Mono (заменяют Inter + Playfair Display) -->
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- SortableJS (drag-and-drop в меню) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+
+<!--
+  СТИЛИ:
+  1. ../core/styles.css — дизайн-система LifeOS (токены, сброс, базовые компоненты)
+  2. menuplan-local.css — только МенюПлан-специфичные стили
+-->
+<link rel="stylesheet" href="../core/styles.css"/>
+<link rel="stylesheet" href="menuplan-local.css"/>
+</head>
+<body>
+<div id="app">
+  <header id="app-header" class="hidden">
+    <button id="header-back" class="icon-btn hidden" onclick="Router.back()">←</button>
+    <button id="header-hub" class="icon-btn" onclick="location.href='../hub/'" title="Hub">⌂</button>
+    <div id="header-title-wrap">
+      <span id="header-icon"></span>
+      <h1 id="header-title">МенюПлан</h1>
+    </div>
+    <div id="header-actions"></div>
+  </header>
+
+  <main id="app-content">
+    <div style="display:flex;align-items:center;justify-content:center;height:100dvh;flex-direction:column;gap:16px">
+      <div style="font-size:56px">🍽️</div>
+      <div style="color:var(--text2);font-size:14px;font-family:var(--f)">Загрузка…</div>
+    </div>
+  </main>
+
+  <nav id="bottom-nav" class="hidden">
+    <button class="nav-item" data-route="menu">
+      <span class="nav-icon">📅</span><span class="nav-label">Меню</span>
+    </button>
+    <button class="nav-item" data-route="recipes">
+      <span class="nav-icon">📖</span><span class="nav-label">Рецепты</span>
+    </button>
+    <button class="nav-item" data-route="products">
+      <span class="nav-icon">🥕</span><span class="nav-label">Продукты</span>
+    </button>
+    <button class="nav-item" data-route="shopping">
+      <span class="nav-icon">🛒</span><span class="nav-label">Покупки</span>
+    </button>
+    <button class="nav-item" data-route="profile">
+      <span class="nav-icon">⚙️</span><span class="nav-label">Профиль</span>
+    </button>
+  </nav>
+</div>
+
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<div id="timer-hud" class="hidden">
+  <div id="timer-hud-inner">
+    <span id="timer-hud-label"></span>
+    <span id="timer-hud-time"></span>
+    <button onclick="TimerManager.toggleHUD()">⏸</button>
+    <button onclick="TimerManager.closeHUD()">✕</button>
+  </div>
+</div>
+
+<!--
+  ПОРЯДОК СКРИПТОВ (критичен!):
+
+  1. ../core/db.js              → window.DB, lifeosInit()
+  2. ../core/shopping-bridge.js → window.ShoppingBridge
+  3. db.js               → sb, Auth, ShoppingDB, ...  [МенюПлан Supabase]
+     db.js сам вызывает ShoppingBridge внутри build() и toggle()
+  4. utils / router / screens / app.js  — без изменений
+-->
+<script>
+// Force demo mode until Supabase настроен — ДО db.js
+window.DEMO_MODE = true;
+</script>
+<script src="../core/db.js"></script>
+<script src="../core/shopping-bridge.js"></script>
+<script src="demo-data.js"></script>
+<script src="db.js"></script>
+<script src="utils.js"></script>
+<script src="router.js"></script>
+<script src="components.js"></script>
+<script src="screens/menu.js"></script>
+<script src="screens/recipes.js"></script>
+<script src="screens/recipe-view.js"></script>
+<script src="screens/recipe-edit.js"></script>
+<script src="screens/products.js"></script>
+<script src="screens/product-edit.js"></script>
+<script src="screens/shopping.js"></script>
+<script src="screens/profile.js"></script>
+<script src="screens/diets.js"></script>
+<script src="screens/collections.js"></script>
+<script src="screens/templates.js"></script>
+<script src="screens/mealprep.js"></script>
+<script src="ai-import.js"></script>
+<script src="app.js"></script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0a0f">
+<title>LifeOS — Projects</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../core/styles.css">
+</head>
+<body>
+<div class="shell">
+
+  <header class="topbar">
+    <a href="../hub/index.html" onclick="return openHub(event)" style="color:var(--text3);display:flex;align-items:center;gap:4px;font-size:13px;text-decoration:none">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+    </a>
+    <div class="topbar-logo">Projects</div>
+    <div class="topbar-spacer"></div>
+    <button class="topbar-btn" id="btn-search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    </button>
+    <button class="topbar-btn" id="btn-add">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+  </header>
+
+  <main class="content">
+    <div class="page active" id="page-dashboard">
+      <div class="section" style="padding-top:20px">
+        <div class="section-header"><span class="section-title">Overview</span><span class="section-count" id="d-date"></span></div>
+      </div>
+      <div class="stat-grid" id="d-stats"></div>
+      <div class="section"><div class="section-header"><span class="section-title">Quick Actions</span></div></div>
+      <div class="quick-actions">
+        <button class="qa-btn" id="qa-project">＋ Project</button>
+        <button class="qa-btn" id="qa-task">＋ Task</button>
+        <button class="qa-btn" id="qa-purchase">＋ Purchase</button>
+        <button class="qa-btn" id="qa-area">＋ Area</button>
+        <button class="qa-btn" id="qa-export">↓ Export</button>
+      </div>
+      <div class="section" style="margin-top:14px">
+        <div class="section-header"><span class="section-title">Active Projects</span><button class="section-action" onclick="navTo('projects')">See all</button></div>
+        <div id="d-projects"></div>
+      </div>
+      <div class="section">
+        <div class="section-header"><span class="section-title">Open Tasks</span><button class="section-action" onclick="navTo('tasks')">See all</button></div>
+        <div id="d-tasks"></div>
+      </div>
+    </div>
+
+    <div class="page" id="page-projects">
+      <div class="search-bar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input id="proj-search" placeholder="Search projects…" oninput="renderProjects()">
+      </div>
+      <div class="filter-row" id="proj-filters"></div>
+      <div class="section" style="padding-top:0"><div id="proj-list"></div></div>
+    </div>
+
+    <div class="page" id="page-tasks">
+      <div class="search-bar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input id="task-search" placeholder="Search tasks…" oninput="renderTasks()">
+      </div>
+      <div class="filter-row" id="task-filters"></div>
+      <div class="section" style="padding-top:0"><div id="task-list"></div></div>
+    </div>
+
+    <div class="page" id="page-areas">
+      <div class="area-grid" id="area-grid"></div>
+    </div>
+
+    <div class="page" id="page-settings">
+      <div class="section"><div class="section-header"><span class="section-title">Data</span></div></div>
+      <div class="settings-list">
+        <div class="settings-item" id="s-export"><span class="settings-label">Export All Data</span><span class="settings-value">↓ JSON</span></div>
+        <div class="settings-item" id="s-import"><span class="settings-label">Import Data</span><span class="settings-value">↑ JSON</span></div>
+        <div class="settings-item"><span class="settings-label">Storage</span><span class="settings-value" id="s-storage">localStorage</span></div>
+        <div class="settings-item"><span class="settings-label">Schema Version</span><span class="settings-value" id="s-schema">v1</span></div>
+        <div class="settings-item"><span class="settings-label">Records</span><span class="settings-value" id="s-records">—</span></div>
+        <div class="settings-item" id="s-tags"><span class="settings-label">Manage Tags</span><span class="settings-value">→</span></div>
+        <div class="settings-item" id="s-clear" style="color:var(--red)"><span class="settings-label">Clear All Data</span><span class="settings-value" style="color:var(--red)">✕</span></div>
+      </div>
+    </div>
+
+    <div class="page" id="page-detail"><div id="detail-content"></div></div>
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-page="dashboard" onclick="navTo('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>DASH
+    </button>
+    <button class="nav-item" data-page="projects" onclick="navTo('projects')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>PROJECTS
+    </button>
+    <button class="nav-item" data-page="tasks" onclick="navTo('tasks')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>TASKS
+    </button>
+    <button class="nav-item" data-page="areas" onclick="navTo('areas')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>AREAS
+    </button>
+    <button class="nav-item" data-page="settings" onclick="navTo('settings')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>SETTINGS
+    </button>
+  </nav>
+</div>
+
+<!-- ═══ MODALS ═══ -->
+
+<!-- Quick Add -->
+<div class="modal-overlay" id="m-add" onclick="UI.closeModalOnBackdrop(event,'m-add')"><div class="modal">
+  <div class="modal-header"><span class="modal-title">Create New</span><button class="modal-close" onclick="UI.closeModal('m-add')">×</button></div>
+  <div class="modal-body" style="display:flex;flex-direction:column;gap:8px">
+    <button class="qa-btn" style="width:100%;justify-content:flex-start;padding:14px 16px;font-size:15px" onclick="UI.closeModal('m-add');openProjModal()">📁 New Project</button>
+    <button class="qa-btn" style="width:100%;justify-content:flex-start;padding:14px 16px;font-size:15px" onclick="UI.closeModal('m-add');openTaskModal()">✅ New Task</button>
+    <button class="qa-btn" style="width:100%;justify-content:flex-start;padding:14px 16px;font-size:15px" onclick="UI.closeModal('m-add');openPurModal()">🛒 New Purchase</button>
+    <button class="qa-btn" style="width:100%;justify-content:flex-start;padding:14px 16px;font-size:15px" onclick="UI.closeModal('m-add');openAreaModal()">🌐 New Area</button>
+  </div>
+</div></div>
+
+<!-- Project Modal -->
+<div class="modal-overlay" id="m-proj" onclick="UI.closeModalOnBackdrop(event,'m-proj')"><div class="modal">
+  <div class="modal-header"><span class="modal-title" id="mpt">New Project</span><button class="modal-close" onclick="UI.closeModal('m-proj')">×</button></div>
+  <div class="modal-body">
+    <input type="hidden" id="pe-id">
+    <div class="form-group"><label class="form-label">Name *</label><input id="p-name" placeholder="Project name…"></div>
+    <div class="form-group"><label class="form-label">Description</label><textarea id="p-desc" placeholder="What is this project about?"></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Status</label>
+        <select id="p-status"><option value="idea">Idea</option><option value="planned">Planned</option><option value="in_progress">In Progress</option><option value="paused">Paused</option><option value="completed">Completed</option><option value="archived">Archived</option></select></div>
+      <div class="form-group"><label class="form-label">Priority</label>
+        <select id="p-pri"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Area</label><select id="p-area"></select></div>
+      <div class="form-group"><label class="form-label">Budget (₽)</label><input id="p-budget" type="number" placeholder="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Start</label><input id="p-start" type="date"></div>
+      <div class="form-group"><label class="form-label">End</label><input id="p-end" type="date"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Tags</label><div class="tag-grid" id="p-tg"></div></div>
+    <div class="form-group"><label class="form-label">Images</label>
+      <div class="img-grid" id="p-ig"></div>
+      <input type="file" id="p-ii" accept="image/*" multiple style="display:none" onchange="handleImgFiles('p',event)">
+    </div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-ghost" onclick="UI.closeModal('m-proj')">Cancel</button><button class="btn btn-primary" onclick="saveProj()">Save</button></div>
+</div></div>
+
+<!-- Task Modal -->
+<div class="modal-overlay" id="m-task" onclick="UI.closeModalOnBackdrop(event,'m-task')"><div class="modal">
+  <div class="modal-header"><span class="modal-title" id="mtt">New Task</span><button class="modal-close" onclick="UI.closeModal('m-task')">×</button></div>
+  <div class="modal-body">
+    <input type="hidden" id="te-id">
+    <div class="form-group"><label class="form-label">Title *</label><input id="t-name" placeholder="What needs to be done?"></div>
+    <div class="form-group"><label class="form-label">Notes</label><textarea id="t-notes" placeholder="Details, links…"></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Status</label>
+        <select id="t-status"><option value="idea">Idea</option><option value="planned">Planned</option><option value="in_progress">In Progress</option><option value="paused">Paused</option><option value="completed">Completed</option></select></div>
+      <div class="form-group"><label class="form-label">Priority</label>
+        <select id="t-pri"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Project</label><select id="t-proj"><option value="">— none —</option></select></div>
+      <div class="form-group"><label class="form-label">Area</label><select id="t-area"><option value="">— none —</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Due Date</label><input id="t-due" type="date"></div>
+      <div class="form-group"><label class="form-label">Own Cost (₽)</label><input id="t-cost" type="number" placeholder="0"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Parent Task</label><select id="t-parent"><option value="">— root task —</option></select></div>
+    <div class="form-group"><label class="form-label">Tags</label><div class="tag-grid" id="t-tg"></div></div>
+    <div id="sub-sec" style="display:none">
+      <div class="divider"></div>
+      <div class="form-group">
+        <label class="form-label">Subtasks</label>
+        <div id="sub-list"></div>
+        <div class="subtask-add-row" style="margin-bottom:6px">
+          <input id="sub-inp" placeholder="New subtask…" onkeydown="if(event.key==='Enter')addSubtask()">
+          <button class="subtask-add-btn" onclick="addSubtask()">＋ Add</button>
+        </div>
+        <div class="subtask-add-row">
+          <input id="sub-search-inp" placeholder="Search existing task…" oninput="searchExistingTasks()" autocomplete="off">
+          <div id="sub-search-results" style="margin-top:4px;max-height:120px;overflow-y:auto;display:none"></div>
+        </div>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Images</label>
+      <div class="img-grid" id="t-ig"></div>
+      <input type="file" id="t-ii" accept="image/*" multiple style="display:none" onchange="handleImgFiles('t',event)">
+    </div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-ghost" onclick="UI.closeModal('m-task')">Cancel</button><button class="btn btn-primary" onclick="saveTask()">Save</button></div>
+</div></div>
+
+<!-- Purchase Modal -->
+<div class="modal-overlay" id="m-pur" onclick="UI.closeModalOnBackdrop(event,'m-pur')"><div class="modal">
+  <div class="modal-header"><span class="modal-title" id="mput">New Purchase</span><button class="modal-close" onclick="UI.closeModal('m-pur')">×</button></div>
+  <div class="modal-body">
+    <input type="hidden" id="pue-id">
+    <div class="form-group"><label class="form-label">Name *</label><input id="pu-name" placeholder="What to buy?"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Price (₽)</label><input id="pu-price" type="number" placeholder="0"></div>
+      <div class="form-group"><label class="form-label">Status</label>
+        <select id="pu-status"><option value="planned">Planned</option><option value="wish">Wish</option><option value="ordered">Ordered</option><option value="in_stock">In Stock</option><option value="cancelled">Cancelled</option></select></div>
+    </div>
+    <div class="form-group"><label class="form-label">Project</label><select id="pu-proj"><option value="">— none —</option></select></div>
+    <div class="form-group"><label class="form-label">Notes / URL</label><textarea id="pu-notes" style="min-height:60px" placeholder="URL, specs…"></textarea></div>
+    <div class="form-group"><label class="form-label">Tags</label><div class="tag-grid" id="pu-tg"></div></div>
+    <div class="form-group"><label class="form-label">Images</label>
+      <div class="img-grid" id="pu-ig"></div>
+      <input type="file" id="pu-ii" accept="image/*" multiple style="display:none" onchange="handleImgFiles('pu',event)">
+    </div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-ghost" onclick="UI.closeModal('m-pur')">Cancel</button><button class="btn btn-primary" onclick="savePur()">Save</button></div>
+</div></div>
+
+<!-- Area Modal -->
+<div class="modal-overlay" id="m-area" onclick="UI.closeModalOnBackdrop(event,'m-area')"><div class="modal">
+  <div class="modal-header"><span class="modal-title" id="mat">New Area</span><button class="modal-close" onclick="UI.closeModal('m-area')">×</button></div>
+  <div class="modal-body">
+    <input type="hidden" id="ae-id">
+    <div class="form-group"><label class="form-label">Name *</label><input id="a-name" placeholder="e.g. Home, Work…"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Emoji</label><input id="a-emoji" placeholder="🏠" maxlength="4"></div>
+      <div class="form-group"><label class="form-label">Color (hex)</label><input id="a-color" placeholder="#5b6ef5" maxlength="7"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Description</label><textarea id="a-desc" style="min-height:60px" placeholder="What belongs here?"></textarea></div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-ghost" onclick="UI.closeModal('m-area')">Cancel</button><button class="btn btn-primary" onclick="saveArea()">Save</button></div>
+</div></div>
+
+<!-- Tags Manager -->
+<div class="modal-overlay" id="m-tags" onclick="UI.closeModalOnBackdrop(event,'m-tags')"><div class="modal">
+  <div class="modal-header"><span class="modal-title">Manage Tags</span><button class="modal-close" onclick="UI.closeModal('m-tags')">×</button></div>
+  <div class="modal-body">
+    <div class="form-group"><label class="form-label">All Tags</label><div class="tag-grid" id="all-tags-grid"></div></div>
+    <div class="subtask-add-row">
+      <input id="new-tag-inp" placeholder="New tag…" onkeydown="if(event.key==='Enter')addGlobalTag()">
+      <button class="subtask-add-btn" onclick="addGlobalTag()">＋ Add</button>
+    </div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-primary" onclick="UI.closeModal('m-tags')">Done</button></div>
+</div></div>
+
+<input type="file" id="file-import" accept=".json" style="display:none" onchange="handleImport(event)">
+
+<script src="../core/db.js"></script>
+<script src="../core/ui.js"></script>
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════ */
+let curPage   = 'dashboard';
+let pFilter   = 'all';
+let tFilter   = 'active';
+let curDetail = null;
+
+// image buffers per modal key
+const _imgBuf = { p: [], t: [], pu: [] };
+// selected tags per modal key
+const _selTags = { p: [], t: [], pu: [] };
+
+/* ═══════════════════════════════════════════
+   SEED (first run)
+═══════════════════════════════════════════ */
+async function seed() {
+  const areas = await DB.getAll('areas');
+  if (areas.length) return;
+
+  const am = {};
+  for (const x of [
+    { name:'Дом',      emoji:'🏠', description:'Домашние дела и ремонт' },
+    { name:'Работа',   emoji:'💼', description:'Карьера и проекты' },
+    { name:'Здоровье', emoji:'💪', description:'Физическое и ментальное' },
+    { name:'Финансы',  emoji:'💰', description:'Бюджет и инвестиции' },
+    { name:'Семья',    emoji:'👨‍👩‍👧', description:'Отношения и близкие' },
+    { name:'Участок',  emoji:'🌿', description:'Сад и дача' },
+  ]) { const r = await DB.create('areas', x); am[x.name] = r.id; }
+
+  const p1 = await DB.create('projects', { name:'Ремонт кухни', description:'Стены, пол, мебель, техника', status:'in_progress', priority:'high', areaId:am['Дом'], budget:150000, tags:['ремонт'], startDate:'2025-06-01', endDate:'2025-09-01' });
+  const p2 = await DB.create('projects', { name:'Пет-проект', description:'SaaS для учёта задач', status:'planned', priority:'medium', areaId:am['Работа'], budget:20000, tags:['dev'] });
+
+  const t2 = await DB.create('tasks', { name:'Выбрать плитку', status:'planned', priority:'high', projectId:p1.id, areaId:am['Дом'], tags:['ремонт'], selfBudget:0, dueDate:'2025-07-01' });
+  await DB.create('tasks', { name:'Купить плитку 30м²', status:'planned', priority:'medium', projectId:p1.id, parentId:t2.id, selfBudget:45000, tags:[] });
+  await DB.create('tasks', { name:'Нанять бригаду', status:'in_progress', priority:'high', projectId:p1.id, areaId:am['Дом'], tags:['срочно'], selfBudget:0 });
+  await DB.create('tasks', { name:'Написать ТЗ', status:'completed', priority:'medium', projectId:p2.id, areaId:am['Работа'], tags:['dev'], selfBudget:0 });
+  await DB.create('tasks', { name:'К врачу', status:'planned', priority:'medium', areaId:am['Здоровье'], dueDate:new Date().toISOString().split('T')[0], selfBudget:0 });
+
+  await DB.create('purchases', { name:'Плитка керамика 30м²', price:45000, status:'wish', projectId:p1.id, notes:'Leroy Merlin', sourceType:'task' });
+  await DB.create('purchases', { name:'Смеситель Grohe', price:12000, status:'in_stock', projectId:p1.id, sourceType:'manual' });
+  await DB.create('purchases', { name:'Ноутбук', price:80000, status:'wish', projectId:p2.id, sourceType:'manual' });
+}
+
+/* ═══════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════ */
+function navTo(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const pg = document.getElementById(`page-${page}`);
+  if (pg) pg.classList.add('active');
+  const ni = document.querySelector(`.nav-item[data-page="${page}"]`);
+  if (ni) ni.classList.add('active');
+  curPage = page;
+  curDetail = null;
+  renderCurrentPage();
+}
+
+/* ── Hub navigation fix for file:// protocol ── */
+function openHub(e) {
+  e.preventDefault();
+  location.href = '../hub/index.html';
+  return false;
+}
+
+function renderCurrentPage() {
+  if (curPage === 'dashboard') renderDash();
+  else if (curPage === 'projects') renderProjects();
+  else if (curPage === 'tasks') renderTasks();
+  else if (curPage === 'areas') renderAreas();
+  else if (curPage === 'settings') renderSettings();
+}
+
+function showDetail(html) {
+  document.getElementById('detail-content').innerHTML = html;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-detail').classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  curPage = 'detail';
+}
+
+/* ═══════════════════════════════════════════
+   IMAGE HELPERS
+═══════════════════════════════════════════ */
+function handleImgFiles(key, event) {
+  UI.handleImageFiles(event.target.files, _imgBuf[key],
+    `${key}-ig`, `${key}-ii`, []);
+}
+async function flushImgs(key, existingIds = []) {
+  return UI.flushImageBuffer(_imgBuf[key], existingIds);
+}
+async function initImgGrid(key, savedIds = []) {
+  _imgBuf[key] = [];
+  await UI.renderImageGrid(`${key}-ig`, `${key}-ii`, savedIds, _imgBuf[key]);
+}
+
+/* ═══════════════════════════════════════════
+   PROJECT MODAL
+═══════════════════════════════════════════ */
+async function openProjModal(proj = null) {
+  await initImgGrid('p', proj?.imageIds || []);
+  _selTags.p = [...(proj?.tags || [])];
+  const areas = await DB.getAll('areas');
+  document.getElementById('p-area').innerHTML =
+    '<option value="">— none —</option>' +
+    areas.map(a => `<option value="${a.id}">${a.emoji || ''} ${a.name}</option>`).join('');
+  document.getElementById('mpt').textContent = proj ? 'Edit Project' : 'New Project';
+  const f = (id, v) => document.getElementById(id).value = v ?? '';
+  f('pe-id', proj?.id); f('p-name', proj?.name); f('p-desc', proj?.description);
+  f('p-status', proj?.status ?? 'planned'); f('p-pri', proj?.priority ?? 'medium');
+  f('p-area', proj?.areaId); f('p-budget', proj?.budget || '');
+  f('p-start', proj?.startDate); f('p-end', proj?.endDate);
+  await UI.renderTagGrid('p-tg', _selTags.p, tags => { _selTags.p = tags; });
+  UI.openModal('m-proj');
+}
+
+async function saveProj() {
+  const id = document.getElementById('pe-id').value;
+  const ex = id ? await DB.getById('projects', id) : null;
+  const imageIds = await flushImgs('p', ex?.imageIds || []);
+  const data = {
+    name:        document.getElementById('p-name').value.trim(),
+    description: document.getElementById('p-desc').value.trim(),
+    status:      document.getElementById('p-status').value,
+    priority:    document.getElementById('p-pri').value,
+    areaId:      document.getElementById('p-area').value || null,
+    budget:      parseFloat(document.getElementById('p-budget').value) || 0,
+    startDate:   document.getElementById('p-start').value || null,
+    endDate:     document.getElementById('p-end').value || null,
+    tags:        [..._selTags.p],
+    imageIds,
+  };
+  try {
+    if (id) await DB.update('projects', id, data);
+    else    await DB.create('projects', data);
+    UI.closeModal('m-proj');
+    UI.toast(id ? 'Project updated' : 'Project created');
+    renderCurrentPage();
+  } catch (e) { UI.toast(e.message, 'err'); }
+}
+
+/* ═══════════════════════════════════════════
+   TASK MODAL
+═══════════════════════════════════════════ */
+async function openTaskModal(task = null, preProjId = null, preParentId = null) {
+  await initImgGrid('t', task?.imageIds || []);
+  _selTags.t = [...(task?.tags || [])];
+  const [areas, projs, allTasks] = await Promise.all([
+    DB.getAll('areas'), DB.getAll('projects'), DB.getAll('tasks'),
+  ]);
+  document.getElementById('t-area').innerHTML   = '<option value="">— none —</option>' + areas.map(a => `<option value="${a.id}">${a.emoji || ''} ${a.name}</option>`).join('');
+  document.getElementById('t-proj').innerHTML   = '<option value="">— none —</option>' + projs.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  document.getElementById('t-parent').innerHTML = '<option value="">— root task —</option>' + allTasks.filter(t => !task || t.id !== task.id).map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+  document.getElementById('mtt').textContent = task ? 'Edit Task' : 'New Task';
+  const f = (id, v) => document.getElementById(id).value = v ?? '';
+  f('te-id', task?.id); f('t-name', task?.name); f('t-notes', task?.notes);
+  f('t-status', task?.status ?? 'planned'); f('t-pri', task?.priority ?? 'medium');
+  f('t-proj',   task?.projectId || preProjId);
+  f('t-area',   task?.areaId);
+  f('t-due',    task?.dueDate);
+  f('t-cost',   task?.selfBudget || task?.cost || '');
+  f('t-parent', task?.parentId || preParentId);
+
+  // Блокировка зоны, если задан проект
+  const areaSelect = document.getElementById('t-area');
+  const projSelect = document.getElementById('t-proj');
+  if (projSelect.value) {
+    areaSelect.disabled = true;
+    areaSelect.style.opacity = '0.5';
+    // Если у проекта есть зона — подставляем её
+    const selProj = projs.find(p => p.id === projSelect.value);
+    if (selProj?.areaId) {
+      areaSelect.value = selProj.areaId;
+    }
+  } else {
+    areaSelect.disabled = false;
+    areaSelect.style.opacity = '1';
+  }
+  // При смене проекта — блокируем/разблокируем зону
+  projSelect.onchange = async function() {
+    if (this.value) {
+      areaSelect.disabled = true;
+      areaSelect.style.opacity = '0.5';
+      const sp = projs.find(p => p.id === this.value);
+      if (sp?.areaId) {
+        areaSelect.value = sp.areaId;
+      }
+    } else {
+      areaSelect.disabled = false;
+      areaSelect.style.opacity = '1';
+    }
+  };
+
+  // Добавляем быструю кнопку смены даты (+/- день)
+  const dueInput = document.getElementById('t-due');
+  if (dueInput) {
+    let quickBtns = dueInput.parentElement.querySelector('.quick-date-btns');
+    if (!quickBtns) {
+      quickBtns = document.createElement('div');
+      quickBtns.className = 'quick-date-btns';
+      quickBtns.style.cssText = 'display:flex;gap:4px;margin-top:6px';
+      quickBtns.innerHTML = `
+        <button class="subtask-add-btn" style="font-size:11px;padding:2px 8px" onclick="event.preventDefault();var i=document.getElementById('t-due');var d=i.valueAsDate||new Date();d.setDate(d.getDate()-1);i.valueAsDate=d">−1д</button>
+        <button class="subtask-add-btn" style="font-size:11px;padding:2px 8px" onclick="event.preventDefault();var i=document.getElementById('t-due');var d=new Date();i.valueAsDate=d">🗓 Сегодня</button>
+        <button class="subtask-add-btn" style="font-size:11px;padding:2px 8px" onclick="event.preventDefault();var i=document.getElementById('t-due');var d=i.valueAsDate||new Date();d.setDate(d.getDate()+1);i.valueAsDate=d">+1д</button>
+        <button class="subtask-add-btn" style="font-size:11px;padding:2px 8px" onclick="event.preventDefault();document.getElementById('t-due').value=''">✕</button>`;
+      dueInput.parentElement.appendChild(quickBtns);
+    }
+  }
+
+  const sec = document.getElementById('sub-sec');
+  if (task) {
+    sec.style.display = 'block';
+    renderSubtaskList(allTasks.filter(x => x.parentId === task.id));
+  } else {
+    sec.style.display = 'none';
+  }
+  await UI.renderTagGrid('t-tg', _selTags.t, tags => { _selTags.t = tags; });
+  UI.openModal('m-task');
+}
+
+function renderSubtaskList(subs) {
+  document.getElementById('sub-list').innerHTML = subs.length
+    ? subs.map(s => `
+      <div class="task-row" style="padding:6px 0">
+        <div class="task-check ${s.status === 'completed' ? 'done' : ''}" onclick="toggleSubtask('${s.id}')"></div>
+        <div class="task-body" onclick="editSubtask('${s.id}')">
+          <div class="task-title ${s.status === 'completed' ? 'done' : ''}">${s.name}</div>
+          ${s.selfBudget ? `<div class="task-meta"><span class="task-cost">${UI.money(s.selfBudget)}</span></div>` : ''}
+        </div>
+        <button class="task-edit" onclick="deleteSubtask('${s.id}')">×</button>
+      </div>`).join('')
+    : '<div style="color:var(--text3);font-size:13px;padding:6px 0">No subtasks yet</div>';
+}
+
+async function toggleSubtask(id) {
+  const t = await DB.getById('tasks', id); if (!t) return;
+  await DB.update('tasks', id, { status: t.status === 'completed' ? 'planned' : 'completed' });
+  const pid = document.getElementById('te-id').value;
+  renderSubtaskList((await DB.getAll('tasks')).filter(x => x.parentId === pid));
+}
+async function editSubtask(id) {
+  UI.closeModal('m-task');
+  const t = await DB.getById('tasks', id);
+  if (t) openTaskModal(t);
+}
+async function deleteSubtask(id) {
+  if (!confirm('Delete subtask?')) return;
+  await DB.delete('tasks', id);
+  const pid = document.getElementById('te-id').value;
+  renderSubtaskList((await DB.getAll('tasks')).filter(x => x.parentId === pid));
+  UI.toast('Subtask deleted');
+}
+async function addSubtask() {
+  const inp = document.getElementById('sub-inp');
+  const name = inp.value.trim(); if (!name) return;
+  const pid  = document.getElementById('te-id').value;
+  if (!pid) { UI.toast('Save task first', 'err'); return; }
+  await DB.create('tasks', { name, status:'planned', priority:'low', parentId:pid, projectId: document.getElementById('t-proj').value || null, tags:[], selfBudget:0 });
+  inp.value = '';
+  renderSubtaskList((await DB.getAll('tasks')).filter(x => x.parentId === pid));
+  UI.toast('Subtask added');
+}
+
+async function saveTask() {
+  const id = document.getElementById('te-id').value;
+  const ex = id ? await DB.getById('tasks', id) : null;
+  const imageIds = await flushImgs('t', ex?.imageIds || []);
+  const data = {
+    name:       document.getElementById('t-name').value.trim(),
+    notes:      document.getElementById('t-notes').value.trim(),
+    status:     document.getElementById('t-status').value,
+    priority:   document.getElementById('t-pri').value,
+    projectId:  document.getElementById('t-proj').value || null,
+    areaId:     document.getElementById('t-area').value || null,
+    dueDate:    document.getElementById('t-due').value || null,
+    selfBudget: parseFloat(document.getElementById('t-cost').value) || 0,
+    parentId:   document.getElementById('t-parent').value || null,
+    tags:       [..._selTags.t],
+    imageIds,
+  };
+  try {
+    if (id) await DB.update('tasks', id, data);
+    else    await DB.create('tasks', data);
+    UI.closeModal('m-task');
+    UI.toast(id ? 'Task updated' : 'Task created');
+    renderCurrentPage();
+  } catch (e) { UI.toast(e.message, 'err'); }
+}
+
+/* ═══════════════════════════════════════════
+   PURCHASE MODAL
+═══════════════════════════════════════════ */
+async function openPurModal(pur = null, preProjId = null) {
+  await initImgGrid('pu', pur?.imageIds || []);
+  _selTags.pu = [...(pur?.tags || [])];
+  const projs = await DB.getAll('projects');
+  document.getElementById('pu-proj').innerHTML = '<option value="">— none —</option>' + projs.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  document.getElementById('mput').textContent = pur ? 'Edit Purchase' : 'New Purchase';
+  const f = (id, v) => document.getElementById(id).value = v ?? '';
+  f('pue-id', pur?.id); f('pu-name', pur?.name);
+  f('pu-price', pur?.price || ''); f('pu-status', pur?.status ?? 'planned');
+  f('pu-proj', pur?.projectId || preProjId); f('pu-notes', pur?.notes);
+  await UI.renderTagGrid('pu-tg', _selTags.pu, tags => { _selTags.pu = tags; });
+  UI.openModal('m-pur');
+}
+
+async function savePur() {
+  const id = document.getElementById('pue-id').value;
+  const ex = id ? await DB.getById('purchases', id) : null;
+  const imageIds = await flushImgs('pu', ex?.imageIds || []);
+  const data = {
+    name:       document.getElementById('pu-name').value.trim(),
+    price:      parseFloat(document.getElementById('pu-price').value) || 0,
+    status:     document.getElementById('pu-status').value,
+    projectId:  document.getElementById('pu-proj').value || null,
+    notes:      document.getElementById('pu-notes').value.trim(),
+    sourceType: ex?.sourceType || 'manual',
+    tags:       [..._selTags.pu],
+    imageIds,
+  };
+  try {
+    if (id) await DB.update('purchases', id, data);
+    else    await DB.create('purchases', data);
+    UI.closeModal('m-pur');
+    UI.toast(id ? 'Purchase updated' : 'Purchase added');
+    renderCurrentPage();
+  } catch (e) { UI.toast(e.message, 'err'); }
+}
+
+/* ═══════════════════════════════════════════
+   AREA MODAL
+═══════════════════════════════════════════ */
+function openAreaModal(area = null) {
+  document.getElementById('mat').textContent = area ? 'Edit Area' : 'New Area';
+  const f = (id, v) => document.getElementById(id).value = v ?? '';
+  f('ae-id', area?.id); f('a-name', area?.name); f('a-emoji', area?.emoji);
+  f('a-color', area?.color); f('a-desc', area?.description);
+  UI.openModal('m-area');
+}
+async function saveArea() {
+  const id   = document.getElementById('ae-id').value;
+  const data = { name:document.getElementById('a-name').value.trim(), emoji:document.getElementById('a-emoji').value.trim()||'🔹', color:document.getElementById('a-color').value.trim()||null, description:document.getElementById('a-desc').value.trim() };
+  try {
+    if (id) await DB.update('areas', id, data); else await DB.create('areas', data);
+    UI.closeModal('m-area'); UI.toast('Area saved'); renderCurrentPage();
+  } catch (e) { UI.toast(e.message, 'err'); }
+}
+
+/* ═══════════════════════════════════════════
+   TAGS MANAGER
+═══════════════════════════════════════════ */
+async function openTagsModal() {
+  const tags = await DB.getTags();
+  document.getElementById('all-tags-grid').innerHTML = tags.map(t =>
+    `<span class="tag-chip">${t.name} <span onclick="deleteGlobalTag('${t.id}')" style="cursor:pointer;color:var(--red);margin-left:3px">×</span></span>`
+  ).join('');
+  UI.openModal('m-tags');
+}
+async function addGlobalTag() {
+  const inp = document.getElementById('new-tag-inp');
+  const n = inp.value.trim(); if (!n) return;
+  await DB.createTag(n); inp.value = '';
+  await openTagsModal(); UI.openModal('m-tags');
+}
+async function deleteGlobalTag(id) {
+  await DB.deleteTag(id); await openTagsModal(); UI.openModal('m-tags');
+}
+
+/* ═══════════════════════════════════════════
+   RENDER: PROJECT CARD
+═══════════════════════════════════════════ */
+async function mkProjCard(p) {
+  const area  = p.areaId ? await DB.getById('areas', p.areaId) : null;
+  const tasks = await DB.query('tasks', { projectId: p.id });
+  const done  = tasks.filter(t => t.status === 'completed').length;
+  const pct   = tasks.length ? Math.round(done / tasks.length * 100) : 0;
+  let imgH = '';
+  if (p.imageIds?.length) {
+    const img = await DB.getImage(p.imageIds[0]);
+    if (img) imgH = `<img class="card-img" src="${img.data}" onclick="event.stopPropagation();UI.previewImage('${img.data}')">`;
+  }
+  return `<div class="card clickable" onclick="showProject('${p.id}')">
+    ${imgH}
+    <div class="card-head">
+      <div class="card-icon">${area ? area.emoji : '📁'}</div>
+      <div style="flex:1;min-width:0">
+        <div class="card-title">${p.name}</div>
+        <div class="card-meta">${area ? area.name : ''} ${p.endDate ? '· ' + UI.date(p.endDate) : ''}</div>
+      </div>
+      <button class="card-edit-btn" onclick="event.stopPropagation();editProj('${p.id}')" title="Edit">✎</button>
+    </div>
+    ${p.description ? `<div class="card-desc">${p.description}</div>` : ''}
+    <div class="card-footer">${UI.statusBadge(p.status)}${UI.priorityBadge(p.priority)}${(p.tags||[]).map(t=>UI.tagBadge(t)).join('')}</div>
+    ${tasks.length ? `<div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--text3);font-family:var(--m)"><span>${done}/${tasks.length} tasks</span><span>${pct}%</span></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>` : ''}
+  </div>`;
+}
+async function editProj(id) { const p = await DB.getById('projects', id); if (p) openProjModal(p); }
+
+/* ═══════════════════════════════════════════
+   RENDER: TASK ROW
+   — checkbox  → toggle done
+   — body / ✎  → open edit modal
+═══════════════════════════════════════════ */
+async function mkTaskRow(t, allTasks, showChildren = false, depth = 0) {
+  const done     = t.status === 'completed';
+  const overdue  = UI.isOverdue(t.dueDate, t.status);
+  const proj     = t.projectId ? await DB.getById('projects', t.projectId) : null;
+  const parent   = t.parentId ? allTasks.find(x => x.id === t.parentId) : null;
+  const total    = await calcTaskTotalCost(t.id, allTasks);
+  const children = allTasks.filter(c => c.parentId === t.id);
+  const indent   = depth > 0 ? `margin-left:${depth * 18}px;border-left:2px solid var(--border);padding-left:8px` : '';
+
+  let costStr = '';
+  if (total > 0) {
+    const own = t.selfBudget || t.cost || 0;
+    const sub = total - own;
+    costStr = sub > 0 ? `${UI.money(own)} + sub ${UI.money(sub)} = ${UI.money(total)}` : UI.money(total);
+  }
+  let imgH = '';
+  if (t.imageIds?.length) {
+    const img = await DB.getImage(t.imageIds[0]);
+    if (img) imgH = `<img src="${img.data}" style="width:30px;height:30px;border-radius:4px;object-fit:cover;flex-shrink:0;cursor:pointer;margin-top:2px" onclick="event.stopPropagation();UI.previewImage('${img.data}')">`;
+  }
+
+  let row = `<div style="${indent}"><div class="task-row">
+    <div class="task-check ${done ? 'done' : ''}" onclick="event.stopPropagation();toggleTask('${t.id}')"></div>
+    ${imgH}
+    <div class="task-body" onclick="editTask('${t.id}')">
+      <div class="task-title ${done ? 'done' : ''} ${t.status === 'paused' ? 'paused' : ''} ${overdue ? 'overdue' : ''}">${t.name}</div>
+      <div class="task-meta">
+        ${UI.priorityBadge(t.priority)}
+        ${t.status === 'paused' ? '<span style="color:var(--yellow)">⏸</span>' : ''}
+        ${parent ? `<span class="clickable" style="color:var(--accent2);cursor:pointer" onclick="event.stopPropagation();showTask('${parent.id}')">⬆ ${parent.name}</span>` : ''}
+        ${t.dueDate ? `<span class="${overdue ? 'task-overdue' : ''}">📅 ${UI.date(t.dueDate)}</span>` : ''}
+        ${proj ? `<span>📁 ${proj.name}</span>` : ''}
+        ${costStr ? `<span class="task-cost">${costStr}</span>` : ''}
+        ${children.length ? `<span style="color:var(--accent2);cursor:pointer" onclick="event.stopPropagation();showTask('${children[0].id}')">${children.length} sub ▸</span>` : ''}
+      </div>
+    </div>
+    <button class="task-edit" onclick="event.stopPropagation();editTask('${t.id}')" title="Edit">✎</button>
+  </div>`;
+
+  if (showChildren && children.length && depth < 4)
+    for (const ch of children) row += await mkTaskRow(ch, allTasks, true, depth + 1);
+
+  return row + '</div>';
+}
+async function toggleTask(id) {
+  const t = await DB.getById('tasks', id); if (!t) return;
+  await DB.update('tasks', id, { status: t.status === 'completed' ? 'planned' : 'completed' });
+  if (curPage === 'detail' && curDetail) {
+    if (curDetail.type === 'project') await showProject(curDetail.id);
+    else if (curDetail.type === 'task') await showTask(curDetail.id);
+    else if (curDetail.type === 'area') await showArea(curDetail.id);
+  } else {
+    renderCurrentPage();
+  }
+}
+async function showTask(id) {
+  curDetail = { type: 'task', id };
+  const t = await DB.getById('tasks', id);
+  if (!t) return;
+  // Показываем задачу в режиме просмотра (detail)
+  const allT = await DB.getAll('tasks');
+  const parent = t.parentId ? allT.find(x => x.id === t.parentId) : null;
+  const children = allT.filter(c => c.parentId === t.id);
+  const total = await calcTaskTotalCost(t.id, allT);
+  
+  let html = `<div class="detail-header">
+    <div class="detail-nav">
+      <button class="back-btn" onclick="history.back()">← Назад</button>
+      <button class="topbar-btn" style="margin-left:auto" onclick="editTask('${t.id}')">✎</button>
+    </div>
+    <div class="detail-title">${t.name}</div>
+    <div class="card-footer" style="margin-top:8px">${UI.statusBadge(t.status)}${UI.priorityBadge(t.priority)}${(t.tags||[]).map(tg=>UI.tagBadge(tg)).join('')}</div>
+  </div>
+  <div class="detail-section">
+    <div class="meta-grid">
+      ${parent ? `<div class="meta-item"><div class="meta-label">Родитель</div><div class="meta-value clickable" style="color:var(--accent2);cursor:pointer" onclick="showTask('${parent.id}')">⬆ ${parent.name}</div></div>` : ''}
+      ${t.dueDate ? `<div class="meta-item"><div class="meta-label">Срок</div><div class="meta-value ${UI.isOverdue(t.dueDate,t.status)?'task-overdue':''}">${UI.date(t.dueDate)}</div></div>` : ''}
+      ${total ? `<div class="meta-item"><div class="meta-label">Стоимость</div><div class="meta-value" style="color:var(--yellow)">${UI.money(total)}</div></div>` : ''}
+    </div>
+    ${children.length ? `<div class="detail-section-title">Подзадачи (${children.length})</div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:4px 14px;margin-bottom:10px">
+      ${children.map(ch => `
+        <div class="task-row">
+          <div class="task-check ${ch.status==='completed'?'done':''}" onclick="toggleTask('${ch.id}')"></div>
+          <div class="task-body" onclick="showTask('${ch.id}')">
+            <div class="task-title ${ch.status==='completed'?'done':''}">${ch.name}</div>
+          </div>
+        </div>`).join('')}
+    </div>` : ''}
+  </div>`;
+  
+  showDetail(html);
+}
+
+async function editTask(id) { const t = await DB.getById('tasks', id); if (t) openTaskModal(t); }
+
+/* ═══════════════════════════════════════════
+   DASHBOARD
+═══════════════════════════════════════════ */
+async function renderDash() {
+  const now = new Date();
+  document.getElementById('d-date').textContent =
+    now.toLocaleDateString('ru-RU', { weekday:'short', day:'numeric', month:'long' });
+
+  const s = await DB.stats();
+  document.getElementById('d-stats').innerHTML = `
+    <div class="stat-card s-blue"><div class="stat-num">${s.projects}</div><div class="stat-lbl">Projects</div></div>
+    <div class="stat-card s-green"><div class="stat-num">${s.tasks}</div><div class="stat-lbl">Tasks</div></div>
+    <div class="stat-card s-yellow"><div class="stat-num">${s.active}</div><div class="stat-lbl">Active</div></div>
+    <div class="stat-card s-red"><div class="stat-num">${s.purchases}</div><div class="stat-lbl">Purchases</div></div>`;
+
+  // Группировка: области → проекты → задачи
+  const [areas, allProjs, allTasks] = await Promise.all([
+    DB.getAll('areas'),
+    DB.getAll('projects'),
+    DB.getAll('tasks')
+  ]);
+  
+  // Активные проекты
+  const active = allProjs.filter(p => p.status === 'in_progress' || p.status === 'planned');
+  
+  const dp = document.getElementById('d-projects');
+  dp.innerHTML = '';
+  
+  if (!active.length) {
+    dp.innerHTML = UI.emptyState('📁', 'No active projects', 'Create your first project');
+  } else {
+    // Группируем проекты по областям
+    const areasMap = Object.fromEntries(areas.map(a => [a.id, a]));
+    const grouped = {};
+    for (const p of active) {
+      const areaId = p.areaId || 'none';
+      if (!grouped[areaId]) grouped[areaId] = [];
+      grouped[areaId].push(p);
+    }
+    
+    // Сортируем области, сначала с проектами
+    let projHtml = '';
+    for (const [areaId, projs] of Object.entries(grouped)) {
+      const area = areasMap[areaId];
+      const areaEmoji = area ? area.emoji : '📁';
+      const areaName = area ? area.name : 'Без области';
+      
+      projHtml += `<div style="margin-bottom:14px">`;
+      projHtml += `<div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);margin-bottom:8px">${areaEmoji} ${areaName}</div>`;
+      
+      for (const p of projs.slice(0, 3)) {
+        const pTasks = allTasks.filter(t => t.projectId === p.id && !['completed','archived'].includes(t.status) && !t.parentId);
+        projHtml += `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;padding:12px;cursor:pointer" onclick="showProject('${p.id}')">`;
+        projHtml += `<div style="font-size:14px;font-weight:600;margin-bottom:4px">${p.name}</div>`;
+        
+        // Задачи проекта
+        if (pTasks.length > 0) {
+          projHtml += `<div style="margin-top:6px">`;
+          for (const pt of pTasks.slice(0, 3)) {
+            const overdue = UI.isOverdue(pt.dueDate, pt.status);
+            const done = pt.status === 'completed';
+            projHtml += `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px">`;
+            projHtml += `<span class="task-check ${done?'done':''}" style="width:14px;height:14px;min-width:14px;border-radius:4px"></span>`;
+            projHtml += `<span style="color:${overdue?'var(--red)':pt.status==='paused'?'var(--yellow)':'var(--text)'};${done?'text-decoration:line-through;color:var(--text3)':''}">${pt.name}</span>`;
+            if (pt.dueDate) {
+              const od = UI.isOverdue(pt.dueDate, pt.status);
+              projHtml += `<span style="margin-left:auto;font-size:10px;color:${od?'var(--red)':'var(--text3)'};font-family:var(--m)">${UI.date(pt.dueDate)}</span>`;
+            }
+            projHtml += `</div>`;
+          }
+          if (pTasks.length > 3) {
+            projHtml += `<div style="font-size:11px;color:var(--text3);margin-top:4px">+ ${pTasks.length - 3} more</div>`;
+          }
+          projHtml += `</div>`;
+        } else {
+          projHtml += `<div style="font-size:11px;color:var(--text3);margin-top:4px">Нет открытых задач</div>`;
+        }
+        projHtml += `</div>`;
+      }
+      
+      projHtml += `</div>`;
+    }
+    
+    dp.innerHTML = projHtml;
+  }
+
+  // Открытые задачи (все, без родителя, не выполненные)
+  const openT = allTasks.filter(t => !['completed','archived'].includes(t.status) && !t.parentId).slice(0, 6);
+  const dt = document.getElementById('d-tasks');
+  if (!openT.length) { dt.innerHTML = UI.emptyState('✅', 'All clear!', 'No open tasks'); return; }
+  let taskHtml = `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:4px 14px">`;
+  for (const t of openT) taskHtml += await mkTaskRow(t, allTasks, false);
+  taskHtml += '</div>';
+  dt.innerHTML = taskHtml;
+}
+
+/* ═══════════════════════════════════════════
+   PROJECTS PAGE
+═══════════════════════════════════════════ */
+async function renderProjects() {
+  const statuses = ['all','idea','planned','in_progress','paused','completed','archived'];
+  document.getElementById('proj-filters').innerHTML = statuses.map(s =>
+    `<button class="filter-chip ${pFilter === s ? 'active' : ''}" onclick="pFilter='${s}';renderProjects()">${s === 'all' ? 'All' : STATUS_LABEL[s]}</button>`
+  ).join('');
+
+  let ps = await DB.getAll('projects');
+  if (pFilter !== 'all') ps = ps.filter(p => p.status === pFilter);
+  const q = document.getElementById('proj-search').value.toLowerCase();
+  if (q) ps = ps.filter(p => (p.name + ' ' + (p.description || '')).toLowerCase().includes(q));
+
+  const el = document.getElementById('proj-list'); el.innerHTML = '';
+  if (!ps.length) { el.innerHTML = UI.emptyState('📁', 'No projects', 'Create a project or change filter'); return; }
+  for (const p of ps) el.innerHTML += await mkProjCard(p);
+}
+
+/* ═══════════════════════════════════════════
+   TASKS PAGE
+═══════════════════════════════════════════ */
+async function renderTasks() {
+  const filters = [
+    { k:'active', l:'Active' }, { k:'all', l:'All' },
+    { k:'today', l:'Today' }, { k:'planned', l:'Planned' },
+    { k:'overdue', l:'Overdue' }, { k:'completed', l:'Done' },
+  ];
+  document.getElementById('task-filters').innerHTML = filters.map(f =>
+    `<button class="filter-chip ${tFilter === f.k ? 'active' : ''}" onclick="tFilter='${f.k}';renderTasks()">${f.l}</button>`
+  ).join('');
+
+  const today = new Date().toISOString().split('T')[0];
+  const allT  = await DB.getAll('tasks');
+  let tasks   = [...allT];
+
+  if      (tFilter === 'active')   tasks = tasks.filter(t => ['idea','planned','in_progress','paused'].includes(t.status));
+  else if (tFilter === 'today')    tasks = tasks.filter(t => t.dueDate === today && t.status !== 'completed');
+  else if (tFilter === 'overdue')  tasks = tasks.filter(t => UI.isOverdue(t.dueDate, t.status));
+  else if (tFilter === 'planned')  tasks = tasks.filter(t => t.status === 'planned');
+  else if (tFilter === 'completed')tasks = tasks.filter(t => t.status === 'completed');
+
+  const q = document.getElementById('task-search').value.toLowerCase();
+  if (q) tasks = tasks.filter(t => t.name.toLowerCase().includes(q));
+
+  const roots = tasks.filter(t => !t.parentId);
+  const el    = document.getElementById('task-list'); el.innerHTML = '';
+  if (!roots.length) { el.innerHTML = UI.emptyState('✅', 'No tasks', 'Add a new task'); return; }
+  let taskHtml = `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:4px 14px">`;
+  for (const t of roots) taskHtml += await mkTaskRow(t, allT, true);
+  taskHtml += '</div>';
+  el.innerHTML = taskHtml;
+}
+
+/* ═══════════════════════════════════════════
+   AREAS PAGE
+═══════════════════════════════════════════ */
+async function renderAreas() {
+  const areas = await DB.getAll('areas');
+  const el    = document.getElementById('area-grid'); el.innerHTML = '';
+  if (!areas.length) { el.innerHTML = `<div style="grid-column:1/-1">${UI.emptyState('🌐', 'No areas', 'Create your first life domain')}</div>`; return; }
+  for (const a of areas) {
+    const pc = (await DB.query('projects', { areaId:a.id })).length;
+    const tc = (await DB.query('tasks',    { areaId:a.id })).length;
+    el.innerHTML += `<div class="area-tile" onclick="showArea('${a.id}')">
+      <div class="area-emoji">${a.emoji || '🔹'}</div>
+      <div class="area-name">${a.name}</div>
+      <div class="area-count">${pc} proj · ${tc} tasks</div>
+    </div>`;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   SETTINGS PAGE
+═══════════════════════════════════════════ */
+async function renderSettings() {
+  const s = await DB.stats();
+  const info = DB.storageInfo();
+  document.getElementById('s-schema').textContent = 'v' + SCHEMA_VERSION;
+  document.getElementById('s-storage').textContent = `${info.driver} · ${info.mb} МБ (${info.pct}%)`;
+  document.getElementById('s-records').textContent = s.projects + s.tasks + s.purchases + s.areas;
+}
+
+/* ═══════════════════════════════════════════
+   DETAIL: PROJECT
+═══════════════════════════════════════════ */
+async function showProject(id) {
+  curDetail = { type: 'project', id };
+  const p    = await DB.getById('projects', id); if (!p) return;
+  const area = p.areaId ? await DB.getById('areas', p.areaId) : null;
+  const allT = await DB.getAll('tasks');
+  const projT  = allT.filter(t => t.projectId === id);
+  const rootT  = projT.filter(t => !t.parentId);
+  const purs   = await DB.query('purchases', { projectId: id });
+
+  const spent   = purs.filter(x => ['in_stock'].includes(x.status)).reduce((a,b)=>a+(b.price||0),0);
+  const plannedC= purs.filter(x => ['planned','ordered'].includes(x.status)).reduce((a,b)=>a+(b.price||0),0);
+  const done    = projT.filter(t => t.status==='completed').length;
+  const tot     = projT.length;
+  const pct     = tot ? Math.round(done/tot*100) : 0;
+  let tCost = 0; for (const t of projT) tCost += await calcTaskTotalCost(t.id, allT);
+
+  // budget box
+  let budH = '';
+  if (p.budget) {
+    const u = Math.min(100, Math.round(spent/p.budget*100));
+    const bc = u>80?'var(--red)':u>50?'var(--yellow)':'var(--green)';
+    budH = `<div class="budget-box">
+      <div class="budget-row"><span style="font-weight:700">Budget: ${UI.money(p.budget)}</span><span style="color:var(--text3);font-family:var(--m)">${u}% used</span></div>
+      <div class="progress-bar" style="height:5px"><div class="progress-fill" style="width:${u}%;background:${bc}"></div></div>
+      <div class="budget-nums">
+        <span style="color:var(--green)">Spent: ${UI.money(spent)}</span>
+        <span style="color:var(--yellow)">Planned: ${UI.money(plannedC)}</span>
+        <span style="color:var(--text3)">Left: ${UI.money(p.budget-spent-plannedC)}</span>
+      </div>
+    </div>`;
+  }
+
+  // images
+  let imgH = '';
+  if (p.imageIds?.length) {
+    let th = '';
+    for (const iid of p.imageIds) { const img = await DB.getImage(iid); if (img) th += `<img class="img-thumb" src="${img.data}" onclick="UI.previewImage('${img.data}')">`; }
+    imgH = `<div class="detail-section-title">Images</div><div class="img-grid" style="margin-bottom:14px">${th}</div>`;
+  }
+
+  let tasksH = ''; for (const t of rootT) tasksH += await mkTaskRow(t, allT, true);
+  const purH = await Promise.all(purs.map(async pu => {
+    let imgHtml = '';
+    if (pu.imageIds?.length) {
+      const img = await DB.getImage(pu.imageIds[0]);
+      if (img) imgHtml = `<img class="img-thumb" src="${img.data}" style="width:28px;height:28px;border-radius:4px;object-fit:cover;flex-shrink:0;cursor:pointer" onclick="event.stopPropagation();UI.previewImage('${img.data}')">`;
+    }
+    return `<div class="pur-row">
+      <div class="pur-check ${pu.status==='in_stock'?'bought':''}" onclick="togglePurchase('${pu.id}','${id}')"></div>
+      ${imgHtml}
+      <div class="pur-name ${pu.status==='in_stock'?'bought':''}" onclick="editPur('${pu.id}')">${pu.name}</div>
+      <div class="pur-price">${pu.price ? UI.money(pu.price) : ''}</div>
+      <button class="task-edit" onclick="editPur('${pu.id}')">✎</button>
+    </div>`;
+  }));
+
+  showDetail(`
+  <div class="detail-header">
+    <div class="detail-nav">
+      <button class="back-btn" onclick="navTo('projects')">← Projects</button>
+      <div style="margin-left:auto;display:flex;gap:6px">
+        <button class="topbar-btn" onclick="editProj('${p.id}')">✎</button>
+        <button class="topbar-btn" onclick="deleteProject('${p.id}')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button>
+      </div>
+    </div>
+    <div class="detail-title">${area?area.emoji+' ':''}${p.name}</div>
+    ${p.description ? `<div class="detail-desc">${p.description}</div>` : ''}
+    <div class="card-footer" style="margin-top:8px">${UI.statusBadge(p.status)}${UI.priorityBadge(p.priority)}${(p.tags||[]).map(t=>UI.tagBadge(t)).join('')}</div>
+  </div>
+  <div class="detail-section">
+    ${budH}${imgH}
+    <div class="meta-grid">
+      ${area ? `<div class="meta-item"><div class="meta-label">Area</div><div class="meta-value">${area.emoji} ${area.name}</div></div>` : ''}
+      ${p.endDate ? `<div class="meta-item"><div class="meta-label">Deadline</div><div class="meta-value">${UI.date(p.endDate)}</div></div>` : ''}
+      <div class="meta-item"><div class="meta-label">Progress</div><div class="meta-value">${done}/${tot} (${pct}%)</div></div>
+      ${tCost ? `<div class="meta-item"><div class="meta-label">Tasks Cost</div><div class="meta-value" style="color:var(--yellow)">${UI.money(tCost)}</div></div>` : ''}
+    </div>
+    <div class="detail-section-title">Tasks (${tot})</div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:4px 14px;margin-bottom:10px">
+      ${tasksH || '<div style="padding:14px 0;text-align:center;color:var(--text3);font-size:13px">No tasks yet</div>'}
+    </div>
+    <button class="qa-btn" style="margin-bottom:16px" onclick="openTaskModal(null,'${p.id}')">＋ Add Task</button>
+    <div class="detail-section-title">Purchases (${purs.length})</div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:4px 14px;margin-bottom:10px">
+      ${purH || '<div style="padding:14px 0;text-align:center;color:var(--text3);font-size:13px">No purchases</div>'}
+    </div>
+    <button class="qa-btn" onclick="openPurModal(null,'${p.id}')">＋ Add Purchase</button>
+  </div>`);
+}
+
+async function deleteProject(id) {
+  if (!confirm('Delete project?')) return;
+  await DB.delete('projects', id);
+  UI.toast('Project deleted');
+  navTo('projects');
+}
+
+async function togglePurchase(id, projId) {
+  const p = await DB.getById('purchases', id); if (!p) return;
+  await DB.update('purchases', id, { status: p.status === 'in_stock' ? 'planned' : 'in_stock' });
+  showProject(projId);
+}
+async function editPur(id) { const p = await DB.getById('purchases', id); if (p) openPurModal(p, p.projectId); }
+
+/* ═══════════════════════════════════════════
+   DETAIL: AREA
+═══════════════════════════════════════════ */
+async function showArea(id) {
+  curDetail = { type: 'area', id };
+  const a     = await DB.getById('areas', id); if (!a) return;
+  const projs = await DB.query('projects', { areaId:id });
+  const allT  = await DB.getAll('tasks');
+  const tasks = allT.filter(t => t.areaId === id && !t.parentId);
+  let ph = ''; for (const p of projs) ph += await mkProjCard(p);
+  let th = ''; for (const t of tasks) th += await mkTaskRow(t, allT, true);
+  showDetail(`
+  <div class="detail-header">
+    <div class="detail-nav">
+      <button class="back-btn" onclick="navTo('areas')">← Areas</button>
+      <button class="topbar-btn" style="margin-left:auto" onclick="openAreaModal_byId('${id}')">✎</button>
+    </div>
+    <div class="detail-title">${a.emoji || ''} ${a.name}</div>
+    ${a.description ? `<div class="detail-desc">${a.description}</div>` : ''}
+  </div>
+  <div class="detail-section">
+    <div class="detail-section-title">Projects (${projs.length})</div>
+    ${ph || '<div style="color:var(--text3);font-size:13px;margin-bottom:14px">No projects</div>'}
+    <div class="detail-section-title" style="margin-top:4px">Tasks (${tasks.length})</div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:4px 14px">
+      ${th || '<div style="padding:14px 0;text-align:center;color:var(--text3);font-size:13px">No tasks</div>'}
+    </div>
+  </div>`);
+}
+async function openAreaModal_byId(id) { const a = await DB.getById('areas', id); if (a) openAreaModal(a); }
+
+/* ═══════════════════════════════════════════
+   EXPORT / IMPORT / CLEAR
+═══════════════════════════════════════════ */
+async function doExport() {
+  const b    = await DB.exportAll();
+  const json = JSON.stringify(b, null, 2);
+  const blob = new Blob([json], { type:'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = `lifeos-${new Date().toISOString().split('T')[0]}.json`;
+  a.click(); URL.revokeObjectURL(url);
+  UI.toast('Data exported!');
+}
+function doImport() { document.getElementById('file-import').click(); }
+async function handleImport(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    try {
+      const b = JSON.parse(ev.target.result);
+      if (!confirm(`Import from ${b.exportedAt || '?'}? Merges with current data.`)) return;
+      await DB.importAll(b);
+      UI.toast('Imported!');
+      renderCurrentPage();
+    } catch { UI.toast('Import failed', 'err'); }
+  };
+  reader.readAsText(file); e.target.value = '';
+}
+async function doClear() {
+  if (!confirm('Delete ALL data? Cannot be undone.')) return;
+  if (!confirm('Really sure?')) return;
+  await DB.clearAll();
+  UI.toast('All data cleared');
+  renderCurrentPage();
+}
+
+/* ═══════════════════════════════════════════
+   GLOBAL SEARCH
+═══════════════════════════════════════════ */
+document.getElementById('btn-search').addEventListener('click', async () => {
+  const term = prompt('Search:'); if (!term) return;
+  tFilter = 'all';
+  navTo('tasks');
+  setTimeout(() => { document.getElementById('task-search').value = term; renderTasks(); }, 80);
+});
+
+/* ═══════════════════════════════════════════
+   WIRE UP BUTTONS
+═══════════════════════════════════════════ */
+document.getElementById('btn-add').addEventListener('click',  () => UI.openModal('m-add'));
+document.getElementById('qa-project').addEventListener('click', openProjModal);
+document.getElementById('qa-task').addEventListener('click',    openTaskModal);
+document.getElementById('qa-purchase').addEventListener('click',openPurModal);
+document.getElementById('qa-area').addEventListener('click',    openAreaModal);
+document.getElementById('qa-export').addEventListener('click',  doExport);
+document.getElementById('s-export').addEventListener('click',   doExport);
+document.getElementById('s-import').addEventListener('click',   doImport);
+document.getElementById('s-tags').addEventListener('click',     openTagsModal);
+document.getElementById('s-clear').addEventListener('click',    doClear);
+
+/* ═══════════════════════════════════════════
+   KEYBOARD
+═══════════════════════════════════════════ */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+    document.body.style.overflow = '';
+    UI.closeImagePreview();
+  }
+});
+
+/* ═══════════════════════════════════════════
+   URL PARAMS (deep links from hub)
+═══════════════════════════════════════════ */
+function handleUrlParams() {
+  const params = new URLSearchParams(location.search);
+  if (params.has('p')) { showProject(params.get('p')); return; }
+  if (params.has('q')) {
+    tFilter = 'all';
+    navTo('tasks');
+    setTimeout(() => { document.getElementById('task-search').value = params.get('q'); renderTasks(); }, 100);
+    return;
+  }
+  if (location.hash === '#tasks') { navTo('tasks'); return; }
+}
+
+/* ═══════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════ */
+async function init() {
+  await lifeosInit();
+  await seed();
+  handleUrlParams();
+  if (curPage === 'dashboard') await renderDash();
+}
+init().catch(e => {
+  document.body.innerHTML = `<div style="padding:40px;color:#f05060;font-family:monospace">Error: ${e.message}</div>`;
+});
+</script>
+</body>
+</html>
