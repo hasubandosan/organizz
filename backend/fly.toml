@@ -1,4 +1,4 @@
-app = "CHANGE-ME-unique-app-name"
+app = "db-connector"
 primary_region = "waw"  # Варшава — ближайший к вам free-регион Fly.io
 
 [build]
