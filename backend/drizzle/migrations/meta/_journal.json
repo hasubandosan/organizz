@@ -15,6 +15,13 @@
       "when": 1791088490479,
       "tag": "0001_luxuriant_spacker_dave",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791106234852,
+      "tag": "0002_clever_chat",
+      "breakpoints": true
     }
   ]
 }

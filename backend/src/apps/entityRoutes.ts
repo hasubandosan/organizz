@@ -26,7 +26,11 @@ export function createEntityRouter(appSlug: string, entities: PgTableWithColumns
     const [row] = await db
       .select()
       .from(entities)
-      .where(and(eq(entities.ownerId, req.userId!), eq(entities.id, req.params.id)))
+      .where(and(
+        eq(entities.ownerId, req.userId!),
+        eq(entities.entityType, req.params.entityType),
+        eq(entities.id, req.params.id),
+      ))
       .limit(1);
     if (!row) return res.status(404).json(null);
     res.json(row.data);
@@ -48,7 +52,7 @@ export function createEntityRouter(appSlug: string, entities: PgTableWithColumns
         data: record,
       })
       .onConflictDoUpdate({
-        target: entities.id,
+        target: [entities.ownerId, entities.entityType, entities.id],
         set: { data: record, updatedAt: new Date() },
       });
 
@@ -59,7 +63,11 @@ export function createEntityRouter(appSlug: string, entities: PgTableWithColumns
   router.delete('/:entityType/:id', async (req: AuthedRequest, res) => {
     await db
       .delete(entities)
-      .where(and(eq(entities.ownerId, req.userId!), eq(entities.id, req.params.id)));
+      .where(and(
+        eq(entities.ownerId, req.userId!),
+        eq(entities.entityType, req.params.entityType),
+        eq(entities.id, req.params.id),
+      ));
     res.status(204).send();
   });
 
