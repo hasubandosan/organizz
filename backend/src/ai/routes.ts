@@ -140,32 +140,44 @@ async function askGemini(text: string, tags: string[]): Promise<any> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new HttpError(503, 'ИИ-разбор не настроен на сервере');
   const tried: string[] = [];
-  for (const model of MODELS) {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-      method: 'POST',
-      signal: AbortSignal.timeout(45_000),
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: buildPrompt(tags) }] },
-        contents: [{ role: 'user', parts: [{ text: text.slice(0, 30_000) }] }],
-        generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
-      }),
-    }).catch(() => null);
-    if (!res) { tried.push(`${model}: нет ответа`); continue; }
-    if (res.status === 404) { tried.push(`${model}: 404`); continue; }   // пробуем следующую
-    if (res.status === 429) throw new HttpError(429, 'Лимит бесплатного ИИ исчерпан, попробуйте позже');
-    if (!res.ok) {
-      const body = (await res.text()).slice(0, 400);
-      console.error('Gemini', model, res.status, body);
-      let msg = ''; try { msg = JSON.parse(body)?.error?.message ?? ''; } catch { /* не JSON */ }
-      throw new HttpError(502, `ИИ вернул ошибку ${res.status}${msg ? ': ' + String(msg).slice(0, 160) : ''}`);
+  const dead = new Set<string>();          // модели, которых нет (404) — второй раз не трогаем
+  let overloaded = false, limited = false; // 5xx «высокий спрос» / 429 «лимит модели»
+  for (let pass = 0; pass < 2; pass++) {
+    if (pass === 1) {
+      if (!overloaded) break;
+      await new Promise((r) => setTimeout(r, 2500));   // всплески спроса обычно короткие
     }
-    const data: any = await res.json();
-    const out = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text ?? '').join('') ?? '';
-    try { return JSON.parse(out.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim()); }
-    catch { throw new HttpError(502, 'ИИ вернул непонятный ответ, попробуйте ещё раз'); }
+    for (const model of pass === 0 ? MODELS : MODELS.slice(0, 2)) {
+      if (dead.has(model)) continue;
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: 'POST',
+        signal: AbortSignal.timeout(45_000),
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: buildPrompt(tags) }] },
+          contents: [{ role: 'user', parts: [{ text: text.slice(0, 30_000) }] }],
+          generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
+        }),
+      }).catch(() => null);
+      if (!res) { tried.push(`${model}: нет ответа`); overloaded = true; continue; }
+      if (res.status === 404) { tried.push(`${model}: 404`); dead.add(model); continue; }   // такой модели нет — пробуем следующую
+      if (res.status === 429) { tried.push(`${model}: 429`); limited = true; continue; }   // лимит у каждой модели свой
+      if ([500, 502, 503, 504].includes(res.status)) { tried.push(`${model}: ${res.status}`); overloaded = true; continue; }   // перегрузка Google
+      if (!res.ok) {
+        const body = (await res.text()).slice(0, 400);
+        console.error('Gemini', model, res.status, body);
+        let msg = ''; try { msg = JSON.parse(body)?.error?.message ?? ''; } catch { /* не JSON */ }
+        throw new HttpError(502, `ИИ вернул ошибку ${res.status}${msg ? ': ' + String(msg).slice(0, 160) : ''}`);
+      }
+      const data: any = await res.json();
+      const out = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text ?? '').join('') ?? '';
+      try { return JSON.parse(out.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim()); }
+      catch { throw new HttpError(502, 'ИИ вернул непонятный ответ, попробуйте ещё раз'); }
+    }
   }
   console.error('Gemini: ни одна модель не ответила', tried);
+  if (overloaded) throw new HttpError(503, 'ИИ сейчас перегружен (у Google высокий спрос). Подождите минуту и повторите');
+  if (limited) throw new HttpError(429, 'Лимит бесплатного ИИ исчерпан, попробуйте позже');
   throw new HttpError(502, `ИИ недоступен (пробовали: ${tried.join(', ')}). Укажите актуальную модель в GEMINI_MODEL на сервере`);
 }
 
