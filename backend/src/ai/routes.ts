@@ -44,7 +44,7 @@ async function assertPublicUrl(raw: string): Promise<URL> {
 }
 
 class HttpError extends Error {
-  constructor(public status: number, message: string) { super(message); }
+  constructor(public status: number, message: string, public upstream?: number) { super(message); }
 }
 
 const MAX_BYTES = 2_000_000;
@@ -54,13 +54,17 @@ async function fetchPage(rawUrl: string): Promise<string> {
     const res = await fetch(url, {
       redirect: 'manual',
       signal: AbortSignal.timeout(10_000),
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; LifeOS recipe import)', Accept: 'text/html,text/plain;q=0.9' },
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+        Accept: 'text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.5',
+        'Accept-Language': 'ru,en;q=0.8',
+      },
     }).catch(() => { throw new HttpError(502, 'Сайт не отвечает'); });
     if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
       url = await assertPublicUrl(new URL(res.headers.get('location')!, url).toString());
       continue;
     }
-    if (!res.ok) throw new HttpError(502, `Сайт вернул ошибку ${res.status}`);
+    if (!res.ok) throw new HttpError(502, `Сайт вернул ошибку ${res.status}`, res.status);
     const ct = res.headers.get('content-type') ?? '';
     if (!/text\/(html|plain)|xhtml/i.test(ct)) throw new HttpError(400, 'По ссылке не страница с текстом');
     const reader = res.body?.getReader();
@@ -146,7 +150,12 @@ async function askGemini(text: string, tags: string[]): Promise<any> {
     if (!res) { tried.push(`${model}: нет ответа`); continue; }
     if (res.status === 404) { tried.push(`${model}: 404`); continue; }   // пробуем следующую
     if (res.status === 429) throw new HttpError(429, 'Лимит бесплатного ИИ исчерпан, попробуйте позже');
-    if (!res.ok) { console.error('Gemini', res.status, (await res.text()).slice(0, 300)); throw new HttpError(502, 'ИИ вернул ошибку'); }
+    if (!res.ok) {
+      const body = (await res.text()).slice(0, 400);
+      console.error('Gemini', model, res.status, body);
+      let msg = ''; try { msg = JSON.parse(body)?.error?.message ?? ''; } catch { /* не JSON */ }
+      throw new HttpError(502, `ИИ вернул ошибку ${res.status}${msg ? ': ' + String(msg).slice(0, 160) : ''}`);
+    }
     const data: any = await res.json();
     const out = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text ?? '').join('') ?? '';
     try { return JSON.parse(out.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim()); }
@@ -163,8 +172,16 @@ aiRouter.post('/recipe', async (req: AuthedRequest, res) => {
     const tagList: string[] = Array.isArray(tags) ? tags.filter((t) => typeof t === 'string').slice(0, 200) : [];
     let source = '';
     if (typeof url === 'string' && url.trim()) {
-      const html = await fetchPage(url.trim());
-      source = extractJsonLdRecipe(html) ?? htmlToText(html);
+      let html: string;
+      let viaReader = false;
+      try { html = await fetchPage(url.trim()); }
+      catch (e) {
+        // сайт не пускает наш сервер (403/429/503...) — пробуем бесплатную читалку страниц
+        if (!(e instanceof HttpError) || ![401, 403, 429, 503].includes(e.upstream ?? 0)) throw e;
+        html = await fetchPage('https://r.jina.ai/' + url.trim());
+        viaReader = true;
+      }
+      source = viaReader ? html : (extractJsonLdRecipe(html) ?? htmlToText(html));
       if (source.length < 40) throw new HttpError(400, 'Не нашёл на странице текста рецепта');
     } else if (typeof text === 'string' && text.trim()) {
       source = text.trim();
