@@ -51,9 +51,30 @@ const LIFEOS_MODULES = [
 
   const panel = document.createElement('div');
   panel.id = 'lifeos-nav-panel';
-  panel.innerHTML = LIFEOS_MODULES.map(m =>
-    `<a href="${m.href}" class="${m.slug === currentSlug ? 'current' : ''}">${m.icon} ${m.label}${m.slug === currentSlug ? ' (здесь)' : ''}</a>`
-  ).join('');
+  // «Админка» видна только админам. Роль спрашиваем у backend (кэш на 10 минут на этом домене).
+  // Это лишь отображение: доступ к админским данным всё равно проверяется на сервере.
+  const ADMIN_ONLY = new Set(['admin']);
+  function renderPanel(isAdmin) {
+    panel.innerHTML = LIFEOS_MODULES
+      .filter(m => !ADMIN_ONLY.has(m.slug) || isAdmin || m.slug === currentSlug)
+      .map(m =>
+        `<a href="${m.href}" class="${m.slug === currentSlug ? 'current' : ''}">${m.icon} ${m.label}${m.slug === currentSlug ? ' (здесь)' : ''}</a>`
+      ).join('');
+  }
+  renderPanel(false);
+  (async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token || typeof API_BASE === 'undefined') return;
+      const cached = JSON.parse(sessionStorage.getItem('lifeos_isAdmin') || 'null');
+      if (cached && cached.exp > Date.now() && cached.t === token.slice(-12)) return renderPanel(cached.v);
+      const r = await fetch(`${API_BASE}/catalog/me`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!r.ok) return;                       // нет роли / сеть — просто без админки
+      const { isAdmin } = await r.json();
+      sessionStorage.setItem('lifeos_isAdmin', JSON.stringify({ v: !!isAdmin, exp: Date.now() + 600000, t: token.slice(-12) }));
+      renderPanel(!!isAdmin);
+    } catch { /* без админки */ }
+  })();
 
   btn.addEventListener('click', () => panel.classList.toggle('open'));
   document.addEventListener('click', (e) => {

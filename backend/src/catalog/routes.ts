@@ -4,12 +4,20 @@ import { and, eq, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { products, suggestions, votes } from '../db/schema/catalog.js';
 import { requireAuth, requireRole, type AuthedRequest } from '../middleware/auth.js';
+import { getUserRole } from '../db/roleCheck.js';
 
 export const catalogRouter = Router();
 
 const APP_SLUG = 'catalog';
 const asUser = [requireAuth, requireRole(APP_SLUG, 'user')] as const;
 const asAdmin = [requireAuth, requireRole(APP_SLUG, 'admin')] as const;
+
+// GET /catalog/me — роль текущего пользователя в каталоге (фронтенд прячет «Админку» от обычных юзеров).
+// Это только про отображение: все admin-маршруты всё равно защищены requireRole на сервере.
+catalogRouter.get('/me', ...asUser, async (req: AuthedRequest, res) => {
+  const role = await getUserRole(req.userId!, APP_SLUG);
+  res.json({ role, isAdmin: role === 'admin' });
+});
 
 // ───────── Продукты (чтение — всем, запись — только admin) ─────────
 
