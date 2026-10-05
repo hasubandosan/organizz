@@ -3,7 +3,7 @@
 .mp-chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 4px 0 8px; }
 .mp-chip { padding: 5px 11px; border-radius: 999px; font-size: 12px; font-weight: 600; cursor: pointer;
   background: var(--bg2); border: 1px solid var(--border); color: var(--text2); user-select: none; }
-.mp-chip.on { background: rgba(91,110,245,.18); border-color: var(--accent); color: var(--accent2); }
+.mp-chip.on { background: color-mix(in srgb, var(--accent) 18%, transparent); border-color: var(--accent); color: var(--accent2); }
 
 .recipe-view, .recipe-edit, .product-edit { max-width: 720px; margin: 0 auto; }
 .rv-header, .re-header, .pe-header { display: flex; align-items: center; gap: 8px; padding: 4px 0 12px; }

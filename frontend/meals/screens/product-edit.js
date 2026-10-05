@@ -18,8 +18,7 @@ const ProductEditScreen = {
     h += '<div class="pe-row"><label>Категория</label><select id="pe-category"><option value="">—</option>' + cats.map(c => `<option${c === x.category ? ' selected' : ''}>${c}</option>`).join('') + '</select></div>';
     h += '<div class="pe-row"><label>Единица</label><select id="pe-unit">' + units.map(u => `<option${u === (x.unit || 'г') ? ' selected' : ''}>${u}</option>`).join('') + '</select></div>';
     container.innerHTML = h + '</div></div>';
-    document.getElementById('header-title').textContent = p ? 'Предложить правку' : 'Предложить продукт';
-    document.getElementById('header-icon').textContent = '🥕';
+    LifeShell.update({ title: p ? 'Предложить правку' : 'Предложить продукт' });
   },
   async _submit() {
     const name = document.getElementById('pe-name').value.trim();

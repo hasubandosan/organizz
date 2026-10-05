@@ -12,8 +12,7 @@
       html += '</div>';
       html += '</div>';
       container.innerHTML = html;
-      document.getElementById('header-title').textContent = 'Профиль';
-      document.getElementById('header-icon').textContent = '⚙️';
+      LifeShell.update({ title: 'Профиль' });
     }
   };
 

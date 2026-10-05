@@ -5,8 +5,7 @@ const SuggestionsScreen = {
   _all: [],
   async render(container) {
     container.innerHTML = '<div class="screen"><div class="screen-title">Предложка</div><div id="sg-list">Загрузка…</div></div>';
-    document.getElementById('header-title').textContent = 'Предложка';
-    document.getElementById('header-icon').textContent = '🗳';
+    LifeShell.update({ title: 'Предложка' });
     try {
       this._all = await Suggestions.list('pending');
     } catch (e) {

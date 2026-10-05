@@ -54,8 +54,7 @@ const MenuScreen = {
       html += '</div>';
 
       container.innerHTML = html;
-      document.getElementById('header-title').textContent = 'Меню';
-      document.getElementById('header-icon').textContent = '📅';
+      LifeShell.update({ title: 'Меню' });
       
       // Навешиваем обработчик смены недели
       document.getElementById('week-select').onchange = function() {

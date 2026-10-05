@@ -47,8 +47,7 @@ const ShoppingScreen = {
     }
     html += '</div>';
     container.innerHTML = html;
-    document.getElementById('header-title').textContent = 'Покупки';
-    document.getElementById('header-icon').textContent = '🛒';
+    LifeShell.update({ title: 'Покупки' });
   },
 
   async toggle(productId) {
