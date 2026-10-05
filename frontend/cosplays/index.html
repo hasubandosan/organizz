@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-module="cosplays">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
@@ -15,23 +15,10 @@
     body { font-family: var(--f); }
     #app { display: flex; flex-direction: column; height: 100dvh; }
 
-    .nav{flex-shrink:0;padding:calc(env(safe-area-inset-top,0px) + 10px) 16px 0;display:flex;align-items:center;gap:6px;min-height:44px}
-    .nav-back{width:34px;height:34px;border-radius:10px;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:18px;transition:transform .1s}
-    .nav-back:active{transform:scale(.9)}
-    .nav-crumb{flex:1;font-size:13px;font-weight:600;color:var(--text3);overflow:hidden;display:flex;align-items:center;gap:4px}
-    .nav-crumb .sep{color:var(--border2)}
-    .nav-crumb .cur{color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .nav-actions{display:flex;gap:6px;flex-shrink:0}
-    .icon-btn{width:34px;height:34px;border-radius:8px;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:15px;transition:transform .1s, background .15s;color:var(--text2)}
-    .icon-btn:hover{background:var(--bg4);color:var(--text)}
-    .icon-btn:active{transform:scale(.9)}
 
-    .page-hdr{flex-shrink:0;padding:10px 16px 12px}
-    .page-title{font-size:24px;font-weight:800;letter-spacing:-.5px}
-    .page-title em{font-style:normal;background:linear-gradient(90deg,var(--purple),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-    .page-sub{font-size:13px;color:var(--text3);margin-top:3px}
 
-    .scroll{flex:1;overflow-y:auto;padding:4px 16px 100px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+    .lo-header{flex:none}
+    .scroll{flex:1;overflow-y:auto;padding:4px max(16px,calc((100% - var(--content-max))/2 + 16px)) 100px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
     .scroll::-webkit-scrollbar{width:3px}
     .scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 
@@ -41,7 +28,10 @@
     @keyframes pop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
     @keyframes slideR{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
 
-    .char-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .char-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+    /* образы и предметы — в несколько колонок на широком экране */
+    #mainContent.list-grid{display:grid !important;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:8px;align-items:start}
+    #mainContent.list-grid > .look-card,#mainContent.list-grid > .item-card{margin-bottom:0}
     .char-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:border-color .2s,transform .15s;animation:pop .25s cubic-bezier(.16,1,.3,1) both;position:relative}
     .char-card:active{transform:scale(.95)}
     .char-card:hover{border-color:var(--purple)}
@@ -87,7 +77,7 @@
     .var-chip.pref{border-color:var(--purple);color:var(--purple)}
     .var-price{font-weight:700}
 
-    .fab{position:fixed;bottom:calc(92px + var(--sb));right:20px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;font-size:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(91,110,245,.45);transition:transform .15s;z-index:20}
+    .fab{position:fixed;bottom:calc(20px + var(--sb));right:max(18px,calc((100vw - var(--content-max))/2 + 18px));width:52px;height:52px;border-radius:50%;background:var(--accent);color:var(--on-accent);font-size:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(160,112,240,.45);transition:transform .15s;z-index:20}
     .fab:active{transform:scale(.9)}
     .edit-btn{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;z-index:3}
     .look-card{position:relative}
@@ -97,13 +87,20 @@
 
     .overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(6px)}
     .overlay.on{opacity:1;pointer-events:all}
-    .sheet{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-radius:16px 16px 0 0;border-top:1px solid var(--border2);z-index:101;max-height:94dvh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .32s cubic-bezier(.16,1,.3,1)}
+    .sheet{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-radius:16px 16px 0 0;border-top:1px solid var(--border2);z-index:101;max-height:88dvh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .32s cubic-bezier(.16,1,.3,1)}
+    /* от 720px — аккуратное окно по центру, а не шторка на всю ширину */
+    @media(min-width:720px){
+      .sheet{left:50%;right:auto;bottom:auto;top:50%;width:min(520px,calc(100% - 48px));max-height:min(86dvh,820px);border:1px solid var(--border2);border-radius:16px;
+        transform:translate(-50%,-46%) scale(.97);opacity:0;pointer-events:none;transition:transform .2s,opacity .2s}
+      .sheet.on{transform:translate(-50%,-50%);opacity:1;pointer-events:all}
+      .sheet-drag{display:none}
+    }
     .sheet.on{transform:translateY(0)}
     .sheet-drag{width:36px;height:4px;background:var(--border2);border-radius:4px;margin:12px auto 0;flex-shrink:0}
     .sheet-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;flex-shrink:0}
     .sheet-title{font-size:16px;font-weight:700}
     .close-btn{width:30px;height:30px;border-radius:8px;background:var(--bg3);display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:16px}
-    .sheet-body{overflow-y:auto;padding:0 18px 44px;flex:1}
+    .sheet-body{overflow-y:auto;padding:0 16px calc(12px + var(--sb));flex:1}
 
     .fg{margin-bottom:14px}
     .fl{display:block;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
@@ -148,7 +145,7 @@
     .del-var:hover{color:var(--red)}
     .btn-add-var{width:100%;padding:10px;border:1.5px dashed var(--border2);border-radius:var(--r2);font-size:13px;font-weight:600;color:var(--text3);transition:all .15s;cursor:pointer}
     .btn-add-var:hover{border-color:var(--accent);color:var(--accent2)}
-    .btn-save{width:100%;padding:14px;background:var(--accent);color:#fff;border-radius:var(--r);font-size:14px;font-weight:700;transition:transform .1s,opacity .15s;margin-top:6px}
+    .btn-save{width:100%;padding:14px;background:var(--accent);color:var(--on-accent);border-radius:var(--r);font-size:14px;font-weight:700;transition:transform .1s,opacity .15s;margin-top:6px;position:sticky;bottom:0;box-shadow:0 -14px 14px -8px var(--bg2)}
     .btn-save:active{transform:scale(.98)}
     .btn-save:disabled{opacity:.4;pointer-events:none}
     .btn-del{width:100%;padding:12px;border:1px solid rgba(240,80,96,.25);color:var(--red);border-radius:var(--r2);font-size:13px;font-weight:600;transition:background .15s;margin-top:6px;cursor:pointer}
@@ -157,18 +154,7 @@
 </head>
 <body>
 <div id="app">
-  <div class="nav">
-    <button class="icon-btn" onclick="location.href='../hub/'" title="Hub">⌂</button>
-    <button class="nav-back" id="backBtn" style="display:none">‹</button>
-    <div class="nav-crumb" id="breadcrumb"></div>
-    <div class="nav-actions">
-      <button class="icon-btn" id="btnSync">⟳</button>
-    </div>
-  </div>
-  <div class="page-hdr">
-    <div class="page-title" id="pageTitle">КОС<em>ПЛЕЙ</em></div>
-    <div class="page-sub" id="pageSub">Персонажи</div>
-  </div>
+  <div class="nav"></div>
   <div class="scroll">
     <div class="center" id="loadingEl"><div class="spinner"></div></div>
     <div id="mainContent" style="display:none"></div>
@@ -195,9 +181,16 @@
 <script>window.LIFEOS_APP_SLUG = 'cosplays';</script>
 <script src="https://organizz-core.pages.dev/db.js"></script>
 <script src="https://organizz-core.pages.dev/nav.js"></script>
+<script src="https://organizz-core.pages.dev/shell.js"></script>
+<script>window.LifeShell = window.LifeShell || { mount() {}, update() {} };  /* core ещё не обновлён — без шапки, но без падения */</script>
 <script src="https://organizz-core.pages.dev/ui.js"></script>
 <script>
 'use strict';
+
+// Единая шапка: логотип/модуль и переключатель рисует LifeShell; заголовок экрана и «назад» обновляет setView()
+LifeShell.mount({ module: 'cosplays', replace: '.nav', title: 'Персонажи', actions: [
+  { id: 'btnSync', icon: '⟳', label: 'Обновить', onClick: function(){ syncNow(); } },
+] });
 
 function esc(s) {
   const a = '&' + 'amp;';
@@ -332,27 +325,20 @@ async function loadItems(lookId) {
 }
 
 // ----- NAV -----
+function goBack() {
+  if (view === 'items') gotoLooks(curChar);
+  else if (view === 'looks') gotoChars();
+}
 function setView(v) {
   view = v;
-  var back  = document.getElementById('backBtn');
-  var crumb = document.getElementById('breadcrumb');
-  var title = document.getElementById('pageTitle');
-  var sub   = document.getElementById('pageSub');
+  var list = document.getElementById('mainContent');
+  list.classList.toggle('list-grid', v !== 'chars');
   if (v === 'chars') {
-    back.style.display = 'none';
-    crumb.innerHTML = '';
-    title.innerHTML = 'КОС<em>ПЛЕЙ</em>';
-    sub.textContent = 'Персонажи';
+    LifeShell.update({ title: 'Персонажи', back: false });
   } else if (v === 'looks') {
-    back.style.display = 'flex';
-    crumb.innerHTML = '<span>'+esc(curChar.name)+'</span><span class="sep"> / </span><span class="cur">Образы</span>';
-    title.innerHTML = esc(curChar.name);
-    sub.textContent = 'Образы';
+    LifeShell.update({ title: curChar.name + ' / Образы', back: goBack });
   } else {
-    back.style.display = 'flex';
-    crumb.innerHTML = '<span>'+esc(curChar.name)+'</span><span class="sep"> / </span><span>'+esc(curLook.name)+'</span><span class="sep"> / </span><span class="cur">Предметы</span>';
-    title.innerHTML = esc(curLook.name);
-    sub.textContent = 'Предметы образа';
+    LifeShell.update({ title: curChar.name + ' / ' + curLook.name, back: goBack });
   }
 }
 
@@ -796,22 +782,18 @@ function buildItemForm(item) {
 // ----- BOOT -----
 document.getElementById('overlay').addEventListener('click', closeSheet);
 document.getElementById('formClose').addEventListener('click', closeSheet);
-document.getElementById('backBtn').addEventListener('click', function(){
-  if(view==='items') gotoLooks(curChar);
-  else if(view==='looks') gotoChars();
-});
 document.getElementById('fabAdd').addEventListener('click', function(){
   if(view==='chars') openAddChar();
   else if(view==='looks') openAddLook();
   else openAddItem();
 });
-document.getElementById('btnSync').addEventListener('click', async function(){
+async function syncNow(){
   showLoading();
   if(view==='chars') { await loadCharacters(); renderChars(); }
   else if(view==='looks') { await loadLooks(curChar.id); renderLooks(); }
   else { await loadItems(curLook.id); renderItems(); }
   toast('Обновлено','ok');
-});
+}
 
 (async function(){
   await lifeosInit();
