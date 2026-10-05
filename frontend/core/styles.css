@@ -422,3 +422,54 @@ select option { background: var(--bg3); }
    DIVIDER
 ══════════════════════════════════════════ */
 .divider { height: 1px; background: var(--border); margin: 12px 0; }
+
+/* ══════════════════════════════════════════════════════════════
+   LifeOS design system v2 — единая шапка, акценты модулей,
+   адаптивные окна и сетки. Подробнее: docs/DESIGN.md
+   Всё опционально: старые экраны продолжают работать как раньше.
+══════════════════════════════════════════════════════════════ */
+:root { --on-accent: #fff; --content-max: 1100px; }
+
+/* Акцент модуля: <html data-module="meals"> (ставит LifeShell или сама страница) */
+[data-module="hub"]       { --accent: #5b6ef5; --accent2: #7c8ff7; --on-accent: #fff; }
+[data-module="projects"]  { --accent: #2fc4b2; --accent2: #5fdccd; --on-accent: #06201c; }
+[data-module="meals"]     { --accent: #f08050; --accent2: #f5a07a; --on-accent: #2a1308; }
+[data-module="purchases"] { --accent: #d4f542; --accent2: #e2fa7a; --on-accent: #1c2400; }
+[data-module="cosplays"]  { --accent: #a070f0; --accent2: #b99af5; --on-accent: #1d1030; }
+[data-module="admin"]     { --accent: #f05060; --accent2: #f47e8a; --on-accent: #2a0b10; }
+.btn-primary { color: var(--on-accent); }
+
+/* Единая шапка (создаётся LifeShell.mount) */
+.lo-header { position: sticky; top: 0; z-index: 100; display: flex; align-items: center; gap: 6px;
+  height: calc(52px + var(--st)); padding: var(--st) 10px 0; background: rgba(10,10,15,.92);
+  backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); }
+.lo-mark { width: 30px; height: 30px; border-radius: 8px; background: var(--accent); color: var(--on-accent);
+  display: flex; align-items: center; justify-content: center; font-size: 17px; flex: none; text-decoration: none; margin-right: 2px; }
+.lo-name { font-size: 15px; font-weight: 700; letter-spacing: -.2px; white-space: nowrap; color: var(--text); text-decoration: none; }
+.lo-crumb { font-size: 13px; color: var(--text2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lo-crumb::before { content: '/'; margin: 0 6px 0 2px; color: var(--text3); }
+.lo-sp { flex: 1; }
+.lo-ib { width: 36px; height: 36px; border-radius: var(--r2); display: flex; align-items: center; justify-content: center;
+  color: var(--text2); font-size: 18px; flex: none; transition: .15s; background: none; border: none; cursor: pointer; text-decoration: none; }
+.lo-ib:hover { background: var(--bg3); color: var(--text); }
+.lo-ib.lo-switch { border: 1px solid var(--border2); color: var(--text); }
+.lo-ib svg { width: 18px; height: 18px; }
+body.lo-has-header #lifeos-nav-btn { display: none; }
+body.lo-has-header #lifeos-nav-panel { top: calc(56px + var(--st)); bottom: auto; right: 10px; }
+@media (max-width: 480px) { .lo-header.has-crumb .lo-name { display: none; } .lo-crumb::before { content: none; } .lo-crumb { font-size: 15px; font-weight: 600; color: var(--text); } }
+
+/* Страница и сетки: контент не растягивается на широком экране, колонки считаются сами */
+.lo-page { max-width: var(--content-max); margin: 0 auto; padding: 12px 12px calc(16px + var(--sb)); }
+.lo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--col, 168px), 1fr)); gap: 10px; }
+.lo-grid > .card, .lo-grid > * { margin-bottom: 0; min-width: 0; }
+.card.compact { padding: 10px; }
+
+/* Окна: на телефоне «шторка» снизу, на планшете и компьютере — аккуратное окно по центру */
+.modal { max-height: 88dvh; }
+.modal-footer { position: sticky; bottom: 0; background: var(--bg2); }
+@media (min-width: 720px) {
+  .modal-overlay { align-items: center; justify-content: center; padding: 24px; }
+  .modal { max-width: 520px; max-height: min(86dvh, 820px); border-radius: var(--r); padding-bottom: 0; transform: translateY(8px) scale(.98); }
+  .modal.lg { max-width: 760px; }
+  .modal-overlay.open .modal { transform: none; }
+}
