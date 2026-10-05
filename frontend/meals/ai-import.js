@@ -1,8 +1,7 @@
 /* ══════════════════════════════════════════════
    ai-import.js — импорт рецепта через ИИ
-   ВАЖНО: сам вызов ИИ здесь НЕ реализован (ключ нельзя держать в браузере —
-   нужен backend-маршрут). Работает: окно ввода, нормализация JSON и сохранение.
-   Пока маршрута нет, в окно можно вставить готовый JSON рецепта — он сохранится.
+   Вызов ИИ идёт через backend: POST /ai/recipe (ключ Gemini хранится только на сервере).
+   Если вставить готовый JSON рецепта, он сохранится без обращения к ИИ.
 
    Формат JSON (все поля, кроме name, необязательные):
    {
@@ -22,9 +21,16 @@
 'use strict';
 
 const AIImport = {
-  // Контракт для backend (заглушка): вход { text } или { url }, выход — JSON рецепта выше.
+  // Backend: вход { text | url, tags }, выход { recipe } — JSON рецепта выше.
   async parse(input) {
-    throw new Error('ИИ-разбор пока не подключён (нужен маршрут на сервере). Можно вставить готовый JSON рецепта.');
+    const tags = (await mealTagOptions()).map(t => t.name);
+    try {
+      const r = await DB.api('/ai/recipe', { ...input, tags });
+      return r.recipe;
+    } catch (e) {
+      if (e.status === 503) throw new Error('ИИ-разбор ещё не включён на сервере.');
+      throw e;
+    }
   },
 
   open() {
@@ -50,7 +56,7 @@ const AIImport = {
     const text = document.getElementById('ai-text').value.trim();
     const msg = document.getElementById('ai-msg'), btn = document.getElementById('ai-go');
     if (!text) { msg.textContent = 'Вставьте текст или ссылку.'; return; }
-    btn.disabled = true; msg.textContent = 'Обрабатываю…';
+    btn.disabled = true; msg.style.color = 'var(--text3)'; msg.textContent = 'Обрабатываю… (до 30 секунд, сервер может просыпаться)';
     try {
       let json = this._tryJson(text);
       if (!json) json = await this.parse(/^https?:\/\/\S+$/.test(text) ? { url: text } : { text });

@@ -287,6 +287,11 @@ const _V = {
 
   // Для выпадашек: системные + личные, отфильтрованные по модулю. system:true — нельзя редактировать.
   // kind: не задан — и категории, и теги; 'category' или 'tag' — только они.
+  // POST к служебному маршруту backend (например /ai/recipe). Токен подставляется сам.
+  async api(path, body) {
+    return _api(path, { method: 'POST', body: JSON.stringify(body || {}) });
+  },
+
   async getTagOptions(scope, kind) {
     const sys = (await DB.getSystemTags(scope, kind)).map(t => ({ ...t, system: true }));
     const mine = (await _STORE.getAll('tags', 'shared'))

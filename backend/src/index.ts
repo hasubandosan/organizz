@@ -12,6 +12,7 @@ import { catalogRouter } from './catalog/routes.js';
 import { mealsEntities } from './db/schema/meals.js';
 import { purchasesEntities } from './db/schema/purchases.js';
 import { cosplaysEntities } from './db/schema/cosplays.js';
+import { aiRouter } from './ai/routes.js';
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.use('/shared/system-tags', systemTagsRouter);   // системные тег
 app.use('/shared', createEntityRouter('shared', sharedEntities));   // личные теги/зоны пользователя
 app.use('/purchases', createEntityRouter('purchases', purchasesEntities));
 app.use('/cosplays', createEntityRouter('cosplays', cosplaysEntities));
+app.use('/ai', aiRouter);           // ИИ-разбор рецептов (Gemini, ключ только на сервере)
 app.use('/catalog', catalogRouter); // общий каталог продуктов: чтение всем, модерация — admin
 
 const port = Number(process.env.PORT ?? 3000);
