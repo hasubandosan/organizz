@@ -481,6 +481,14 @@ const _V = {
     await _STORE.clearAll();
   },
 
+  /* ── RAW REQUEST ──
+     Для эндпоинтов, которые не укладываются в CRUD по entityType
+     (например /catalog/suggestions/:id/vote, /catalog/suggestions/:id/approve).
+     path — полный путь начиная с /<appSlug>/..., например '/catalog/products'. */
+  async request(path, options = {}) {
+    return _api(path, options);
+  },
+
   /* ── STORAGE INFO ── */
   storageInfo() {
     const bytes = _STORE.sizeBytes();

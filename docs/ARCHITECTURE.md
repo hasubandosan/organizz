@@ -118,6 +118,19 @@ entity-таблицы здесь не подходит, поэтому у `catal
 (стартовый набор ~190 базовых продуктов). Идемпотентно по `name`, можно
 дозапускать с расширенным JSON (например, при импорте из Open Food Facts).
 
+Фронтенд: `frontend/meals` читает каталог и даёт предлагать/голосовать
+(`Products`/`Suggestions` в `frontend/meals/db.js`, экраны `products.js`,
+`product-edit.js` — теперь это "предложить", не прямое редактирование,
+`suggestions.js` — голосование). Модерация — отдельный модуль `frontend/admin/`
+(`window.LIFEOS_APP_SLUG = 'catalog'`), доступен только пользователю с ролью
+`admin` в `catalog`, работает напрямую через `DB.request()` (см. ниже) —
+`entityRoutes`-паттерн сюда не подходит, т.к. это не owner-scoped CRUD.
+
+`DB.request(path, options)` в `core/db.js` — выход за рамки обычного CRUD
+(`getAll/get/put/delete`) для случаев вроде `/catalog/suggestions/:id/vote`
+или `/catalog/suggestions/:id/approve`, которые не укладываются в паттерн
+entityType. `path` — полный путь начиная с `/<appSlug>/...`.
+
 ## Картинки
 
 `DB.saveImage(base64, meta) -> id` и `DB.getImage(id) -> { ..., data }` (`data` годится
