@@ -12,8 +12,7 @@ const ProductsScreen = {
         <button class="menu-action-btn" onclick="Router.go('product.suggestions')">🗳 Предложка</button>
       </div>
       <div id="pr-list"></div></div>`;
-    document.getElementById('header-title').textContent = 'Продукты';
-    document.getElementById('header-icon').textContent = '🥕';
+    LifeShell.update({ title: 'Продукты' });
     document.getElementById('pr-search').addEventListener('input', e => this._list(e.target.value));
     this._list('');
   },

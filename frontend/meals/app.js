@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   document.getElementById('bottom-nav').classList.remove('hidden');
-  document.getElementById('app-header').classList.remove('hidden');
+  LifeShell.mount({ module: 'meals', title: 'Рецепты', replace: '#app-header' });
 
   Router.register('recipes',      RecipesScreen);
   Router.register('recipe.view',  RecipeViewScreen);

@@ -72,8 +72,7 @@ const DietsScreen = {
 
     html += '</div>';
     container.innerHTML = html;
-    document.getElementById('header-title').textContent = 'Режимы питания';
-    document.getElementById('header-icon').textContent = '🥗';
+    LifeShell.update({ title: 'Режимы питания' });
   },
 
   async _selectPreset(id) {

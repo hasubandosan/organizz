@@ -28,8 +28,7 @@ const RecipesScreen = {
     }
     html += '<div id="rc-grid"></div></div>';
     container.innerHTML = html;
-    document.getElementById('header-title').textContent = 'Рецепты';
-    document.getElementById('header-icon').textContent = '📖';
+    LifeShell.update({ title: 'Рецепты' });
 
     document.getElementById('rc-search').addEventListener('input', e => { st.search = e.target.value; this._grid(); });
     container.querySelectorAll('#rc-cols .mp-chip').forEach(el => el.addEventListener('click', () => { st.collectionId = el.dataset.col; this.render(container); }));

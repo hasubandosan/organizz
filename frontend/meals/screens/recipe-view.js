@@ -51,8 +51,7 @@ const RecipeViewScreen = {
 
     container.innerHTML = h;
     this._renderIngredients();
-    document.getElementById('header-title').textContent = r.name;
-    document.getElementById('header-icon').textContent = r.emoji || '🍽️';
+    LifeShell.update({ title: r.name });
   },
 
   // ── масштабирование порций (только просмотр, сам рецепт не меняется) ──

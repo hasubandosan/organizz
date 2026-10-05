@@ -7,7 +7,6 @@ const MealPrepScreen = {
     html += '<div class="empty"><div class="empty-icon">🥘</div><div class="empty-title">Нет заготовок</div><div class="empty-desc">Раздел для планирования готовки на неделю</div></div>';
     html += '</div>';
     container.innerHTML = html;
-    document.getElementById('header-title').textContent = 'Заготовки';
-    document.getElementById('header-icon').textContent = '🥘';
+    LifeShell.update({ title: 'Заготовки' });
   }
 };

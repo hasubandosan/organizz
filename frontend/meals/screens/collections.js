@@ -17,8 +17,7 @@ const CollectionsScreen = {
         <button class="icon-btn" onclick="event.stopPropagation();CollectionsScreen._del('${esc(c.id)}')">🗑</button></div>`;
     }
     container.innerHTML = h + '</div>';
-    document.getElementById('header-title').textContent = 'Коллекции';
-    document.getElementById('header-icon').textContent = '📚';
+    LifeShell.update({ title: 'Коллекции' });
   },
 
   _open(id) { RecipesScreen._state.collectionId = id; Router.go('recipes', null, { reset: true }); },

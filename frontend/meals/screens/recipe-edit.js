@@ -54,8 +54,7 @@ const RecipeEditScreen = {
     h += '</div></div>';
 
     container.innerHTML = h;
-    document.getElementById('header-title').textContent = isNew ? 'Новый рецепт' : 'Редактирование';
-    document.getElementById('header-icon').textContent = '✏️';
+    LifeShell.update({ title: isNew ? 'Новый рецепт' : 'Редактирование' });
     this._renderPhoto(); this._renderTags(); this._renumber();
   },
 

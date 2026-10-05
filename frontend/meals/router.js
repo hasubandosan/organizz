@@ -40,8 +40,7 @@ const Router = {
     }
     const tab = this._tabOf[name.split('.')[0]];
     document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.route === tab));
-    const back = document.getElementById('header-back');
-    if (back) back.classList.toggle('hidden', this._stack.length < 2);
+    LifeShell.update({ back: this._stack.length > 1 ? () => this.back() : null });
   },
 };
 window.Router = Router;
