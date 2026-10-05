@@ -13,8 +13,9 @@
      "difficulty": 1,                    // 1..3
      "tags": ["завтрак", "быстро"],      // ИМЕНА тегов; сопоставляются с существующими, неизвестные пропускаются
      "recommendedMeals": ["Завтрак"],    // из: Завтрак, Обед, Ужин, Перекус
-     "ingredients": [ { "name": "Творог", "qty": 500, "unit": "г" } ],
+     "ingredients": [ { "name": "Молочный шоколад", "qty": 200, "unit": "г", "note": "от 46%" } ],   // name — чистое название, детали в note
      "steps": [ { "text": "Смешать...", "timerMin": 0, "tip": "" } ],   // или просто строки
+     "notes": "Общие советы, замены, хранение",
      "sourceUrl": "https://..."          // если рецепт взят по ссылке
    }
 ══════════════════════════════════════════════ */
@@ -96,10 +97,11 @@ const AIImport = {
       difficulty: Math.min(3, Math.max(1, Math.round(num(raw.difficulty)) || 1)),
       tagIds: [...new Set((raw.tags || []).map(t => tagByName.get(lc(t))).filter(Boolean))],
       recommendedMeals: (raw.recommendedMeals || []).map(m => meals.get(lc(m))).filter(Boolean),
+      notes: String(raw.notes || '').trim(),
       sourceUrl: /^https?:\/\//.test(raw.sourceUrl || '') ? raw.sourceUrl : '',
       ingredients: (raw.ingredients || []).map(i => {
         const o = typeof i === 'string' ? { name: i } : i;
-        return { name: String(o.name || '').trim(), qty: num(o.qty), unit: o.unit || '', productId: prodByName.get(lc(o.name)) || null };
+        return { name: String(o.name || '').trim(), qty: num(o.qty), unit: o.unit || '', note: String(o.note || '').trim(), productId: prodByName.get(lc(o.name)) || null };
       }).filter(i => i.name),
       steps: (raw.steps || []).map(s => typeof s === 'string' ? { text: s } : s).filter(s => s && s.text),
     };

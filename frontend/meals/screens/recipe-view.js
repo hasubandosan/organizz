@@ -29,7 +29,7 @@ const RecipeViewScreen = {
 
     if ((r.ingredients || []).length) {
       h += '<div class="rv-section"><h3>🧂 Ингредиенты</h3><ul class="rv-ingredients">';
-      for (const i of r.ingredients) h += `<li><span class="ing-qty">${i.qty ? esc(i.qty) + ' ' + esc(i.unit || '') : ''}</span> <span class="ing-name">${esc(i.name)}</span></li>`;
+      for (const i of r.ingredients) h += `<li><span class="ing-qty">${i.qty ? esc(i.qty) + ' ' + esc(i.unit || '') : ''}</span> <span class="ing-name">${esc(i.name)}</span>${i.note ? `<span class="ing-note-view">${esc(i.note)}</span>` : ''}</li>`;
       h += '</ul></div>';
     }
     if ((r.steps || []).length) {
@@ -43,6 +43,7 @@ const RecipeViewScreen = {
       h += '</ol></div>';
     }
     if ((r.recommendedMeals || []).length) h += '<div class="rv-section"><h3>🍽️ Рекомендуется для</h3><div class="rv-tags">' + r.recommendedMeals.map(m => `<span class="rv-tag">${esc(m)}</span>`).join('') + '</div></div>';
+    if (r.notes) h += `<div class="rv-section"><h3>📌 Заметки</h3><div class="rv-notes">${esc(r.notes)}</div></div>`;
     if (r.sourceUrl) h += `<div class="rv-section"><a href="${esc(r.sourceUrl)}" target="_blank" rel="noopener noreferrer">🔗 Источник</a></div>`;
     h += '</div>';
 
