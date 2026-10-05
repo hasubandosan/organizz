@@ -16,9 +16,10 @@ import { cosplaysEntities } from './db/schema/cosplays.js';
 const app = express();
 
 // ALLOWED_ORIGIN не задан -> разрешаем всё (удобно для локальной разработки).
-// Задан -> пускаем запросы только с этого домена (нужно для продакшена).
-const allowedOrigin = process.env.ALLOWED_ORIGIN;
-app.use(cors(allowedOrigin ? { origin: allowedOrigin } : {}));
+// Задан -> список доменов через запятую (несколько фронтов — по одному на модуль
+// на Cloudflare Pages), пускаем запросы только с них.
+const allowedOrigins = process.env.ALLOWED_ORIGIN?.split(',').map((s) => s.trim()).filter(Boolean);
+app.use(cors(allowedOrigins ? { origin: allowedOrigins } : {}));
 
 app.use(express.json());
 
