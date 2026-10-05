@@ -6,17 +6,16 @@
 'use strict';
 
 const LIFEOS_MODULES = [
-  { slug: 'hub',       label: 'Хаб',      icon: '🏠', href: '../hub/' },
-  { slug: 'projects',  label: 'Проекты',  icon: '📋', href: '../projects/' },
-  { slug: 'meals',     label: 'Рецепты',  icon: '🍽', href: '../meals/' },
-  { slug: 'purchases', label: 'Покупки',  icon: '🛒', href: '../purchases/' },
-  { slug: 'cosplays',  label: 'Косплеи',  icon: '🎭', href: '../cosplays/' },
-  { slug: 'admin',     label: 'Админка',  icon: '🛠', href: '../admin/' },
+  { slug: 'hub',       label: 'Хаб',      icon: '🏠', href: 'https://organizz-hub.pages.dev/' },
+  { slug: 'projects',  label: 'Проекты',  icon: '📋', href: 'https://organizz-projects.pages.dev/' },
+  { slug: 'meals',     label: 'Рецепты',  icon: '🍽', href: 'https://organizz-meals.pages.dev/' },
+  { slug: 'purchases', label: 'Покупки',  icon: '🛒', href: 'https://organizz-purchases.pages.dev/' },
+  { slug: 'admin',     label: 'Админка',  icon: '🛠', href: 'https://organizz-admin.pages.dev/' },
 ];
 
 (function initLifeosNav() {
-  // Текущий модуль — по сегменту пути (frontend/<module>/index.html -> .../<module>/)
-  const currentSlug = (location.pathname.match(/\/([a-z0-9_-]+)\/[^/]*$/i) || [])[1] || '';
+  // Текущий модуль — по домену (organizz-<module>.pages.dev)
+  const currentSlug = (location.hostname.match(/^organizz-([a-z0-9]+)\.pages\.dev$/i) || [])[1] || '';
 
   const style = document.createElement('style');
   style.textContent = `
