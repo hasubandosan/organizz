@@ -1,73 +1,58 @@
 ﻿<!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-module="purchases">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <meta name="theme-color" content="#0c0c0c"/>
+  <meta name="theme-color" content="#0a0a0f"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <title>Покупки</title>
   <link rel="manifest" href="manifest.json" crossorigin="use-credentials"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Geologica:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://organizz-core.pages.dev/styles.css"/>
   <style>
     :root {
-      --bg:      #0c0c0c;
-      --s1:      #141414;
-      --s2:      #1c1c1c;
-      --s3:      #242424;
-      --border:  #2e2e2e;
-      --text:    #efefef;
-      --muted:   #5a5a5a;
-      --dim:     #888;
-      --accent:  #d4f542;
-      --orange:  #ff7043;
+      /* токены core (--bg*, --text*, --border*, --accent*, --orange, --purple, --r) не переопределяем;
+         акцент модуля (лайм) и --on-accent приходят из <html data-module="purchases"> */
+      --s1:      var(--bg2);
+      --s2:      var(--bg3);
+      --s3:      var(--bg4);
+      --muted:   var(--text3);
+      --dim:     var(--text2);
+      --danger:  var(--red);
       --blue:    #4fc3f7;
-      --purple:  #a78bfa;
-      --danger:  #ef5350;
-      --card:    #f0f0e3;
-      --card-ink:#171a12;
-      --card-soft:#666c55;
-      --r:       12px;
-      --rL:      20px;
-      --ff:      'Geologica', sans-serif;
-      --mono:    'JetBrains Mono', monospace;
+      --card:    var(--bg3);
+      --card-ink:var(--text);
+      --card-soft:var(--text2);
+      --rL:      16px;
+      --ff:      var(--f);
+      --mono:    var(--m);
     }
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%;overflow:hidden;background:var(--bg)}
+    body{display:flex;flex-direction:column}
     body{font-family:var(--ff);color:var(--text);-webkit-font-smoothing:antialiased;font-size:15px}
     button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
-    input,textarea,select{font-family:inherit;color:inherit;background:none;border:none;outline:none}
+    input,textarea,select{font-family:inherit;font-size:inherit;color:inherit;background:none;border:none;outline:none;padding:0;width:auto;border-radius:0}
 
     /* ── APP SHELL ── */
-    #app{display:flex;flex-direction:column;height:100dvh}
+    #app{display:flex;flex-direction:column;flex:1;min-height:0;width:100%}
 
     /* ── HEADER ── */
-    .hdr{flex-shrink:0;padding:env(safe-area-inset-top,0) 0 0;background:var(--bg)}
-    .hdr-inner{display:flex;align-items:center;gap:10px;padding:14px 16px 10px}
-    .hdr-logo{font-size:17px;font-weight:900;letter-spacing:-0.5px;flex:1;font-family:var(--ff)}
-    .hdr-logo em{color:var(--accent);font-style:normal}
-    .hdr-actions{display:flex;gap:6px}
-    .icon-btn{
-      width:36px;height:36px;border-radius:10px;
-      display:flex;align-items:center;justify-content:center;
-      background:var(--s2);border:1px solid var(--border);
-      font-size:16px;transition:background .15s,transform .1s;
-    }
-    .icon-btn:active{transform:scale(.9)}
-    .icon-btn.active{background:var(--accent);color:#000;border-color:var(--accent)}
-
+    .hdr{flex-shrink:0;padding:8px max(0px,calc((100% - var(--content-max))/2)) 0;background:var(--bg)}
+    .lo-ib.on{color:var(--accent);background:var(--bg3)}
     /* ── TABS (status) ── */
-    .status-tabs{display:flex;gap:4px;padding:0 16px 12px;overflow-x:auto;scrollbar-width:none}
+    .status-tabs{display:flex;gap:4px;padding:0 16px 8px;overflow-x:auto;scrollbar-width:none}
     .status-tabs::-webkit-scrollbar{display:none}
     .stab{
-      flex-shrink:0;padding:6px 14px;border-radius:100px;font-size:13px;font-weight:500;
+      flex-shrink:0;padding:5px 12px;border-radius:100px;font-size:13px;font-weight:500;
       border:1px solid var(--border);color:var(--muted);background:var(--s2);transition:all .15s;
     }
-    .stab.on{background:var(--accent);color:#000;border-color:var(--accent);font-weight:700}
+    .stab.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:700}
 
     /* ── SEARCH ROW ── */
-    .search-row{display:flex;gap:8px;padding:0 16px 10px}
+    .search-row{display:flex;gap:8px;padding:0 16px 8px}
     .search-box{
       flex:1;display:flex;align-items:center;gap:8px;
       background:var(--s2);border:1px solid var(--border);border-radius:var(--r);
@@ -84,11 +69,11 @@
     .grid-btn:disabled{opacity:.3;pointer-events:none}
 
     /* ── STATS STRIP ── */
-    .stats-strip{display:flex;gap:8px;padding:0 16px 10px;overflow-x:auto;scrollbar-width:none}
+    .stats-strip{display:flex;gap:6px;padding:0 16px 6px;overflow-x:auto;scrollbar-width:none}
     .stats-strip::-webkit-scrollbar{display:none}
-    .stat{flex-shrink:0;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:8px 14px;display:flex;flex-direction:column;gap:1px}
+    .stat{flex-shrink:0;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:5px 11px;display:flex;flex-direction:column;gap:0}
     .stat-l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;font-weight:600}
-    .stat-v{font-family:var(--mono);font-size:15px;font-weight:600}
+    .stat-v{font-family:var(--mono);font-size:14px;font-weight:600}
     .stat-v.a{color:var(--accent)}
     .stat-v.o{color:var(--orange)}
 
@@ -100,7 +85,7 @@
     .sort-opt.on{color:var(--accent);border-color:rgba(212,245,66,.3)}
 
     /* ── SCROLL AREA ── */
-    .scroll{flex:1;overflow-y:auto;padding:4px 16px 100px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+    .scroll{flex:1;overflow-y:auto;padding:4px max(16px,calc((100% - var(--content-max))/2 + 16px)) 100px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
     .scroll::-webkit-scrollbar{width:3px}
     .scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 
@@ -164,23 +149,23 @@
     .product-card.dragging{opacity:.35}
     .product-card.favorite{border-color:rgba(212,245,66,.7)}
     .product-card.done .pc-name{text-decoration:line-through;color:var(--card-soft)}
-    .pc-image{position:relative;aspect-ratio:1.05/1;overflow:hidden;background:#d8dbd2}
+    .pc-image{position:relative;aspect-ratio:1.05/1;overflow:hidden;background:var(--bg4)}
     .pc-image img{width:100%;height:100%;object-fit:cover;display:block}
-    .pc-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(145deg,#e1e3dc,#c8cdc1)}
-    .pc-price{position:absolute;top:6px;right:6px;z-index:3;padding:3px 7px;border-radius:0 8px 0 8px;background:rgba(249,249,241,.95);color:#161a11;font-size:11px;font-weight:800;font-family:var(--mono)}
+    .pc-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(145deg,var(--bg4),var(--bg3))}
+    .pc-price{position:absolute;top:6px;right:6px;z-index:3;padding:3px 7px;border-radius:0 8px 0 8px;background:rgba(10,10,15,.86);color:var(--text);font-size:11px;font-weight:800;font-family:var(--mono)}
     .pc-cosplay{position:absolute;top:6px;left:6px;z-index:3;background:rgba(167,139,250,.88);color:#fff;font-size:8px;font-weight:700;padding:2px 5px;border-radius:5px;letter-spacing:.02em}
     .pc-prio{position:absolute;bottom:6px;left:6px;z-index:3;width:7px;height:7px;border-radius:50%}
     .pc-prio.p2{background:var(--orange)}
     .pc-prio.p1{background:var(--accent)}
     .pc-done-overlay{position:absolute;inset:0;z-index:4;background:var(--card);opacity:.5}
     .pc-done-check{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center}
-    .pc-done-check span{width:32px;height:32px;border-radius:50%;background:var(--accent);color:#0c0c0c;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;box-shadow:0 4px 10px rgba(0,0,0,.35)}
+    .pc-done-check span{width:32px;height:32px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;box-shadow:0 4px 10px rgba(0,0,0,.35)}
     .pc-info{padding:6px 7px 7px}
     .pc-name{font-size:11px;line-height:1.2;font-weight:700;letter-spacing:-.01em;color:var(--card-ink);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;min-height:2.2em;margin-bottom:3px}
     .pc-meta{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--card-soft)}
-    .pc-status-dot{width:5px;height:5px;border-radius:50%;background:#a7ab9b;flex-shrink:0}
+    .pc-status-dot{width:5px;height:5px;border-radius:50%;background:var(--text3);flex-shrink:0}
     .pc-status-dot.ordered{background:var(--orange)}
-    .pc-status-dot.done{background:#6c9a1f}
+    .pc-status-dot.done{background:var(--green)}
 
     /* ── LIST VIEW (flat, grouped by full zone path) ── */
     .cat-group{margin-bottom:20px}
@@ -215,7 +200,7 @@
     .prio-badge.p0{background:var(--s3);color:var(--muted)}
 
     /* ── FAB + quick menu ── */
-    .fab-wrap{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0));right:18px;z-index:20;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+    .fab-wrap{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0));right:max(18px,calc((100vw - var(--content-max))/2 + 18px));z-index:20;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
     .fab-menu{display:none;flex-direction:column;gap:8px}
     .fab-menu.on{display:flex}
     .fab-menu button{
@@ -223,7 +208,7 @@
       background:var(--s2);border:1px solid var(--border);color:var(--text);font-size:13px;font-weight:600;
       box-shadow:0 4px 14px rgba(0,0,0,.35);
     }
-    .fab{width:54px;height:54px;border-radius:50%;background:var(--accent);color:#000;font-size:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(212,245,66,.4);transition:transform .15s,box-shadow .15s}
+    .fab{width:54px;height:54px;border-radius:50%;background:var(--accent);color:var(--on-accent);font-size:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(212,245,66,.4);transition:transform .15s,box-shadow .15s}
     .fab:active{transform:scale(.9);box-shadow:0 2px 10px rgba(212,245,66,.2)}
     .fab.rot{transform:rotate(45deg)}
 
@@ -232,15 +217,20 @@
     .overlay.on{opacity:1;pointer-events:all}
 
     /* ── centered modal (zone/variant/edit/quick-add) ── */
-    .mbackdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)}
+    .mbackdrop{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:none;align-items:flex-end;justify-content:center;padding:0;backdrop-filter:blur(6px)}
     .mbackdrop.on{display:flex}
-    .mmodal{background:var(--s1);border:1px solid var(--border);border-radius:var(--rL);width:100%;max-width:380px;max-height:90dvh;overflow-y:auto;padding:18px}
-    .mmodal.wide{max-width:640px}
+    .mmodal{background:var(--s1);border:1px solid var(--border2);border-radius:var(--rL) var(--rL) 0 0;width:100%;max-width:560px;max-height:88dvh;overflow-y:auto;padding:16px 16px calc(12px + var(--sb))}
+    .mmodal.wide{max-width:720px}
+    @media(min-width:720px){
+      .mbackdrop{align-items:center;padding:24px}
+      .mmodal{max-width:460px;border-radius:var(--rL);max-height:min(86dvh,760px);padding-bottom:16px}
+      .mmodal.wide{max-width:720px}
+    }
     .mmodal h3{font-size:15px;font-weight:700;margin-bottom:14px}
-    .mmodal .btn-row{display:flex;gap:8px;margin-top:16px}
+    .mmodal .btn-row{display:flex;gap:8px;margin-top:14px;position:sticky;bottom:0;background:var(--s1);padding:10px 0 2px}
     .mmodal .btn-row button{flex:1;padding:11px;border-radius:var(--r);font-size:13px;font-weight:700}
     .mmodal .btn-cancel{background:var(--s2);border:1px solid var(--border);color:var(--dim)}
-    .mmodal .btn-primary{background:var(--accent);color:#000}
+    .mmodal .btn-primary{background:var(--accent);color:var(--on-accent)}
     .mmodal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px}
     .mmodal-hdr h3{margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .mclose{width:28px;height:28px;border-radius:8px;background:var(--s3);color:var(--dim);font-size:15px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
@@ -274,7 +264,7 @@
     .detail-empty{font-size:12px;color:var(--muted);padding:8px 2px}
     .detail-footer{display:flex;gap:8px;flex-wrap:wrap}
     .detail-footer button{padding:9px 13px;border-radius:var(--r);font-size:12px;font-weight:700;border:1px solid var(--border);background:var(--s2);color:var(--text)}
-    .detail-footer button.primary{background:var(--accent);color:#000;border-color:var(--accent)}
+    .detail-footer button.primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
     .detail-footer button.danger{color:var(--danger);border-color:rgba(239,83,80,.3)}
 
     /* ── FORM (edit / quick-add / zone) ── */
@@ -332,7 +322,7 @@
     .img-up:hover .img-mask{opacity:1}
 
     /* buttons */
-    .btn-save{width:100%;padding:14px;background:var(--accent);color:#000;border-radius:var(--r);font-size:14px;font-weight:800;font-family:var(--mono);letter-spacing:.3px;transition:transform .1s;margin-top:6px}
+    .btn-save{width:100%;padding:14px;background:var(--accent);color:var(--on-accent);border-radius:var(--r);font-size:14px;font-weight:800;font-family:var(--mono);letter-spacing:.3px;transition:transform .1s;margin-top:6px;position:sticky;bottom:0;box-shadow:0 -14px 14px -8px var(--s1)}
     .btn-save:active{transform:scale(.98)}
     .btn-save:disabled{opacity:.4;pointer-events:none}
     .btn-del{width:100%;padding:12px;border:1px solid rgba(239,83,80,.25);color:var(--danger);border-radius:var(--r);font-size:13px;font-weight:600;transition:background .15s;margin-top:10px}
@@ -345,6 +335,11 @@
       transform:translateY(100%);transition:transform .32s cubic-bezier(.16,1,.3,1);
     }
     .sheet.on{transform:translateY(0)}
+    @media(min-width:720px){
+      .sheet{left:auto;width:420px;top:0;bottom:0;max-height:none;border-radius:0;border-top:none;border-left:1px solid var(--border2);transform:translateX(100%)}
+      .sheet.on{transform:none}
+      .sheet-drag{display:none}
+    }
     .sheet-drag{width:36px;height:4px;background:var(--border);border-radius:4px;margin:12px auto 0;flex-shrink:0}
     .sheet-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;flex-shrink:0}
     .sheet-title{font-size:16px;font-weight:700}
@@ -368,7 +363,7 @@
     .zman-root-drop.drag-over{border-color:var(--accent);color:var(--accent);background:rgba(212,245,66,.06)}
 
     /* toast */
-    .toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0));transform:translateX(-50%) translateY(20px);background:var(--s2);border:1px solid var(--border);border-radius:100px;padding:9px 18px;font-size:13px;font-weight:500;white-space:nowrap;opacity:0;transition:opacity .2s,transform .2s;z-index:300;pointer-events:none;max-width:88vw;overflow:hidden;text-overflow:ellipsis}
+    .toast{animation:none;display:block;position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0));transform:translateX(-50%) translateY(20px);background:var(--s2);border:1px solid var(--border);border-radius:100px;padding:9px 18px;font-size:13px;font-weight:500;white-space:nowrap;opacity:0;transition:opacity .2s,transform .2s;z-index:300;pointer-events:none;max-width:88vw;overflow:hidden;text-overflow:ellipsis}
     .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
     .toast.ok{border-color:var(--accent);color:var(--accent)}
     .toast.err{border-color:var(--danger);color:var(--danger)}
@@ -382,18 +377,7 @@
 <body>
 <div id="app">
 
-  <header class="hdr">
-    <div class="hdr-inner">
-      <div class="hdr-logo">WISH<em>LIST</em></div>
-      <div class="hdr-actions">
-        <button class="icon-btn" id="btnHub" title="В хаб">⌂</button>
-        <button class="icon-btn" id="btnViewList" title="Список">☰</button>
-        <button class="icon-btn active" id="btnViewGallery" title="Зоны">⊞</button>
-        <button class="icon-btn" id="btnManageZones" title="Все зоны">🗂</button>
-        <button class="icon-btn" id="btnSync" title="Обновить">⟳</button>
-      </div>
-    </div>
-
+  <div class="hdr">
     <div class="status-tabs" id="statusTabs">
       <button class="stab on" data-s="all">Все</button>
       <button class="stab" data-s="want">Хочу</button>
@@ -427,7 +411,7 @@
       <button class="sort-opt" data-sort="price_desc">цена ↓</button>
       <button class="sort-opt" data-sort="date">дата</button>
     </div>
-  </header>
+  </div>
 
   <div class="scroll" id="scrollArea">
     <div class="center-state" id="loadingEl"><div class="spinner"></div><span style="font-size:12px;color:var(--muted)">Загрузка...</span></div>
@@ -651,7 +635,16 @@
 <script>window.LIFEOS_APP_SLUG = 'purchases';</script>
 <script src="https://organizz-core.pages.dev/db.js"></script>
 <script src="https://organizz-core.pages.dev/nav.js"></script>
+<script src="https://organizz-core.pages.dev/shell.js"></script>
+<script>window.LifeShell = window.LifeShell || { mount() {}, update() {} };  /* core ещё не обновлён — без шапки, но без падения */</script>
 <script>
+// Единая шапка: логотип/название модуля и переключатель модулей рисует LifeShell, здесь только действия
+LifeShell.mount({ module: 'purchases', actions: [
+  { id: 'btnView',        icon: '☰', label: 'Показать списком',  onClick: () => setView(viewMode === 'gallery' ? 'list' : 'gallery') },
+  { id: 'btnManageZones', icon: '🗂', label: 'Все зоны',          onClick: () => { renderZoneManageList(); openSheet('manage'); } },
+  { id: 'btnSync',        icon: '⟳', label: 'Обновить',          onClick: () => syncNow() },
+] });
+
 // ── STATE ──────────────────────────────────────────
 let zones      = [];   // {id,name,emoji,module,modules,parent_id,show_in_purchases}
 let products   = [];   // {id,name,module,zone_id,status,priority,tags,notes,source_module,source_item_id,created_at}
@@ -1244,13 +1237,11 @@ function attachDropTarget(el, targetZoneId) {
 // ══════════════════════════════════════════════════
 function setView(mode) {
   viewMode = mode;
-  $('btnViewList').classList.toggle('active', mode === 'list');
-  $('btnViewGallery').classList.toggle('active', mode === 'gallery');
+  const vb = $('btnView');   // иконка показывает, во что переключимся
+  if (vb) { vb.textContent = mode === 'gallery' ? '☰' : '⊞'; vb.title = mode === 'gallery' ? 'Показать списком' : 'Показать по зонам'; }
   $('gridCtrl').style.display = mode === 'gallery' ? 'flex' : 'none';
   render();
 }
-$('btnViewList').addEventListener('click', () => setView('list'));
-$('btnViewGallery').addEventListener('click', () => setView('gallery'));
 $('gridMinus').addEventListener('click', () => { if (gridCols > 4) { gridCols--; $('gridColsLabel').textContent = gridCols; render(); } });
 $('gridPlus').addEventListener('click',  () => { if (gridCols < 8) { gridCols++; $('gridColsLabel').textContent = gridCols; render(); } });
 
@@ -1729,7 +1720,6 @@ function renderZoneManageList() {
   walk(null, 0);
   if (!wrap.children.length) wrap.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">Зон нет</div>';
 }
-$('btnManageZones').addEventListener('click', () => { renderZoneManageList(); openSheet('manage'); });
 $('btnAddRootZone').addEventListener('click', () => openZoneModal(null, null));
 attachDropTarget($('zmanRootDrop'), null);
 
@@ -1799,13 +1789,12 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbo
 // ══════════════════════════════════════════════════
 // CONTROLS
 // ══════════════════════════════════════════════════
-$('btnSync').addEventListener('click', async () => {
+async function syncNow() {
   loadingEl.style.display = 'flex'; mainList.style.display = 'none'; emptyEl.style.display = 'none';
   try { await loadAll(); toast('Обновлено', 'ok'); }
   catch (e) { toast('Ошибка загрузки: ' + e.message, 'err'); }
   render();
-});
-$('btnHub').addEventListener('click', () => { location.href = 'https://organizz-hub.pages.dev/'; });
+}
 $('searchIn').addEventListener('input', e => { searchQ = e.target.value; render(); });
 $('statusTabs').addEventListener('click', e => {
   const tab = e.target.closest('.stab'); if (!tab) return;
