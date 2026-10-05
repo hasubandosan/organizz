@@ -27,10 +27,12 @@ const RecipeViewScreen = {
     const names = (r.tagIds || []).map(tagName).filter(Boolean);
     if (names.length) h += '<div class="rv-tags">' + names.map(n => `<span class="rv-tag">${esc(n)}</span>`).join('') + '</div>';
 
+    this._r = r; this._n = Math.max(1, +r.portions || 4);
     if ((r.ingredients || []).length) {
-      h += '<div class="rv-section"><h3>🧂 Ингредиенты</h3><ul class="rv-ingredients">';
-      for (const i of r.ingredients) h += `<li><span class="ing-qty">${i.qty ? esc(i.qty) + ' ' + esc(i.unit || '') : ''}</span> <span class="ing-name">${esc(i.name)}</span>${i.note ? `<span class="ing-note-view">${esc(i.note)}</span>` : ''}</li>`;
-      h += '</ul></div>';
+      h += '<div class="rv-section"><div class="rv-ing-head"><h3>🧂 Ингредиенты</h3>';
+      h += '<div class="portion-stepper"><button class="icon-btn" onclick="RecipeViewScreen._step(-1)">−</button>';
+      h += '<span id="rv-portions"></span><button class="icon-btn" onclick="RecipeViewScreen._step(1)">+</button></div></div>';
+      h += '<ul class="rv-ingredients" id="rv-ing-list"></ul></div>';
     }
     if ((r.steps || []).length) {
       h += '<div class="rv-section"><h3>📝 Приготовление</h3><ol class="rv-steps">';
@@ -48,8 +50,31 @@ const RecipeViewScreen = {
     h += '</div>';
 
     container.innerHTML = h;
+    this._renderIngredients();
     document.getElementById('header-title').textContent = r.name;
     document.getElementById('header-icon').textContent = r.emoji || '🍽️';
+  },
+
+  // ── масштабирование порций (только просмотр, сам рецепт не меняется) ──
+  _step(d) {
+    this._n = Math.min(99, Math.max(1, this._n + d));
+    this._renderIngredients();
+  },
+
+  _fmt(n) {
+    const v = Math.round(n * 100) / 100;                  // до сотых
+    return String(v).replace('.', ',');
+  },
+
+  _renderIngredients() {
+    const list = document.getElementById('rv-ing-list');
+    if (!list) return;
+    const r = this._r, base = Math.max(1, +r.portions || 4), k = this._n / base;
+    document.getElementById('rv-portions').textContent = this._n + ' порц.' + (this._n !== base ? ` (×${this._fmt(k)})` : '');
+    list.innerHTML = r.ingredients.map(i => {
+      const q = i.qty ? `${esc(this._fmt(i.qty * k))} ${esc(i.unit || '')}` : '';
+      return `<li><span class="ing-qty">${q}</span> <span class="ing-name">${esc(i.name)}</span>${i.note ? `<span class="ing-note-view">${esc(i.note)}</span>` : ''}</li>`;
+    }).join('');
   },
 
   async _del(id) {
