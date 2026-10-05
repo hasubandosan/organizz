@@ -4,8 +4,13 @@ import { apps } from './schema/registry.js';
 import { roles, userAppRoles } from './schema/auth.js';
 
 /**
- * Возвращает код роли пользователя в приложении (по его slug) или null,
+ * Возвращает "старшую" роль пользователя в приложении (по его slug) или null,
  * если пользователь не зарегистрирован в этом приложении.
+ *
+ * У пользователя может быть НЕСКОЛЬКО ролей на одно приложение одновременно
+ * (например catalog:user выдаётся всем автоматически + catalog:admin выдан
+ * вручную) — поэтому здесь явный приоритет admin, а не произвольная строка
+ * через LIMIT 1 (без ORDER BY Postgres не гарантирует, какая вернётся).
  */
 export async function getUserRole(userId: string, appSlug: string): Promise<string | null> {
   const rows = await db
@@ -13,10 +18,11 @@ export async function getUserRole(userId: string, appSlug: string): Promise<stri
     .from(userAppRoles)
     .innerJoin(apps, eq(apps.id, userAppRoles.appId))
     .innerJoin(roles, eq(roles.id, userAppRoles.roleId))
-    .where(and(eq(userAppRoles.userId, userId), eq(apps.slug, appSlug)))
-    .limit(1);
+    .where(and(eq(userAppRoles.userId, userId), eq(apps.slug, appSlug)));
 
-  return rows[0]?.roleCode ?? null;
+  const codes = rows.map((r) => r.roleCode);
+  if (codes.includes('admin')) return 'admin';
+  return codes[0] ?? null;
 }
 
 /** admin проходит любую проверку роли, иначе роль должна совпадать точно. */

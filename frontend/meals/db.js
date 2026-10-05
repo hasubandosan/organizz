@@ -64,18 +64,50 @@ const Collections = {
   },
 };
 
-// Продукты — отдельные сущности. КБЖУ/цены сейчас не ведём; позже добавятся
-// поля protein/fat/carbs/kcal/price прямо в запись (схема jsonb, миграции не нужны).
+// Продукты — ОБЩИЙ каталог (schema catalog на backend, не личные данные).
+// Редактировать напрямую нельзя: только предложить новый продукт/правку
+// через заявку на модерацию (admin одобряет/отклоняет, голоса — подсказка).
+// MEAL_COL.products (личная коллекция) больше не используется для продуктов.
 const Products = {
   async list(search = '') {
-    let items = await DB.getAll(MEAL_COL.products);
+    let items = await DB.request('/catalog/products');
     if (search) { const q = search.toLowerCase(); items = items.filter(p => (p.name || '').toLowerCase().includes(q)); }
     return items.sort(_byName);
   },
-  async get(id) { return DB.getById(MEAL_COL.products, id); },
-  async save(p) {
-    const row = { name: String(p.name || '').trim(), emoji: p.emoji || '🥕', category: p.category || '', unit: p.unit || 'г' };
-    return p.id ? DB.update(MEAL_COL.products, p.id, row) : DB.create(MEAL_COL.products, row);
+
+  async get(id) {
+    const items = await DB.request('/catalog/products');
+    return items.find(p => p.id === id) || null;
   },
-  async del(id) { return DB.delete(MEAL_COL.products, id); },
+
+  // Предложить новый продукт. Уходит в catalog.suggestions со статусом pending.
+  async suggestNew({ name, category = '', unit = 'г' }) {
+    return DB.request('/catalog/suggestions', {
+      method: 'POST',
+      body: JSON.stringify({ type: 'new_product', payload: { name: String(name || '').trim(), category, unit } }),
+    });
+  },
+
+  // Предложить правку существующего продукта
+  async suggestEdit(productId, { name, category, unit }) {
+    return DB.request('/catalog/suggestions', {
+      method: 'POST',
+      body: JSON.stringify({ type: 'edit_product', productId, payload: { name, category, unit } }),
+    });
+  },
+};
+
+// Предложка: список заявок с голосами + голосование. Отдельный объект,
+// т.к. это не CRUD над одной сущностью, а модерационный поток.
+const Suggestions = {
+  // status: 'pending' (по умолчанию) | 'approved' | 'rejected' | 'all'
+  async list(status = 'pending') {
+    return DB.request(`/catalog/suggestions?status=${encodeURIComponent(status)}`);
+  },
+  async vote(suggestionId) {
+    return DB.request(`/catalog/suggestions/${encodeURIComponent(suggestionId)}/vote`, { method: 'POST' });
+  },
+  async unvote(suggestionId) {
+    return DB.request(`/catalog/suggestions/${encodeURIComponent(suggestionId)}/vote`, { method: 'DELETE' });
+  },
 };

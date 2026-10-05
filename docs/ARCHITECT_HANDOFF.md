@@ -71,17 +71,14 @@
 4. `cosplays` — позже.
 
 ## Открытые задачи (за архитектором)
-- [ ] **Каталог продуктов (catalog) — backend готов, ветка `feature/catalog-moderation`,
-      патч ниже.** После мержа: `npm run db:migrate`, выполнить INSERT из
-      `registry.apps` (уже в seed.sql) и выдать себе `admin` в `catalog`
-      (шаблон SQL — в конце `drizzle/seed.sql`), затем
-      `npx tsx scripts/import-catalog-products.ts scripts/seed-products.json`
-      для заполнения стартовым списком (~190 продуктов). Подробности — `docs/ARCHITECTURE.md`,
-      раздел "Каталог продуктов". Дальше по плану: 1) meals-бот переделывает
-      «Продукты» в `frontend/meals` на чтение из `/catalog/products` + экран
-      «Предложка»; 2) нужно решить новый модуль `frontend/admin/` (отдельный
-      бот) для очереди модерации — ждём ответа заказчика, отдельным модулем
-      или вкладкой в meals видимой только admin.
+- [x] **Каталог продуктов (catalog)** — backend + `frontend/meals` (предложка,
+      голосование, чтение каталога) + отдельный `frontend/admin/` (очередь
+      модерации, прямое управление продуктами). Ветка `feature/catalog-moderation`.
+      После мержа см. шаги применения в конце этого файла.
+      По пути исправлен баг в `roleCheck.ts`: `getUserRole` брал случайную
+      роль через `LIMIT 1` без `ORDER BY` — если у юзера несколько ролей на
+      одно приложение (как теперь у admin в catalog: и `user`, и `admin`),
+      могла вернуться не та. Теперь явный приоритет `admin`.
 - [ ] Применить `modules-base.patch` (backend для meals/purchases/cosplays + docs), затем
       `npm run db:migrate`, INSERT в `registry.apps`, `fly deploy`. Проверить, смержено ли.
 - [ ] **ИИ-разбор рецептов:** в `legacy-source/meals/ai-import.js` только заглушка, ключа нет.
@@ -97,6 +94,17 @@
 - [ ] Перенос старых base64-картинок из базы в B2 (скрипт; нужен, только если они есть).
 - [ ] Запасной путь `saveImage` (base64 в базу) упирается в лимит запроса Fly (413) — это нормально,
       путь запасной; при желании увеличить `express.json({limit})`.
+
+## Применение catalog-moderation после мержа PR
+1. `cd backend && npm run db:migrate`
+2. В Neon SQL Editor: INSERT в `registry.apps` для `catalog` (идемпотентно, см. `seed.sql`)
+   и INSERT в `auth.user_app_roles` на роль `admin` (шаблон в конце `seed.sql`, свой email)
+3. `npx tsx scripts/import-catalog-products.ts scripts/seed-products.json`
+4. Передеплоить backend на Render — критично: в этом же патче фикс `roleCheck.ts`,
+   без него admin-эндпоинты каталога могут отдавать 403 через раз
+5. Передеплоить `frontend/meals/` (изменились db.js/app.js/products.js/product-edit.js, добавлен suggestions.js)
+6. Задеплоить `frontend/admin/` — новый отдельный сайт на Netlify (или путь на существующем),
+   `window.LIFEOS_APP_SLUG = 'catalog'`, работает после входа под вашим admin-аккаунтом
 
 ## Приёмка патча от бота (чек-лист)
 1. `git apply --check` к свежему `main`; `git apply --stat` — файлы ТОЛЬКО в `frontend/<module>/`.

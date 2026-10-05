@@ -17,9 +17,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   Router.register('recipe.edit',  RecipeEditScreen);
   Router.register('recipe.new',   RecipeEditScreen);
   Router.register('collections',  CollectionsScreen);
-  Router.register('products',     ProductsScreen);
-  Router.register('product.new',  ProductEditScreen);
-  Router.register('product.edit', ProductEditScreen);
+  Router.register('products',           ProductsScreen);
+  Router.register('product.new',        ProductEditScreen);   // теперь экран «предложить продукт»
+  Router.register('product.edit',       ProductEditScreen);   // теперь экран «предложить правку»
+  Router.register('product.suggestions', SuggestionsScreen);  // предложка: голосование
 
   document.querySelectorAll('.nav-item').forEach(btn =>
     btn.addEventListener('click', () => Router.go(btn.dataset.route, null, { reset: true })));
