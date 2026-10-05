@@ -10,6 +10,7 @@ const LIFEOS_MODULES = [
   { slug: 'projects',  label: 'Проекты',  icon: '📋', href: 'https://organizz-projects.pages.dev/' },
   { slug: 'meals',     label: 'Рецепты',  icon: '🍽', href: 'https://organizz-meals.pages.dev/' },
   { slug: 'purchases', label: 'Покупки',  icon: '🛒', href: 'https://organizz-purchases.pages.dev/' },
+  { slug: 'cosplays',  label: 'Косплей',  icon: '🎭', href: 'https://organizz-cosplays.pages.dev/' },
   { slug: 'admin',     label: 'Админка',  icon: '🛠', href: 'https://organizz-admin.pages.dev/' },
 ];
 
