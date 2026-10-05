@@ -87,8 +87,13 @@
     .var-chip.pref{border-color:var(--purple);color:var(--purple)}
     .var-price{font-weight:700}
 
-    .fab{position:fixed;bottom:calc(20px + var(--sb));right:18px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;font-size:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(91,110,245,.45);transition:transform .15s;z-index:20}
+    .fab{position:fixed;bottom:calc(92px + var(--sb));right:20px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;font-size:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(91,110,245,.45);transition:transform .15s;z-index:20}
     .fab:active{transform:scale(.9)}
+    .edit-btn{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;z-index:3}
+    .look-card{position:relative}
+    .look-card .edit-btn{top:50%;transform:translateY(-50%)}
+    .btn-rm{width:100%;padding:8px;margin-top:6px;border:1px dashed var(--border2);color:var(--text3);border-radius:var(--r2);font-size:12px}
+    .pu-badge{display:inline-block;margin-left:6px;font-size:11px;color:var(--purple)}
 
     .overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(6px)}
     .overlay.on{opacity:1;pointer-events:all}
@@ -222,6 +227,7 @@ var _variantsDraft = [];
 var _refsDraft = [];
 var _coverData = null;
 var _photoData = null;
+var _coverRemoved = false, _photoRemoved = false;
 var _coverNew = false, _photoNew = false;   // true — выбрана НОВАЯ картинка (её надо загрузить в хранилище)
 var _refsIdBySrc = {};                       // url референса -> id картинки (для уже сохранённых)
 
@@ -238,6 +244,58 @@ async function _imgUrl(id) {
 }
 async function dropImages(ids) {
   for (var i = 0; i < ids.length; i++) { if (ids[i]) { try { await DB.deleteImage(ids[i]); } catch (e) {} } }
+}
+var PU = 'purchases';
+function puRefId(x) { var r = (x.refs || []).filter(function(r){ return r.module === 'purchases'; })[0]; return r ? r.id : null; }
+// прогресс образа = доля предметов «Уже есть»; прогресс персонажа = среднее по его образам
+async function recalcProgress(charId, lookId) {
+  try {
+    if (lookId) {
+      var its = (await DB.getAll('items')).filter(function(x){ return x.lookId === lookId; });
+      var p = its.length ? Math.round(its.filter(function(x){ return x.status === 'have'; }).length * 100 / its.length) : 0;
+      await DB.update('looks', lookId, {progress: p});
+    }
+    var ls = (await DB.getAll('looks')).filter(function(l){ return l.charId === charId; });
+    var cp = ls.length ? Math.round(ls.reduce(function(a, l){ return a + (l.progress || 0); }, 0) / ls.length) : 0;
+    await DB.update('characters', charId, {progress: cp});
+  } catch (e) {}
+}
+async function removeItemCascade(item) {
+  await dropImages([item.photoImageId]);
+  var pid = puRefId(item);
+  if (pid) {   // непокупленную покупку убираем вместе с предметом, купленную оставляем как историю
+    try { var pu = await DB.getById('purchases', pid, PU); if (pu && pu.status !== 'in_stock') await DB.delete('purchases', pid, PU); } catch (e) {}
+  }
+  await DB.delete('items', item.id);
+}
+async function removeLookCascade(look) {
+  var its = (await DB.getAll('items')).filter(function(x){ return x.lookId === look.id; });
+  for (var i = 0; i < its.length; i++) await removeItemCascade(its[i]);
+  await dropImages(look.refImageIds || []);
+  await DB.delete('looks', look.id);
+}
+async function removeCharCascade(char) {
+  var ls = (await DB.getAll('looks')).filter(function(l){ return l.charId === char.id; });
+  for (var i = 0; i < ls.length; i++) await removeLookCascade(ls[i]);
+  await dropImages([char.coverImageId]);
+  await DB.delete('characters', char.id);
+}
+// «Купить» -> покупка в модуле «Покупки», связь refs с обеих сторон
+async function syncPurchase(item) {
+  var pid = puRefId(item);
+  if (item.status !== 'buy') return;
+  var tag = (item.tagIds || [])[0];
+  if (pid) {
+    try { await DB.update('purchases', pid, {name: item.name, notes: item.notes || null}, PU); return; } catch (e) { /* покупку удалили — создадим заново */ }
+  }
+  var rec = await DB.create('purchases', {
+    name: item.name, status: 'wish', priority: 1, tags: [], tagIds: tag ? [tag] : [], notes: item.notes || null,
+    sourceType: 'cosplay',
+    refs: [{module: 'cosplays', type: 'items', id: item.id}]
+  }, PU);
+  var refs = (item.refs || []).filter(function(r){ return r.module !== 'purchases'; });
+  refs.push({module: 'purchases', type: 'purchases', id: rec.id});
+  await DB.update('items', item.id, {refs: refs});
 }
 async function loadCharacters() {
   characters = (await DB.getAll('characters')).sort(byCreated);
@@ -256,6 +314,15 @@ async function loadLooks(charId) {
 }
 async function loadItems(lookId) {
   items = (await DB.getAll('items')).filter(function(x) { return x.lookId === lookId; }).sort(byCreated);
+  var allPu = []; try { allPu = await DB.getAll('purchases', PU); } catch (e) {}
+  for (var k = 0; k < items.length; k++) {
+    var pid = puRefId(items[k]);
+    items[k]._pu = pid ? (allPu.filter(function(q){ return q.id === pid; })[0] || null) : null;
+    if (items[k]._pu && items[k]._pu.status === 'in_stock' && items[k].status === 'buy') {
+      items[k].status = 'have';
+      try { await DB.update('items', items[k].id, {status: 'have'}); } catch (e) {}
+    }
+  }
   await Promise.all(items.map(async function(x) {
     x._photoUrl = await _imgUrl(x.photoImageId);
     var ti = TYPE_TAGS.indexOf((x.tagIds || [])[0]);
@@ -343,7 +410,7 @@ function renderChars() {
     return '<div class="char-card" data-id="'+c.id+'" style="animation-delay:'+idx*.04+'s">'
       + '<div class="char-cover">'
       + (c._coverUrl ? '<img src="'+esc(c._coverUrl)+'" loading="lazy"/>' : '🎭')
-      + '<div class="char-grad"></div>'
+      + '<div class="char-grad"></div><button class="edit-btn" data-edit="'+c.id+'">✎</button>'
       + '<div class="char-info"><div class="char-name">'+esc(c.name)+'</div>'
       + (c.source ? '<div class="char-sub">'+esc(c.source)+'</div>' : '')
       + '</div></div>'
@@ -351,6 +418,9 @@ function renderChars() {
       + '</div>';
   }).join('') + '</div>';
   showContent(html);
+  document.getElementById('mainContent').querySelectorAll('.char-card .edit-btn').forEach(function(b) {
+    b.addEventListener('click', function(e) { e.stopPropagation(); openEditChar(b.dataset.edit); });
+  });
   document.getElementById('mainContent').querySelectorAll('.char-card').forEach(function(el) {
     el.addEventListener('click', function() {
       gotoLooks(characters.find(function(c){return c.id===el.dataset.id;}));
@@ -369,6 +439,7 @@ function renderLooks() {
     var scTxt = l.status==='ready' ? 'Готов' : l.status==='progress' ? 'В процессе' : 'Планирую';
     var thumb = (l._refUrls && l._refUrls[0]) ? '<img src="'+esc(l._refUrls[0])+'" loading="lazy"/>' : '✨';
     return '<div class="look-card" data-id="'+l.id+'" style="animation-delay:'+idx*.04+'s">'
+      + '<button class="edit-btn" data-edit="'+l.id+'">✎</button>'
       + '<div class="look-thumb">'+thumb+'</div>'
       + '<div class="look-body">'
       + '<div class="look-name">'+esc(l.name)+'</div>'
@@ -377,6 +448,9 @@ function renderLooks() {
       + '</div></div>';
   }).join('');
   showContent(html);
+  document.getElementById('mainContent').querySelectorAll('.look-card .edit-btn').forEach(function(b) {
+    b.addEventListener('click', function(e) { e.stopPropagation(); openEditLook(b.dataset.edit); });
+  });
   document.getElementById('mainContent').querySelectorAll('.look-card').forEach(function(el) {
     el.addEventListener('click', function() {
       gotoItems(looks.find(function(l){return l.id===el.dataset.id;}));
@@ -412,6 +486,7 @@ function renderItems() {
       + '<div class="item-name">'+esc(item.name)+'</div>'
       + '<div class="item-type">'+typeName+'</div>'
       + '<span class="item-st '+isCls+'">'+isTxt+'</span>'
+      + (item._pu ? '<span class="pu-badge">🛒 '+(item._pu.status==='in_stock'?'куплено':item._pu.status==='ordered'?'заказано':'в Покупках')+'</span>' : '')
       + '</div></div>'
       + varHtml + '</div>';
   }).join('');
@@ -440,7 +515,7 @@ function openAddChar()   { buildCharForm(null); }
 function openEditChar(id){ buildCharForm(characters.find(function(c){return c.id===id;})||null); }
 function buildCharForm(char) {
   _editId = char ? char.id : null;
-  _coverData = char ? (char._coverUrl||null) : null; _coverNew = false;
+  _coverData = char ? (char._coverUrl||null) : null; _coverNew = false; _coverRemoved = false;
   openSheet(char ? 'Редактировать персонажа' : 'Новый персонаж');
   var delBtn = char ? '<button class="btn-del" id="fDelBtn">Удалить персонажа</button>' : '';
   document.getElementById('formBody').innerHTML =
@@ -449,7 +524,8 @@ function buildCharForm(char) {
     + '<span id="fImgLbl">🎭 Добавить фото</span>'
     + (_coverData ? '<img id="fImgEl" src="'+esc(_coverData)+'"/>' : '<img id="fImgEl" style="display:none"/>')
     + '<div class="img-mask">🔄 Заменить</div></div>'
-    + '<input type="file" id="fImgInput" accept="image/*" style="display:none"/></div>'
+    + '<input type="file" id="fImgInput" accept="image/*" style="display:none"/>'
+    + (_coverData ? '<button type="button" class="btn-rm" id="fImgRm">Убрать обложку</button>' : '') + '</div>'
     + '<div class="fg"><label class="fl">Имя *</label>'
     + '<input id="fCharName" class="fi" placeholder="Nezuko, Zero Two..." value="'+esc(char?char.name:'')+'"/></div>'
     + '<div class="fg"><label class="fl">Источник</label>'
@@ -458,6 +534,12 @@ function buildCharForm(char) {
     + delBtn;
   if (_coverData) document.getElementById('fImgLbl').style.display='none';
   document.getElementById('fImgUp').addEventListener('click', function(){ document.getElementById('fImgInput').click(); });
+  var rmC = document.getElementById('fImgRm');
+  if (rmC) rmC.addEventListener('click', function(){
+    _coverData = null; _coverNew = false; _coverRemoved = true;
+    var img = document.getElementById('fImgEl'); img.style.display = 'none'; img.removeAttribute('src');
+    document.getElementById('fImgLbl').style.display = ''; rmC.style.display = 'none';
+  });
   document.getElementById('fImgInput').addEventListener('change', function(e){
     var f=e.target.files[0]; if(!f) return;
     var r=new FileReader(); r.onload=function(ev){
@@ -472,6 +554,7 @@ function buildCharForm(char) {
     document.getElementById('fSaveBtn').disabled=true; document.getElementById('fSaveBtn').textContent='Сохранение...';
     try {
       var coverImageId = char ? (char.coverImageId||null) : null;
+      if (_coverRemoved && coverImageId) { await dropImages([coverImageId]); coverImageId = null; }
       if (_coverNew && _coverData) {
         var newCover = await DB.saveImage(_coverData);
         if (coverImageId) await dropImages([coverImageId]);
@@ -487,8 +570,8 @@ function buildCharForm(char) {
     finally { var btn=document.getElementById('fSaveBtn'); if(btn){btn.disabled=false;btn.textContent='Сохранить';} }
   });
   if(char) document.getElementById('fDelBtn').addEventListener('click', async function(){
-    if(!confirm('Удалить персонажа?')) return;
-    try{ await dropImages([char.coverImageId]); await DB.delete('characters', char.id); await loadCharacters(); renderChars(); closeSheet(); toast('Удалено','ok'); }
+    if(!confirm('Удалить персонажа вместе со всеми его образами и предметами?')) return;
+    try{ await removeCharCascade(char); await loadCharacters(); renderChars(); closeSheet(); toast('Удалено','ok'); }
     catch(e){ toast('Ошибка: '+e.message,'err'); }
   });
 }
@@ -563,14 +646,15 @@ function buildLookForm(look) {
         await DB.update('looks', _editId, {name:name, status:lookStatus, notes:document.getElementById('fLookNotes').value.trim()||null, refImageIds:keepIds});
       } else {
         await DB.create('looks', {charId:curChar.id, name:name, status:lookStatus, notes:document.getElementById('fLookNotes').value.trim()||null, refImageIds:keepIds, progress:0});
+        await recalcProgress(curChar.id);
       }
       await loadLooks(curChar.id); renderLooks(); closeSheet(); toast(look?'Обновлено ✓':'Добавлено ✓','ok');
     }catch(e){toast('Ошибка: '+e.message,'err');}
     finally{ var btn=document.getElementById('fSaveBtn'); if(btn){btn.disabled=false;btn.textContent='Сохранить';} }
   });
   if(look) document.getElementById('fDelBtn').addEventListener('click', async function(){
-    if(!confirm('Удалить образ?')) return;
-    try{ await dropImages(look.refImageIds||[]); await DB.delete('looks', look.id); await loadLooks(curChar.id); renderLooks(); closeSheet(); toast('Удалено','ok'); }
+    if(!confirm('Удалить образ вместе со всеми его предметами?')) return;
+    try{ await removeLookCascade(look); await recalcProgress(curChar.id); await loadLooks(curChar.id); renderLooks(); closeSheet(); toast('Удалено','ok'); }
     catch(e){ toast('Ошибка: '+e.message,'err'); }
   });
 }
@@ -580,7 +664,7 @@ function openAddItem()   { buildItemForm(null); }
 function openEditItem(id){ buildItemForm(items.find(function(x){return x.id===id;})||null); }
 function buildItemForm(item) {
   _editId = item ? item.id : null;
-  _photoData = item ? (item._photoUrl||null) : null; _photoNew = false;
+  _photoData = item ? (item._photoUrl||null) : null; _photoNew = false; _photoRemoved = false;
   _variantsDraft = item ? JSON.parse(JSON.stringify(item.variants||[])) : [];
   var itemStatus = item ? (item.status||'buy') : 'buy';
   var itemTypeIdx = item ? (item.typeIdx||0) : 0;
@@ -595,7 +679,8 @@ function buildItemForm(item) {
     + '<span id="fPhotoLbl">📷 Добавить фото</span>'
     + (_photoData ? '<img id="fPhotoEl" src="'+esc(_photoData)+'"/>' : '<img id="fPhotoEl" style="display:none"/>')
     + '<div class="img-mask">🔄 Заменить</div></div>'
-    + '<input type="file" id="fPhotoInput" accept="image/*" style="display:none"/></div>'
+    + '<input type="file" id="fPhotoInput" accept="image/*" style="display:none"/>'
+    + (_photoData ? '<button type="button" class="btn-rm" id="fPhotoRm">Убрать фото</button>' : '') + '</div>'
     + '<div class="fg"><label class="fl">Название *</label>'
     + '<input id="fItemName" class="fi" placeholder="Парик, меч, кимоно..." value="'+esc(item?item.name:'')+'"/></div>'
     + '<div class="frow">'
@@ -615,6 +700,12 @@ function buildItemForm(item) {
     + delBtn;
   if(_photoData) document.getElementById('fPhotoLbl').style.display='none';
   document.getElementById('fPhotoUp').addEventListener('click',function(){ document.getElementById('fPhotoInput').click(); });
+  var rmP = document.getElementById('fPhotoRm');
+  if (rmP) rmP.addEventListener('click', function(){
+    _photoData = null; _photoNew = false; _photoRemoved = true;
+    var img = document.getElementById('fPhotoEl'); img.style.display = 'none'; img.removeAttribute('src');
+    document.getElementById('fPhotoLbl').style.display = ''; rmP.style.display = 'none';
+  });
   document.getElementById('fPhotoInput').addEventListener('change',function(e){
     var f=e.target.files[0]; if(!f) return;
     var rd=new FileReader(); rd.onload=function(ev){
@@ -674,6 +765,7 @@ function buildItemForm(item) {
     document.getElementById('fSaveBtn').disabled=true; document.getElementById('fSaveBtn').textContent='Сохранение...';
     try{
       var photoImageId = item ? (item.photoImageId||null) : null;
+      if (_photoRemoved && photoImageId) { await dropImages([photoImageId]); photoImageId = null; }
       if (_photoNew && _photoData) {
         var newPhoto = await DB.saveImage(_photoData);
         if (photoImageId) await dropImages([photoImageId]);
@@ -681,18 +773,22 @@ function buildItemForm(item) {
       }
       var typeIdx = +document.getElementById('fItemType').value;
       var payload = {name:name, tagIds:[TYPE_TAGS[typeIdx]], status:itemStatus, notes:document.getElementById('fItemNotes').value.trim()||null, photoImageId:photoImageId, variants:_variantsDraft};
+      var saved;
       if (_editId) {
         await DB.update('items', _editId, payload);
+        saved = Object.assign({}, item, payload);
       } else {
-        await DB.create('items', {lookId:curLook.id, ...payload});
+        saved = await DB.create('items', {lookId:curLook.id, ...payload});
       }
+      try { await syncPurchase(saved); } catch (pe) { toast('Предмет сохранён, но покупку создать не вышло', 'err'); }
+      await recalcProgress(curChar.id, curLook.id);
       await loadItems(curLook.id); renderItems(); closeSheet(); toast(item?'Обновлено ✓':'Добавлено ✓','ok');
     }catch(e){toast('Ошибка: '+e.message,'err');}
     finally{ var btn=document.getElementById('fSaveBtn'); if(btn){btn.disabled=false;btn.textContent='Сохранить';} }
   });
   if(item) document.getElementById('fDelBtn').addEventListener('click', async function(){
     if(!confirm('Удалить предмет?')) return;
-    try{ await dropImages([item.photoImageId]); await DB.delete('items', item.id); await loadItems(curLook.id); renderItems(); closeSheet(); toast('Удалено','ok'); }
+    try{ await removeItemCascade(item); await recalcProgress(curChar.id, curLook.id); await loadItems(curLook.id); renderItems(); closeSheet(); toast('Удалено','ok'); }
     catch(e){ toast('Ошибка: '+e.message,'err'); }
   });
 }
@@ -720,10 +816,6 @@ document.getElementById('btnSync').addEventListener('click', async function(){
 (async function(){
   await lifeosInit();
   await gotoChars();
-  var p = document.createElement('div');
-  p.style.cssText = 'position:fixed;bottom:calc(80px + var(--sb));left:16px;right:16px;z-index:15;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:8px 12px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3)';
-  p.innerHTML = '☁️ Данные хранятся в вашем аккаунте';
-  document.body.appendChild(p);
 })();
 </script>
 </body>
