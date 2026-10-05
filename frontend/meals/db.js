@@ -38,9 +38,11 @@ const Recipes = {
       recommendedMeals: Array.isArray(r.recommendedMeals) ? r.recommendedMeals : [],
       collectionId:     r.collectionId || null,
       sourceUrl:        r.sourceUrl || '',
+      notes:            String(r.notes || '').trim(),   // общие заметки к рецепту
       // ingredients: productId — необязательный, name — всегда (нужен и для ИИ-импорта)
       ingredients: (r.ingredients || []).map(i => ({
         productId: i.productId || null, name: String(i.name || '').trim(), qty: +i.qty || 0, unit: i.unit || '',
+        note: String(i.note || '').trim(),   // уточнения/рекомендации: «от 46%», «комнатной температуры»
       })).filter(i => i.name),
       steps: (r.steps || []).map(s => typeof s === 'string' ? { text: s, timerMin: 0, tip: '' } : {
         text: String(s.text || '').trim(), timerMin: +s.timerMin || 0, tip: s.tip || '',

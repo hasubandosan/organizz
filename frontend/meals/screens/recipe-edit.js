@@ -50,6 +50,7 @@ const RecipeEditScreen = {
     h += '<div class="re-section"><h3>📝 Шаги</h3><div id="re-steps">';
     (x.steps || []).forEach(s => { h += this._stepRow(s); });
     h += '</div><button class="re-add-btn" onclick="RecipeEditScreen._addStep()">+ Шаг</button></div>';
+    h += `<div class="re-section"><h3>📌 Заметки</h3><textarea id="re-notes" rows="3" style="width:100%" placeholder="Советы, замены, хранение, детали">${esc(x.notes || '')}</textarea></div>`;
     h += '</div></div>';
 
     container.innerHTML = h;
@@ -106,7 +107,8 @@ const RecipeEditScreen = {
     return `<div class="ing-row"><input type="text" class="ing-name" list="re-products" value="${esc(i.name || '')}" placeholder="Продукт">
       <input type="number" class="ing-qty" value="${i.qty || ''}" min="0" step="any" placeholder="кол-во">
       <input type="text" class="ing-unit" value="${esc(i.unit || 'г')}" placeholder="ед.">
-      <span class="ing-remove" onclick="this.parentElement.remove()">✕</span></div>`;
+      <span class="ing-remove" onclick="this.parentElement.remove()">✕</span>
+      <input type="text" class="ing-note" value="${esc(i.note || '')}" placeholder="Заметка: уточнение, рекомендация (необязательно)"></div>`;
   },
   _stepRow(s = {}) {
     return `<div class="step-row"><span class="step-num"></span>
@@ -126,7 +128,7 @@ const RecipeEditScreen = {
     const val = id => document.getElementById(id).value;
     const ingredients = [...document.querySelectorAll('#re-ingredients .ing-row')].map(row => {
       const name = row.querySelector('.ing-name').value.trim();
-      return { name, qty: parseFloat(row.querySelector('.ing-qty').value) || 0, unit: row.querySelector('.ing-unit').value.trim(), productId: byName.get(name.toLowerCase()) || null };
+      return { name, qty: parseFloat(row.querySelector('.ing-qty').value) || 0, unit: row.querySelector('.ing-unit').value.trim(), note: row.querySelector('.ing-note').value.trim(), productId: byName.get(name.toLowerCase()) || null };
     }).filter(i => i.name);
     const steps = [...document.querySelectorAll('#re-steps .step-row')].map(row => ({
       text: row.querySelector('.step-text').value.trim(), timerMin: parseInt(row.querySelector('.step-timer').value) || 0, tip: row.querySelector('.step-tip').value.trim(),
@@ -136,7 +138,7 @@ const RecipeEditScreen = {
       cookTimeMin: parseInt(val('re-time')) || 0, portions: parseInt(val('re-portions')) || 4, difficulty: parseInt(val('re-difficulty')) || 1,
       collectionId: val('re-collection') || null, tagIds: this._r.tagIds || [],
       recommendedMeals: [...document.querySelectorAll('.re-checkbox input:checked')].map(c => c.value),
-      sourceUrl: this._r.sourceUrl || '', ingredients, steps,
+      sourceUrl: this._r.sourceUrl || '', notes: val('re-notes').trim(), ingredients, steps,
     };
   },
 
