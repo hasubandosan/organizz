@@ -79,8 +79,10 @@ const LIFEOS_MODULES = [
 
   btn.addEventListener('click', () => panel.classList.toggle('open'));
   document.addEventListener('click', (e) => {
-    if (!panel.contains(e.target) && e.target !== btn) panel.classList.remove('open');
+    if (!panel.contains(e.target) && e.target !== btn && !e.target.closest('.lo-switch')) panel.classList.remove('open');
   });
+  // Переключатель модулей из единой шапки (LifeShell) вызывает LifeNav.toggle()
+  window.LifeNav = { toggle: () => panel.classList.toggle('open'), close: () => panel.classList.remove('open') };
 
   document.body.appendChild(panel);
   document.body.appendChild(btn);
