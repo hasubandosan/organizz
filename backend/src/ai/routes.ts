@@ -125,11 +125,13 @@ function buildPrompt(tags: string[]): string {
 Не выдумывай то, чего нет в тексте; неизвестное оставляй пустым или 0.`;
 }
 
-const MODELS = [process.env.GEMINI_MODEL, 'gemini-2.5-flash', 'gemini-2.0-flash'].filter(Boolean) as string[];
+// 2.0 Flash закрыт Google; перебираем актуальные Flash-модели, пока одна не ответит (не 404).
+const MODELS = [process.env.GEMINI_MODEL, 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.6-flash', 'gemini-2.5-flash']
+  .filter((m, i, arr): m is string => !!m && arr.indexOf(m) === i);
 async function askGemini(text: string, tags: string[]): Promise<any> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new HttpError(503, 'ИИ-разбор не настроен на сервере');
-  let lastErr = 'нет ответа';
+  const tried: string[] = [];
   for (const model of MODELS) {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
       method: 'POST',
@@ -141,8 +143,8 @@ async function askGemini(text: string, tags: string[]): Promise<any> {
         generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
       }),
     }).catch(() => null);
-    if (!res) { lastErr = 'ИИ не отвечает'; continue; }
-    if (res.status === 404) { lastErr = `модель ${model} недоступна`; continue; }   // пробуем следующую
+    if (!res) { tried.push(`${model}: нет ответа`); continue; }
+    if (res.status === 404) { tried.push(`${model}: 404`); continue; }   // пробуем следующую
     if (res.status === 429) throw new HttpError(429, 'Лимит бесплатного ИИ исчерпан, попробуйте позже');
     if (!res.ok) { console.error('Gemini', res.status, (await res.text()).slice(0, 300)); throw new HttpError(502, 'ИИ вернул ошибку'); }
     const data: any = await res.json();
@@ -150,7 +152,8 @@ async function askGemini(text: string, tags: string[]): Promise<any> {
     try { return JSON.parse(out.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim()); }
     catch { throw new HttpError(502, 'ИИ вернул непонятный ответ, попробуйте ещё раз'); }
   }
-  throw new HttpError(502, `ИИ недоступен: ${lastErr}. Проверьте GEMINI_MODEL на сервере`);
+  console.error('Gemini: ни одна модель не ответила', tried);
+  throw new HttpError(502, `ИИ недоступен (пробовали: ${tried.join(', ')}). Укажите актуальную модель в GEMINI_MODEL на сервере`);
 }
 
 aiRouter.post('/recipe', async (req: AuthedRequest, res) => {
