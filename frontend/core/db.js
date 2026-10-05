@@ -47,7 +47,7 @@ const API_BASE  = 'https://organizz.onrender.com';
 // Без этого по умолчанию 'projects' (так работают projects и hub).
 const APP_SLUG  = (typeof window !== 'undefined' && window.LIFEOS_APP_SLUG) || 'projects';
 // Куда отправлять, если токена нет (страница логина из db-connector-frontend)
-const LOGIN_URL = '/login.html';
+const LOGIN_URL = 'https://organizz-login.pages.dev/';
 
 function _authHeaders() {
   const token = localStorage.getItem('token');
