@@ -49,6 +49,22 @@ const APP_SLUG  = (typeof window !== 'undefined' && window.LIFEOS_APP_SLUG) || '
 // Куда отправлять, если токена нет (страница логина из db-connector-frontend)
 const LOGIN_URL = 'https://organizz-login.pages.dev/';
 
+// Модули живут на РАЗНЫХ доменах (organizz-<module>.pages.dev), а localStorage у каждого домена свой.
+// Страница входа возвращает пользователя на модуль с токеном в #fragment (на сервер он не уходит);
+// здесь забираем его в localStorage ЭТОГО домена и чистим адресную строку.
+(function adoptSessionFromHash() {
+  try {
+    const p = new URLSearchParams(location.hash.slice(1));
+    const t = p.get('lifeos_token');
+    if (!t) return;
+    localStorage.setItem('token', t);
+    const e = p.get('lifeos_email');
+    if (e) localStorage.setItem('email', e);
+    const h = p.get('h');                       // исходный hash модуля (например #/recipes)
+    history.replaceState(null, '', location.pathname + location.search + (h ? '#' + h : ''));
+  } catch { /* не критично */ }
+})();
+
 function _authHeaders() {
   const token = localStorage.getItem('token');
   if (!token) {
@@ -67,7 +83,8 @@ async function _api(path, options = {}) {
   if (res.status === 401 || res.status === 403) {
     // Токен истёк/невалиден/нет роли в этом модуле — на логин
     localStorage.removeItem('token');
-    window.location.href = `${LOGIN_URL}?redirect=${encodeURIComponent(location.href)}&app=${APP_SLUG}`;
+    // expired=1: страница входа сотрёт и свой токен, иначе она отправит обратно с тем же протухшим
+    window.location.href = `${LOGIN_URL}?expired=1&redirect=${encodeURIComponent(location.href)}&app=${APP_SLUG}`;
     throw new Error('Сессия истекла');
   }
   if (res.status === 204) return null;
