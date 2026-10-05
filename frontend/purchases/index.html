@@ -1805,7 +1805,7 @@ $('btnSync').addEventListener('click', async () => {
   catch (e) { toast('Ошибка загрузки: ' + e.message, 'err'); }
   render();
 });
-$('btnHub').addEventListener('click', () => { location.href = '../hub/'; });
+$('btnHub').addEventListener('click', () => { location.href = 'https://organizz-hub.pages.dev/'; });
 $('searchIn').addEventListener('input', e => { searchQ = e.target.value; render(); });
 $('statusTabs').addEventListener('click', e => {
   const tab = e.target.closest('.stab'); if (!tab) return;

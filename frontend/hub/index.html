@@ -68,7 +68,7 @@
     <div class="section">  
       <div class="section-header">  
         <span class="section-title">Активные проекты</span>  
-        <a href="../projects/" class="section-action">Открыть →</a>  
+        <a href="https://organizz-projects.pages.dev/" class="section-action">Открыть →</a>  
       </div>  
       <div id="widget-projects"></div>  
     </div>  
@@ -76,7 +76,7 @@
     <div class="section">  
       <div class="section-header">  
         <span class="section-title">Открытые задачи</span>  
-        <a href="../projects/#tasks" class="section-action">Открыть →</a>  
+        <a href="https://organizz-projects.pages.dev/#tasks" class="section-action">Открыть →</a>  
       </div>  
       <div id="widget-tasks"></div>  
     </div>  
@@ -84,7 +84,7 @@
     <div class="section">  
       <div class="section-header">  
         <span class="section-title">Покупки</span>  
-        <a href="../purchases/" class="section-action">Открыть →</a>  
+        <a href="https://organizz-purchases.pages.dev/" class="section-action">Открыть →</a>  
       </div>  
       <div id="widget-purchases"></div>  
     </div>  
@@ -93,13 +93,13 @@
       <div class="section-header"><span class="section-title">Модули</span></div>  
     </div>  
     <div class="hub-modules">  
-      <a class="module-tile" href="../projects/index.html">  
+      <a class="module-tile" href="https://organizz-projects.pages.dev/">  
         <div class="module-icon">📁</div>  
         <div class="module-name">Проекты</div>  
         <div class="module-desc">Области, задачи, бюджет</div>  
         <div class="module-badge">active</div>  
       </a>  
-      <a class="module-tile" href="../purchases/index.html">  
+      <a class="module-tile" href="https://organizz-purchases.pages.dev/">  
         <div class="module-icon">🛒</div>  
         <div class="module-name">Покупки</div>  
         <div class="module-desc">Списки и вишлисты</div>  
@@ -110,7 +110,7 @@
         <div class="module-desc">Персонажи и образы</div>  
         <div class="module-badge soon">demo</div>  
       </a>  
-      <a class="module-tile" href="../meals/index.html">  
+      <a class="module-tile" href="https://organizz-meals.pages.dev/">  
         <div class="module-icon">🥗</div>  
         <div class="module-name">Питание</div>  
         <div class="module-desc">Меню и рецепты</div>  
@@ -176,7 +176,7 @@ async function renderProjects() {
   const aMap = Object.fromEntries(areas.map(a => [a.id, a]));  
   el.innerHTML = active.slice(0, 3).map(p => {  
     const area = aMap[p.areaId];  
-    return `<div class="card clickable" onclick="location.href='../projects/?p=${p.id}'">  
+    return `<div class="card clickable" onclick="location.href='https://organizz-projects.pages.dev/?p=${p.id}'">  
       <div class="card-head">  
         <div class="card-icon">${area ? area.emoji : '📁'}</div>  
         <div>  
@@ -201,7 +201,7 @@ async function renderTasks() {
     open.map(t => {  
       const overdue = UI.isOverdue(t.dueDate, t.status);  
       return `<div class="task-row">  
-        <div class="task-body" onclick="location.href='../projects/#tasks'">  
+        <div class="task-body" onclick="location.href='https://organizz-projects.pages.dev/#tasks'">  
           <div class="task-title">${esc(t.name)}</div>  
           <div class="task-meta">  
             ${t.dueDate ? `<span class="${overdue ? 'task-overdue' : ''}">📅 ${UI.date(t.dueDate)}</span>` : ''}  
@@ -233,7 +233,7 @@ async function renderPurchases() {
     return;  
   }  
   el.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:4px 14px">` +  
-    pending.map(p => `<div class="pur-row" onclick="location.href='../purchases/'">  
+    pending.map(p => `<div class="pur-row" onclick="location.href='https://organizz-purchases.pages.dev/'">  
       <div class="pur-name">${esc(p.name)}</div>  
       <div class="pur-price">${p._price ? UI.money(p._price) : ''}</div>  
     </div>`).join('') + '</div>';  
@@ -244,7 +244,7 @@ document.getElementById('btn-search').addEventListener('click', async () => {
   if (!term) return;  
   const results = await DB.search(['projects','tasks'], term);  
   if (!results.length) { UI.toast('Ничего не найдено', 'info'); return; }  
-  location.href = `../projects/?q=${encodeURIComponent(term)}`;  
+  location.href = `https://organizz-projects.pages.dev/?q=${encodeURIComponent(term)}`;  
 });  
 
 /* ── Пользователь и выход ── */
@@ -255,7 +255,7 @@ document.getElementById('btn-search').addEventListener('click', async () => {
     if (!confirm('Выйти из аккаунта?')) return;
     localStorage.removeItem('token');
     localStorage.removeItem('email');
-    location.href = '/login.html';
+    location.href = 'https://organizz-login.pages.dev/?logout=1';
   });
 })();
 

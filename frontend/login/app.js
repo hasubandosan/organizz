@@ -82,6 +82,21 @@ loginForm.addEventListener('submit', async (e) => {
   }
 });
 
+// --- возврат на модуль (модули на разных доменах → токен едет в #fragment) ---
+const HUB_URL = 'https://organizz-hub.pages.dev/';
+// Токен отдаём ТОЛЬКО на наши модули (иначе ?redirect=чужой-сайт украл бы токен)
+const ALLOWED_RETURN = /^https:\/\/organizz-(hub|projects|purchases|meals|admin)\.pages\.dev$/;
+function returnUrl(token, email) {
+  const raw = new URLSearchParams(location.search).get('redirect');
+  let u;
+  try { u = new URL(raw || HUB_URL); } catch { u = new URL(HUB_URL); }
+  if (!ALLOWED_RETURN.test(u.origin)) u = new URL(HUB_URL);
+  const p = new URLSearchParams({ lifeos_token: token, lifeos_email: email });
+  if (u.hash) p.set('h', u.hash.slice(1));
+  u.hash = p.toString();
+  return u.toString();
+}
+
 // --- после успешного логина/регистрации ---
 async function onAuthSuccess(token, email) {
   localStorage.setItem('token', token);
@@ -110,7 +125,7 @@ async function onAuthSuccess(token, email) {
   }
 
   // Возвращаемся туда, откуда редиректнуло; если пришли напрямую — в хаб
-  window.location.href = redirect || '/hub/';
+  window.location.href = returnUrl(token, email);
 }
 
 function showApp(token, email) {
@@ -182,7 +197,11 @@ itemForm.addEventListener('submit', async (e) => {
 // --- автовход, если токен уже есть в localStorage ---
 const savedToken = localStorage.getItem('token');
 const savedEmail = localStorage.getItem('email');
-if (savedToken && savedEmail) {
-  const back = new URLSearchParams(location.search).get('redirect');
-  window.location.href = back || '/hub/';
+const _qs = new URLSearchParams(location.search);
+if (_qs.get('logout') || _qs.get('expired')) {
+  // выход или протухшая сессия — стираем токен здесь и показываем форму входа
+  localStorage.removeItem('token');
+  localStorage.removeItem('email');
+} else if (savedToken && savedEmail) {
+  window.location.href = returnUrl(savedToken, savedEmail);
 }
