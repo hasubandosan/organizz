@@ -85,7 +85,7 @@ loginForm.addEventListener('submit', async (e) => {
 // --- возврат на модуль (модули на разных доменах → токен едет в #fragment) ---
 const HUB_URL = 'https://organizz-hub.pages.dev/';
 // Токен отдаём ТОЛЬКО на наши модули (иначе ?redirect=чужой-сайт украл бы токен)
-const ALLOWED_RETURN = /^https:\/\/organizz-(hub|projects|purchases|meals|admin)\.pages\.dev$/;
+const ALLOWED_RETURN = /^https:\/\/organizz-(hub|projects|purchases|meals|cosplays|admin)\.pages\.dev$/;
 function returnUrl(token, email) {
   const raw = new URLSearchParams(location.search).get('redirect');
   let u;
