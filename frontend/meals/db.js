@@ -54,7 +54,7 @@ const Recipes = {
 const Collections = {
   async list() { return (await DB.getAll(MEAL_COL.collections)).sort(_byName); },
   async save(c) {
-    const row = { name: String(c.name || '').trim(), emoji: c.emoji || '📚', description: c.description || '' };
+    const row = { name: String(c.name || '').trim(), emoji: c.emoji || '📚', description: c.description || '', imageId: c.imageId || null };
     return c.id ? DB.update(MEAL_COL.collections, c.id, row) : DB.create(MEAL_COL.collections, row);
   },
   async del(id) {
@@ -62,6 +62,8 @@ const Collections = {
     for (const r of await DB.getAll(MEAL_COL.recipes)) {
       if (r.collectionId === id) await DB.update(MEAL_COL.recipes, r.id, { collectionId: null });
     }
+    const c = await DB.getById(MEAL_COL.collections, id);
+    if (c?.imageId) await DB.deleteImage(c.imageId).catch(() => {});
     return DB.delete(MEAL_COL.collections, id);
   },
 };

@@ -36,7 +36,8 @@ const HomeScreen = {
     h += '<div class="kt-book enc" data-go="products"><div class="kt-bc">🥕</div><div class="kt-bt">Энциклопедия продуктов</div></div>';
     for (const c of cols) {
       const n = recipes.filter(r => r.collectionId === c.id).length;
-      h += `<div class="kt-book" data-col="${esc(c.id)}"><div class="kt-bc">${esc(c.emoji || '📚')}</div><div class="kt-bt">${esc(c.name)}</div><div class="kt-bn">${n}</div></div>`;
+      const bi = c.imageId ? `<img class="kt-bimg" data-img="${esc(c.imageId)}" alt="">` : '';
+      h += `<div class="kt-book${c.imageId ? ' pic' : ''}" data-col="${esc(c.id)}">${bi}<div class="kt-bc">${esc(c.emoji || '📚')}</div><div class="kt-bt">${esc(c.name)}</div><div class="kt-bn">${n}</div></div>`;
     }
     h += '</div></section>';
 
