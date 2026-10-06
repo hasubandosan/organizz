@@ -97,20 +97,45 @@
 /* сетка рецептов сама подбирает число колонок (телефон — 2, компьютер — больше) */
 .recipe-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 
-/* ── Кухня: стартовые плитки ── */
-.kt-home { padding-top: 12px; }
-.kt-tile { position: relative; border-radius: var(--r); overflow: hidden; background: var(--bg2); border: 1px solid var(--border);
-  cursor: pointer; display: flex; flex-direction: column; transition: transform .12s; }
-.kt-tile:active { transform: scale(.98); }
-.kt-tile.soon { opacity: .5; cursor: default; }
-.kt-tile.soon:active { transform: none; }
-.kt-pic { aspect-ratio: 4/3; background: var(--bg3); display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.kt-pic img { width: 100%; height: 100%; object-fit: cover; }
-.kt-emoji { font-size: 44px; }
-.kt-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
-.kt-title { font-size: 15px; font-weight: 700; }
-.kt-cnt, .kt-soon { font-size: 12px; color: var(--text2); }
-.kt-soon { color: var(--text3); }
-.kt-main { display: block; width: 100%; max-width: 360px; margin: 16px auto 0; min-height: 48px; border-radius: var(--r); border: 0;
+/* ── Кухня: стартовая страница ── */
+.kt-home { padding-top: 8px; }
+.kt-sec { margin-bottom: 18px; }
+.kt-h { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.kt-h h2 { font-size: 16px; font-weight: 800; }
+.kt-h .sp { flex: 1; }
+.kt-n, .kt-tag { font-size: 11px; color: var(--text3); }
+.kt-tag { padding: 2px 8px; border-radius: 999px; border: 1px dashed var(--border2); }
+.kt-link { background: none; border: 0; color: var(--accent2); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; min-height: 36px; }
+.kt-empty { padding: 18px; text-align: center; color: var(--text3); font-size: 13px; background: var(--bg2); border: 1px dashed var(--border2); border-radius: var(--r); }
+
+.kt-days { display: flex; gap: 6px; margin-bottom: 8px; }
+.kt-day { flex: 1; text-align: center; padding: 6px 0; border-radius: 8px; font-size: 12px; font-weight: 600; background: var(--bg2); border: 1px solid var(--border); color: var(--text2); }
+.kt-day.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent, #fff); }
+.kt-plan { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; }
+.kt-meal { display: flex; align-items: center; gap: 10px; padding: 8px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); cursor: pointer; min-width: 0; }
+.kt-meal.empty { cursor: default; opacity: .6; }
+.kt-mpic { width: 52px; height: 52px; border-radius: 8px; background: var(--bg3); display: flex; align-items: center; justify-content: center; font-size: 24px; overflow: hidden; flex-shrink: 0; }
+.kt-mpic img { width: 100%; height: 100%; object-fit: cover; }
+.kt-mtxt { min-width: 0; }
+.kt-mtype { font-size: 11px; color: var(--text3); }
+.kt-mname { font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.kt-hscroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x proximity; }
+.kt-rc { flex: 0 0 172px; scroll-snap-align: start; }
+.kt-main { display: block; width: 100%; max-width: 360px; margin: 10px auto 0; min-height: 48px; border-radius: var(--r); border: 0;
   background: var(--accent); color: var(--on-accent, #fff); font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
 .kt-main:active { transform: scale(.98); }
+
+.kt-shelf { display: flex; gap: 10px; overflow-x: auto; padding: 4px 4px 12px; border-bottom: 6px solid var(--bg4); border-radius: 0 0 6px 6px; }
+.kt-book { position: relative; flex: 0 0 104px; height: 140px; border-radius: 4px 10px 10px 4px; padding: 10px 8px; cursor: pointer;
+  background: var(--bg3); border: 1px solid var(--border2); border-left: 6px solid var(--accent); display: flex; flex-direction: column; gap: 6px; }
+.kt-book.enc { border-left-color: var(--green); }
+.kt-book:active { transform: scale(.97); }
+.kt-bc { font-size: 30px; }
+.kt-bt { font-size: 12px; font-weight: 700; line-height: 1.25; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+.kt-bn { position: absolute; right: 8px; bottom: 6px; font-size: 11px; color: var(--text3); }
+
+.kt-people { display: flex; gap: 12px; }
+.kt-person { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; color: var(--text2); }
+.kt-person.soon { opacity: .5; }
+.kt-pe { width: 52px; height: 52px; border-radius: 50%; background: var(--bg2); border: 1px dashed var(--border2); display: flex; align-items: center; justify-content: center; font-size: 22px; }

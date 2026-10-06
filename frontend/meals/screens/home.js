@@ -1,46 +1,63 @@
-// Кухня — screens/home.js: стартовая страница с крупными плитками
+// Кухня — screens/home.js: план питания (макет), рецепты, полка с книгами, помощники
 'use strict';
 
 const HomeScreen = {
+  _DAYS: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+
   async render(container) {
     const [recipes, cols] = await Promise.all([Recipes.list(), Collections.list()]);
-    let prodN = null;
-    try { prodN = (await Products.list()).length; } catch (e) { /* каталог недоступен — счётчик просто не покажем */ }
+    const byNew = [...recipes].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+    const today = (new Date().getDay() + 6) % 7;   // Пн=0
 
-    // фото плитки: обложка первого рецепта с картинкой (для книг — из рецептов, лежащих в книгах)
-    const withImg = list => list.find(r => r.imageId);
-    const anyPic = withImg(recipes);
-    const colPic = withImg(recipes.filter(r => r.collectionId));
+    let h = '<div class="lo-page kt-home">';
 
-    const tiles = [
-      { route: 'collections', emoji: '📚', title: 'Книги рецептов', cnt: cols.length, unit: this._plural(cols.length, ['книга', 'книги', 'книг']), pic: colPic },
-      { route: 'recipes',     emoji: '🍽️', title: 'Все рецепты',    cnt: recipes.length, unit: this._plural(recipes.length, ['рецепт', 'рецепта', 'рецептов']), pic: anyPic },
-      { route: null,          emoji: '🗓️', title: 'Меню недели',    soon: true },
-      { route: null,          emoji: '👥', title: 'Люди',           soon: true },
-      { route: 'products',    emoji: '🥕', title: 'Продукты',       cnt: prodN, unit: prodN == null ? '' : this._plural(prodN, ['продукт', 'продукта', 'продуктов']) },
-    ];
+    // 1. План питания (макет — позже подключим меню недели)
+    h += '<section class="kt-sec"><div class="kt-h"><h2>План питания</h2><span class="kt-tag">макет</span></div>';
+    h += '<div class="kt-days">' + this._DAYS.map((d, i) => `<span class="kt-day${i === today ? ' on' : ''}">${d}</span>`).join('') + '</div>';
+    h += '<div class="kt-plan">' + MEAL_TYPES.slice(0, 3).map(m => {
+      const r = recipes.find(x => (x.recommendedMeals || []).includes(m));
+      const pic = r && r.imageId ? `<img data-img="${esc(r.imageId)}" alt="">` : `<span>${esc(r ? (r.emoji || '🍽️') : '＋')}</span>`;
+      return `<div class="kt-meal${r ? '' : ' empty'}"${r ? ` data-rid="${esc(r.id)}"` : ''}>
+        <div class="kt-mpic">${pic}</div>
+        <div class="kt-mtxt"><div class="kt-mtype">${m}</div><div class="kt-mname">${r ? esc(r.name) : 'Не запланировано'}</div></div></div>`;
+    }).join('') + '</div></section>';
 
-    let h = '<div class="lo-page kt-home"><div class="lo-grid" style="--col:150px">';
-    for (const t of tiles) {
-      const pic = t.pic ? `<img data-img="${esc(t.pic.imageId)}" alt="">` : `<span class="kt-emoji">${t.emoji}</span>`;
-      const sub = t.soon ? '<span class="kt-soon">скоро</span>' : (t.cnt == null ? '' : `<span class="kt-cnt">${t.cnt} ${t.unit}</span>`);
-      h += `<div class="kt-tile${t.soon ? ' soon' : ''}" ${t.route ? `data-route="${t.route}"` : ''}>
-        <div class="kt-pic">${pic}</div>
-        <div class="kt-body"><div class="kt-title">${esc(t.title)}</div>${sub}</div></div>`;
+    // 2. Рецепты
+    h += `<section class="kt-sec"><div class="kt-h"><h2>Рецепты</h2><span class="kt-n">${recipes.length}</span><span class="sp"></span><button class="kt-link" id="kt-all">Все →</button></div>`;
+    if (recipes.length) {
+      h += '<div class="kt-hscroll">' + byNew.slice(0, 12).map(r => `<div class="kt-rc">${MealComponents.recipeCard(r)}</div>`).join('') + '</div>';
+    } else {
+      h += '<div class="kt-empty">Пока нет рецептов — добавьте первый кнопкой ниже</div>';
     }
-    h += '</div><button class="kt-main" id="kt-new">＋ Рецепт</button></div>';
-    container.innerHTML = h;
+    h += '<button class="kt-main" id="kt-new">＋ Рецепт</button></section>';
 
-    container.querySelectorAll('.kt-tile[data-route]').forEach(el =>
-      el.addEventListener('click', () => Router.go(el.dataset.route)));
-    document.getElementById('kt-new').addEventListener('click', () => Router.go('recipe.new'));
+    // 3. Полка с книгами (энциклопедия продуктов — первой на полке)
+    h += '<section class="kt-sec"><div class="kt-h"><h2>Полка</h2><span class="sp"></span><button class="kt-link" id="kt-books">Все книги →</button></div><div class="kt-shelf">';
+    h += '<div class="kt-book enc" data-go="products"><div class="kt-bc">🥕</div><div class="kt-bt">Энциклопедия продуктов</div></div>';
+    for (const c of cols) {
+      const n = recipes.filter(r => r.collectionId === c.id).length;
+      h += `<div class="kt-book" data-col="${esc(c.id)}"><div class="kt-bc">${esc(c.emoji || '📚')}</div><div class="kt-bt">${esc(c.name)}</div><div class="kt-bn">${n}</div></div>`;
+    }
+    h += '</div></section>';
+
+    // 4. Помощники (люди) — экран появится на шаге 4
+    h += '<section class="kt-sec"><div class="kt-h"><h2>Помощники</h2><span class="kt-tag">скоро</span></div>'
+      + '<div class="kt-people"><div class="kt-person soon"><span class="kt-pe">＋</span><span>Добавить</span></div></div></section>';
+
+    container.innerHTML = h + '</div>';
+
+    const $ = id => document.getElementById(id);
+    $('kt-new').addEventListener('click', () => Router.go('recipe.new'));
+    $('kt-all').addEventListener('click', () => { RecipesScreen._state.collectionId = ''; Router.go('recipes'); });
+    $('kt-books').addEventListener('click', () => Router.go('collections'));
+    container.querySelector('.kt-home').addEventListener('click', e => {
+      const rid = e.target.closest('[data-rid]');
+      if (rid) return Router.go('recipe.view', { id: rid.dataset.rid });
+      const b = e.target.closest('.kt-book');
+      if (!b) return;
+      if (b.dataset.go) Router.go(b.dataset.go);
+      else { RecipesScreen._state.collectionId = b.dataset.col; Router.go('recipes'); }
+    });
     LifeShell.update({ title: 'Кухня', actions: [{ icon: '＋', label: 'Новый рецепт', onClick: () => Router.go('recipe.new') }] });
-  },
-
-  _plural(n, f) {
-    const a = Math.abs(n) % 100, b = a % 10;
-    if (a > 10 && a < 20) return f[2];
-    if (b > 1 && b < 5) return f[1];
-    return b === 1 ? f[0] : f[2];
   },
 };
