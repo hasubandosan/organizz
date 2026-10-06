@@ -88,6 +88,7 @@
     .overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(6px)}
     .overlay.on{opacity:1;pointer-events:all}
     .sheet{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-radius:16px 16px 0 0;border-top:1px solid var(--border2);z-index:101;max-height:88dvh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .32s cubic-bezier(.16,1,.3,1)}
+    .sheet.on{transform:translateY(0)}   /* ДО media-блока: иначе на компьютере перебивает центрирование и окно уезжает вправо-вниз */
     /* от 720px — аккуратное окно по центру, а не шторка на всю ширину */
     @media(min-width:720px){
       .sheet{left:50%;right:auto;bottom:auto;top:50%;width:min(520px,calc(100% - 48px));max-height:min(86dvh,820px);border:1px solid var(--border2);border-radius:16px;
@@ -95,7 +96,6 @@
       .sheet.on{transform:translate(-50%,-50%);opacity:1;pointer-events:all}
       .sheet-drag{display:none}
     }
-    .sheet.on{transform:translateY(0)}
     .sheet-drag{width:36px;height:4px;background:var(--border2);border-radius:4px;margin:12px auto 0;flex-shrink:0}
     .sheet-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;flex-shrink:0}
     .sheet-title{font-size:16px;font-weight:700}
