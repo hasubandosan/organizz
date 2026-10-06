@@ -1,78 +1,36 @@
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: #f5f5f7;
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-}
-.wrap { width: 100%; max-width: 420px; }
-.card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
+/* Страница входа LifeOS: общая тёмная палитра из core/styles.css, акцент — модуль, куда идёт пользователь */
+body { min-height: 100dvh; display: flex; align-items: center; justify-content: center;
+  padding: calc(16px + var(--st)) 16px calc(16px + var(--sb));
+  background: radial-gradient(900px 420px at 50% -120px, color-mix(in srgb, var(--accent) 16%, transparent), transparent), var(--bg); }
 .hidden { display: none !important; }
+.lg-wrap { width: 100%; max-width: 400px; }
 
-.tabs { display: flex; gap: 8px; margin-bottom: 20px; }
-.tab {
-  flex: 1;
-  padding: 10px;
-  border: none;
-  background: #eee;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-}
-.tab.active { background: #111; color: #fff; }
+.lg-brand { display: flex; align-items: center; gap: 12px; margin: 0 4px 16px; }
+.lg-mark { width: 44px; height: 44px; border-radius: 12px; font-size: 24px; margin: 0; }
+.lg-name { font-size: 22px; font-weight: 800; letter-spacing: -.4px; }
+.lg-sub { font-size: 13px; color: var(--text2); }
 
-.form { display: flex; flex-direction: column; gap: 10px; }
-.form.row { flex-direction: row; margin-bottom: 16px; }
-.form input {
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 14px;
-  width: 100%;
-}
-.form button {
-  padding: 10px 16px;
-  border: none;
-  border-radius: 8px;
-  background: #111;
-  color: #fff;
-  cursor: pointer;
-  font-size: 14px;
-  white-space: nowrap;
-}
-.form button:hover { opacity: 0.85; }
+.lg-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--r); padding: 18px; }
+.lg-tabs { display: flex; gap: 4px; padding: 3px; margin-bottom: 16px; background: var(--bg); border-radius: var(--r2); }
+.lg-tab { flex: 1; padding: 9px 8px; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--text2); background: none; border: none; cursor: pointer; transition: .15s; }
+.lg-tab.active { background: var(--bg3); color: var(--text); }
 
-.error { color: #d33; font-size: 13px; margin-top: 12px; }
+.lg-form { display: flex; flex-direction: column; gap: 12px; }
+.lg-field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--text3); }
+.lg-field input { width: 100%; padding: 11px 12px; border-radius: var(--r2); background: var(--bg); border: 1px solid var(--border2);
+  color: var(--text); font: inherit; font-size: 15px; outline: none; transition: border-color .15s; }
+.lg-field input:focus { border-color: var(--accent); }
+.lg-pw { position: relative; display: block; }
+.lg-pw input { padding-right: 44px; }
+.lg-eye { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; border-radius: 8px;
+  background: none; border: none; color: var(--text3); cursor: pointer; font-size: 16px; opacity: .8; }
+.lg-eye.on { color: var(--accent2); opacity: 1; }
 
-.appHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  font-size: 14px;
-  color: #555;
-}
-.linkBtn {
-  background: none;
-  border: none;
-  color: #d33;
-  cursor: pointer;
-  font-size: 13px;
-}
+.lg-submit { margin-top: 4px; padding: 12px; border-radius: var(--r2); background: var(--accent); color: var(--on-accent);
+  font-size: 15px; font-weight: 700; border: none; cursor: pointer; transition: opacity .15s; }
+.lg-submit:hover { opacity: .9; }
+.lg-submit:disabled { opacity: .55; cursor: default; }
 
-.items { list-style: none; padding: 0; margin: 0; }
-.items li {
-  padding: 10px 12px;
-  border-bottom: 1px solid #eee;
-  font-size: 14px;
-}
-.items li:last-child { border-bottom: none; }
+.lg-msg { margin: 12px 0 0; padding: 10px 12px; border-radius: var(--r2); font-size: 13px; line-height: 1.45; }
+.lg-error { background: rgba(240,80,96,.1); border: 1px solid rgba(240,80,96,.35); color: #f58a95; }
+.lg-info { margin: 0 0 14px; background: color-mix(in srgb, var(--accent) 12%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); color: var(--text2); }

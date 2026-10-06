@@ -1,85 +1,98 @@
-// Адрес вашего задеплоенного backend (db-connector). Поменяйте, если домен другой.
+// LifeOS — страница входа. Один логин на все модули; после входа токен уезжает обратно на модуль в #fragment.
+// Адрес задеплоенного backend. Поменяйте, если домен другой.
 const API_BASE = 'https://organizz.onrender.com';
-const APP_SLUG = 'app_1';
+const APP_SLUG = 'app_1';   // slug, который backend ждёт при регистрации
 
-const authBox = document.getElementById('authBox');
-const appBox = document.getElementById('appBox');
-const authError = document.getElementById('authError');
+const $ = (id) => document.getElementById(id);
+const authError = $('authError'), authInfo = $('authInfo');
+const tabLogin = $('tabLogin'), tabRegister = $('tabRegister');
+const loginForm = $('loginForm'), registerForm = $('registerForm');
 
-const tabLogin = document.getElementById('tabLogin');
-const tabRegister = document.getElementById('tabRegister');
-const loginForm = document.getElementById('loginForm');
-const registerForm = document.getElementById('registerForm');
-
-const userEmailEl = document.getElementById('userEmail');
-const itemsList = document.getElementById('itemsList');
-const itemForm = document.getElementById('itemForm');
-const logoutBtn = document.getElementById('logoutBtn');
-
-function showError(msg) {
-  authError.textContent = msg;
-  authError.classList.remove('hidden');
+// Модули (для заголовка и акцентного цвета «куда вы идёте»)
+const MODULES = {
+  hub: ['🏠', 'LifeOS'], projects: ['📋', 'Проекты'], meals: ['🍽', 'Питание'],
+  purchases: ['🛒', 'Покупки'], cosplays: ['🎭', 'Косплеи'], admin: ['🛠', 'Админка'],
+};
+function targetModule() {
+  const q = new URLSearchParams(location.search);
+  const fromRedirect = (() => {
+    try { return (new URL(q.get('redirect') || '').hostname.match(/^organizz-([a-z]+)\.pages\.dev$/) || [])[1]; } catch { return null; }
+  })();
+  const slug = q.get('app') || fromRedirect;
+  return MODULES[slug] ? slug : 'hub';
 }
-function clearError() {
-  authError.classList.add('hidden');
+(function brand() {
+  const slug = targetModule();
+  document.documentElement.dataset.module = slug;
+  $('lgMark').textContent = MODULES[slug][0];
+  if (slug !== 'hub') $('lgSub').textContent = `Вход в «${MODULES[slug][1]}»`;
+})();
+
+function showError(msg) { authError.textContent = msg; authError.classList.remove('hidden'); }
+function clearError() { authError.classList.add('hidden'); }
+function showInfo(msg) { authInfo.textContent = msg; authInfo.classList.remove('hidden'); }
+
+// Текст ошибки из ответа backend (строка или zod-объект)
+function errText(data, fallback) {
+  const e = data && data.error;
+  if (typeof e === 'string') return e;
+  if (e && e.formErrors && e.formErrors[0]) return e.formErrors[0];
+  if (e && e.fieldErrors) { const f = Object.values(e.fieldErrors).flat()[0]; if (f) return f; }
+  return fallback;
 }
 
-// --- переключение вкладок Вход/Регистрация ---
-tabLogin.addEventListener('click', () => {
-  tabLogin.classList.add('active');
-  tabRegister.classList.remove('active');
-  loginForm.classList.remove('hidden');
-  registerForm.classList.add('hidden');
+// --- вкладки Вход / Регистрация ---
+function setTab(reg) {
+  tabRegister.classList.toggle('active', reg); tabLogin.classList.toggle('active', !reg);
+  registerForm.classList.toggle('hidden', !reg); loginForm.classList.toggle('hidden', reg);
   clearError();
-});
-tabRegister.addEventListener('click', () => {
-  tabRegister.classList.add('active');
-  tabLogin.classList.remove('active');
-  registerForm.classList.remove('hidden');
-  loginForm.classList.add('hidden');
-  clearError();
-});
+  (reg ? $('registerEmail') : $('loginEmail')).focus();
+}
+tabLogin.addEventListener('click', () => setTab(false));
+tabRegister.addEventListener('click', () => setTab(true));
 
-// --- регистрация ---
-registerForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  clearError();
-  const email = document.getElementById('registerEmail').value;
-  const password = document.getElementById('registerPassword').value;
+// --- показать / скрыть пароль ---
+document.querySelectorAll('[data-eye]').forEach((b) => b.addEventListener('click', () => {
+  const inp = $(b.dataset.eye), show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  b.classList.toggle('on', show);
+  b.setAttribute('aria-label', show ? 'Скрыть пароль' : 'Показать пароль');
+}));
 
+// --- отправка формы: блокировка кнопки, подсказка про «спящий» сервер (бесплатный хостинг просыпается ~30–60 с) ---
+async function submit(btn, busyText, path, body, fallbackError) {
+  clearError();
+  const idle = btn.textContent;
+  btn.disabled = true; btn.textContent = busyText;
+  const wake = setTimeout(() => { btn.textContent = 'Сервер просыпается, подождите…'; }, 4000);
   try {
-    const res = await fetch(`${API_BASE}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, appSlug: APP_SLUG }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.formErrors?.[0] || data.error || 'Ошибка регистрации');
-    onAuthSuccess(data.token, data.user.email);
+    let res;
+    try {
+      res = await fetch(`${API_BASE}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    } catch {
+      throw new Error('Нет связи с сервером. Если он «спал», подождите минуту и повторите.');
+    }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(errText(data, fallbackError));
+    await onAuthSuccess(data.token, data.user.email);
   } catch (err) {
     showError(err.message);
+    btn.disabled = false; btn.textContent = idle;
+  } finally {
+    clearTimeout(wake);
   }
+}
+
+registerForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const email = $('registerEmail').value.trim(), password = $('registerPassword').value;
+  if (password.length < 8) return showError('Пароль — минимум 8 символов');
+  submit($('registerBtn'), 'Создаём аккаунт…', '/auth/register', { email, password, appSlug: APP_SLUG }, 'Ошибка регистрации');
 });
 
-// --- вход ---
-loginForm.addEventListener('submit', async (e) => {
+loginForm.addEventListener('submit', (e) => {
   e.preventDefault();
-  clearError();
-  const email = document.getElementById('loginEmail').value;
-  const password = document.getElementById('loginPassword').value;
-
-  try {
-    const res = await fetch(`${API_BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Ошибка входа');
-    onAuthSuccess(data.token, data.user.email);
-  } catch (err) {
-    showError(err.message);
-  }
+  submit($('loginBtn'), 'Входим…', '/auth/login', { email: $('loginEmail').value.trim(), password: $('loginPassword').value }, 'Неверный email или пароль');
 });
 
 // --- возврат на модуль (модули на разных доменах → токен едет в #fragment) ---
@@ -96,24 +109,18 @@ function returnUrl(token, email) {
   u.hash = p.toString();
   return u.toString();
 }
+function go(url) { window.location.href = url; }
 
 // --- после успешного логина/регистрации ---
 async function onAuthSuccess(token, email) {
   localStorage.setItem('token', token);
   localStorage.setItem('email', email);
 
-  // Если пришли из другого модуля (?app=projects) — выдаём роль и там тоже,
-  // без повторной регистрации (один логин работает везде).
-  const params = new URLSearchParams(location.search);
-  // Без ?app= заходят напрямую — ведём в хаб, который работает с модулем projects
-  const appSlug = params.get('app') || 'projects';
-  const redirect = params.get('redirect');
-
   // Роль выдаём сразу во всех модулях LifeOS (повторный join безопасен): модули читают
   // и пишут друг в друга (общие теги в 'shared', хаб читает покупки и т.д.).
+  const appSlug = new URLSearchParams(location.search).get('app') || 'projects';
   const ALL_MODULES = ['projects', 'shared', 'purchases', 'meals', 'cosplays'];
-  const toJoin = new Set([...ALL_MODULES, appSlug]);
-  for (const slug of toJoin) {
+  for (const slug of new Set([...ALL_MODULES, appSlug])) {
     if (slug === APP_SLUG) continue;
     try {
       await fetch(`${API_BASE}/auth/join`, {
@@ -123,85 +130,18 @@ async function onAuthSuccess(token, email) {
       });
     } catch { /* модуль не найден в registry — не критично, просто не даём роль */ }
   }
-
-  // Возвращаемся туда, откуда редиректнуло; если пришли напрямую — в хаб
-  window.location.href = returnUrl(token, email);
+  go(returnUrl(token, email));   // туда, откуда редиректнуло; если пришли напрямую — в хаб
 }
 
-function showApp(token, email) {
-  authBox.classList.add('hidden');
-  appBox.classList.remove('hidden');
-  userEmailEl.textContent = email;
-  loadItems(token);
-}
-
-logoutBtn.addEventListener('click', () => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('email');
-  appBox.classList.add('hidden');
-  authBox.classList.remove('hidden');
-  loginForm.reset();
-  registerForm.reset();
-});
-
-// --- данные приложения (app_1/items) ---
-async function loadItems(token) {
-  try {
-    const res = await fetch(`${API_BASE}/${APP_SLUG}/items`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) throw new Error('Не удалось загрузить данные');
-    const items = await res.json();
-    renderItems(items);
-  } catch (err) {
-    itemsList.innerHTML = `<li>${err.message}</li>`;
+// --- автовход, если токен уже есть; выход / протухшая сессия — показываем форму ---
+(function autoLogin() {
+  const q = new URLSearchParams(location.search);
+  if (q.get('logout') || q.get('expired')) {
+    localStorage.removeItem('token'); localStorage.removeItem('email');
+    showInfo(q.get('expired') ? 'Сессия истекла — войдите снова.' : 'Вы вышли из аккаунта.');
+  } else {
+    const t = localStorage.getItem('token'), e = localStorage.getItem('email');
+    if (t && e) return go(returnUrl(t, e));
   }
-}
-
-function renderItems(items) {
-  itemsList.innerHTML = '';
-  if (items.length === 0) {
-    itemsList.innerHTML = '<li>Пока пусто</li>';
-    return;
-  }
-  for (const item of items) {
-    const li = document.createElement('li');
-    li.textContent = item.title;
-    itemsList.appendChild(li);
-  }
-}
-
-itemForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const token = localStorage.getItem('token');
-  const titleInput = document.getElementById('itemTitle');
-  const title = titleInput.value;
-
-  try {
-    const res = await fetch(`${API_BASE}/${APP_SLUG}/items`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ title }),
-    });
-    if (!res.ok) throw new Error('Не удалось добавить запись');
-    titleInput.value = '';
-    loadItems(token);
-  } catch (err) {
-    alert(err.message);
-  }
-});
-
-// --- автовход, если токен уже есть в localStorage ---
-const savedToken = localStorage.getItem('token');
-const savedEmail = localStorage.getItem('email');
-const _qs = new URLSearchParams(location.search);
-if (_qs.get('logout') || _qs.get('expired')) {
-  // выход или протухшая сессия — стираем токен здесь и показываем форму входа
-  localStorage.removeItem('token');
-  localStorage.removeItem('email');
-} else if (savedToken && savedEmail) {
-  window.location.href = returnUrl(savedToken, savedEmail);
-}
+  $('loginEmail').focus();
+})();
