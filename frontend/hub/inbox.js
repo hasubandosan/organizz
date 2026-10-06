@@ -82,13 +82,36 @@ const Inbox = (function () {
   }
 
   // ── Разбор ──
+  function aiBox() {
+    const a = cur && cur._ai;
+    if (!a) return `<button class="btn btn-ghost" data-ai style="width:100%;margin-bottom:12px" ${busy ? 'disabled' : ''}>✨ Подсказка ИИ</button>`;
+    const t = TARGETS[a.kind];
+    return `<div class="card compact" style="margin-bottom:12px"><div style="font-size:13px">✨ ИИ: ${t.icon} <b>${t.label}</b> — «${E(a.name)}»</div>
+      ${a.reason ? `<div style="font-size:12px;color:var(--text3);margin-top:2px">${E(a.reason)}</div>` : ''}
+      <button class="btn btn-primary" data-ai-ok style="margin-top:8px">Так и сделать</button></div>`;
+  }
+  async function askAi() {
+    if (!cur || busy) return;
+    const name = (document.getElementById('inbox-name').value || '').trim();
+    if (!name) { UI.toast('Введи название', 'info'); return; }
+    busy = true; const b = overlay.querySelector('[data-ai]'); if (b) { b.disabled = true; b.textContent = '✨ Думаю…'; }
+    const keep = cur;
+    try {
+      const r = await DB.api('/ai/inbox', { text: name });
+      keep._ai = r.suggestion; keep.text = name;
+    } catch (e) {
+      UI.toast(e.status === 503 ? 'ИИ ещё не включён на сервере' : (e.message || 'Ошибка ИИ'), 'err', 5000);
+    }
+    busy = false;
+    if (cur === keep) openSort(keep.id);
+  }
   function openSort(id, note) {
     cur = items.find((x) => x.id === id); if (!cur) return;
     mode = 'sort';
     const btns = Object.keys(TARGETS).map((k) => `<button class="btn btn-ghost" data-to="${k}" style="justify-content:flex-start">${TARGETS[k].icon} ${TARGETS[k].label}</button>`).join('');
     show('Во что превратить?', `<div class="form-group"><label class="form-label">Название</label>
         <input id="inbox-name" class="input" style="width:100%" maxlength="300" value="${E(cur.text)}"></div>
-      ${note || ''}<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${btns}</div>`,
+      ${note || ''}${aiBox()}<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${btns}</div>`,
       `<button class="btn btn-danger" data-del-cur>🗑 Удалить</button><button class="btn btn-ghost" data-close style="flex:1">Отмена</button>`);
   }
   async function convert(kind, force) {
@@ -134,6 +157,11 @@ const Inbox = (function () {
       if ((el = q('[data-del]'))) return remove(el.dataset.del);
       if ((el = q('[data-to]'))) return convert(el.dataset.to, false);
       if ((el = q('[data-force]'))) return convert(el.dataset.force, true);
+      if (q('[data-ai-ok]')) {
+        const a = cur && cur._ai; if (!a) return;
+        document.getElementById('inbox-name').value = a.name; return convert(a.kind, false);
+      }
+      if (q('[data-ai]')) return askAi();
       if (q('[data-drop]')) return remove(cur && cur.id);
       if (q('[data-del-cur]')) return remove(cur && cur.id);
     });
