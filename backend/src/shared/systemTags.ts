@@ -16,12 +16,20 @@
 export type SystemTag = {
   id: string; name: string; kind: 'tag' | 'category'; group: string;
   scope: string[]; sort: number; hidden?: boolean;
+  icon?: string;   // эмодзи-иконка (сейчас у фандомов)
 };
 
 type Row = [id: string, name: string];
 
 function build(kind: 'tag' | 'category', group: string, scope: string[], rows: Row[]): SystemTag[] {
   return rows.map(([id, name], i) => ({ id: `sys:${id}`, name, kind, group, scope, sort: i }));
+}
+
+// Фандомы косплея: scope ['fandoms'] — виден только в выборе фандома (в обычные выпадашки тегов не попадает).
+// id вечные (`sys:fd-...`); новые фандомы добавлять в конец, существующие не удалять — только hidden.
+type FRow = [id: string, name: string, icon: string];
+function buildFandoms(rows: FRow[]): SystemTag[] {
+  return rows.map(([id, name, icon], i) => ({ id: `sys:fd-${id}`, name, kind: 'category' as const, group: 'Фандомы', scope: ['fandoms'], sort: i, icon }));
 }
 
 export const SYSTEM_TAGS: SystemTag[] = [
@@ -100,5 +108,23 @@ export const SYSTEM_TAGS: SystemTag[] = [
   ...build('category', 'Тип задачи', ['projects'], [
     ['pj-repair', 'Ремонт'], ['pj-dev', 'Разработка'], ['pj-cleaning', 'Уборка'], ['pj-paperwork', 'Документы'],
     ['pj-call', 'Позвонить'], ['pj-errand', 'Поручение'], ['pj-learn', 'Учёба'], ['pj-creative', 'Творчество'],
+  ]),
+
+  // ───────── ФАНДОМЫ (косплей) ─────────
+  ...buildFandoms([
+    ['naruto', 'Naruto', '🍥'], ['brawl-stars', 'Brawl Stars', '💥'], ['dota', 'Dota', '🛡️'],
+    ['genshin', 'Genshin Impact', '✨'], ['hsr', 'Honkai: Star Rail', '🚂'], ['zzz', 'Zenless Zone Zero', '📺'],
+    ['lol', 'League of Legends', '🏆'], ['arcane', 'Arcane', '🔧'], ['valorant', 'Valorant', '🔫'], ['overwatch', 'Overwatch', '🎯'],
+    ['minecraft', 'Minecraft', '⛏️'], ['undertale', 'Undertale', '❤️'], ['pokemon', 'Pokémon', '⚡'], ['zelda', 'The Legend of Zelda', '🗡️'],
+    ['witcher', 'The Witcher', '🐺'], ['ff', 'Final Fantasy', '🔮'], ['persona', 'Persona', '🃏'], ['fate', 'Fate', '⚜️'],
+    ['re', 'Resident Evil', '🧟'], ['cyberpunk', 'Cyberpunk', '🌃'],
+    ['bleach', 'Bleach', '⚔️'], ['onepiece', 'One Piece', '🏴‍☠️'], ['dragonball', 'Dragon Ball', '🐉'], ['aot', 'Атака титанов', '🛡'],
+    ['kimetsu', 'Клинок, рассекающий демонов', '🔥'], ['jjk', 'Магическая битва', '👁️'], ['mha', 'Моя геройская академия', '🦸'],
+    ['fma', 'Стальной алхимик', '⚗️'], ['deathnote', 'Тетрадь смерти', '📓'], ['sailormoon', 'Сейлор Мун', '🌙'],
+    ['winx', 'Клуб Винкс', '🧚'], ['csm', 'Человек-бензопила', '🪚'], ['spyfamily', 'Семья шпиона', '🕵️'],
+    ['hxh', 'Hunter x Hunter', '🎣'], ['eva', 'Евангелион', '🤖'], ['vocaloid', 'Vocaloid', '🎤'],
+    ['marvel', 'Marvel', '🦸‍♂️'], ['dc', 'DC', '🦇'], ['starwars', 'Звёздные войны', '🌌'], ['hp', 'Гарри Поттер', '🪄'],
+    ['lotr', 'Властелин колец', '💍'], ['got', 'Игра престолов', '🐲'], ['disney', 'Disney', '🏰'], ['hazbin', 'Hazbin Hotel', '😈'],
+    ['other', 'Другое', '🎭'],
   ]),
 ];

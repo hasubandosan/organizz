@@ -85,6 +85,23 @@
     .btn-rm{width:100%;padding:8px;margin-top:6px;border:1px dashed var(--border2);color:var(--text3);border-radius:var(--r2);font-size:12px}
     .pu-badge{display:inline-block;margin-left:6px;font-size:11px;color:var(--purple)}
 
+    .f-chips{display:flex;flex-wrap:wrap;gap:6px}
+    .f-chip{padding:7px 12px;min-height:36px;border-radius:100px;border:1px solid var(--border);background:var(--bg3);font-size:13px;color:var(--text2);transition:.15s}
+    .f-chip i{font-style:normal;opacity:.55;font-family:var(--m);font-size:11px;margin-left:4px}
+    .f-chip.on{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent2);border-color:var(--accent)}
+    .f-range{display:flex;align-items:center;gap:8px}.f-range .fi{flex:1;min-width:0}
+    .f-active{display:flex;flex-wrap:wrap;gap:6px;padding:0 0 10px}
+    .f-act{padding:5px 10px;border-radius:100px;background:color-mix(in srgb,var(--accent) 14%,transparent);border:1px solid var(--accent);color:var(--accent2);font-size:12px}
+    .f-none{padding:40px 16px;text-align:center;color:var(--text3);font-size:14px}
+    .f-none button{margin-top:12px}
+    .char-bud{font-size:11px;color:var(--text2);font-family:var(--m);margin-top:2px}
+    .fd-sel{display:flex;align-items:center;gap:8px;min-height:36px;margin-bottom:6px;font-size:14px}
+    .fd-sel button{color:var(--text3);font-size:16px;padding:4px 8px}
+    .fd-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;max-height:176px;overflow-y:auto}
+    .fd-opt{padding:7px 11px;min-height:36px;border-radius:100px;border:1px solid var(--border);background:var(--bg3);font-size:13px;color:var(--text)}
+    .fd-opt.on{border-color:var(--accent);color:var(--accent2)}
+    .fd-new{display:flex;align-items:center;gap:6px;width:100%}.fd-new .fi{width:64px;text-align:center}
+    .fd-opt.create{flex:1;border-style:dashed;text-align:left}
     .overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(6px)}
     .overlay.on{opacity:1;pointer-events:all}
     .sheet{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-radius:16px 16px 0 0;border-top:1px solid var(--border2);z-index:101;max-height:88dvh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .32s cubic-bezier(.16,1,.3,1)}
@@ -188,9 +205,10 @@
 'use strict';
 
 // Единая шапка: логотип/модуль и переключатель рисует LifeShell; заголовок экрана и «назад» обновляет setView()
-LifeShell.mount({ module: 'cosplays', replace: '.nav', title: 'Персонажи', actions: [
-  { id: 'btnSync', icon: '⟳', label: 'Обновить', onClick: function(){ syncNow(); } },
-] });
+var ACT_SYNC = { id: 'btnSync', icon: '⟳', label: 'Обновить', onClick: function(){ syncNow(); } };
+var ACT_FILTER = { id: 'btnFilter', label: 'Фильтры', onClick: function(){ openFilters(); },
+  html: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>' };
+LifeShell.mount({ module: 'cosplays', replace: '.nav', title: 'Персонажи', actions: [ACT_FILTER, ACT_SYNC] });
 
 function esc(s) {
   const a = '&' + 'amp;';
@@ -290,8 +308,53 @@ async function syncPurchase(item) {
   refs.push({module: 'purchases', type: 'purchases', id: rec.id});
   await DB.update('items', item.id, {refs: refs});
 }
+// ----- ФАНДОМЫ И ФИЛЬТРЫ -----
+var fandomOpts = [], _fd = null, _fdKeepLegacy = false;
+var cflt = { status: 'all', fd: {}, min: null, max: null };
+var STATUS_OPTS = [['planning', 'Планирую'], ['progress', 'В процессе'], ['ready', 'Готов']];
+function fIcon(o) { return o.icon || o.emoji || '🎭'; }
+function nrm(s) { return String(s || '').toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ').trim(); }
+async function loadFandoms() {
+  try {
+    // системные: группа «Фандомы»; личные: тег со scope ['fandoms'] (личные теги без scope виден везде — их сюда не берём)
+    fandomOpts = (await DB.getTagOptions('fandoms')).filter(function(o) {
+      return o.system ? o.group === 'Фандомы' : (Array.isArray(o.scope) && o.scope.indexOf('fandoms') >= 0);
+    }).sort(function(a, b) { return String(a.name).localeCompare(String(b.name), 'ru'); });
+  } catch (e) { fandomOpts = []; }
+}
+function fandomOf(c) {
+  return fandomOpts.filter(function(o) { return o.id === c.fandomId; })[0]
+    || (c.source ? fandomOpts.filter(function(o) { return nrm(o.name) === nrm(c.source); })[0] : null) || null;
+}
+function itemPrice(it) {   // цена вещи = цена предпочтительного варианта (или первого с ценой)
+  var vs = (it.variants || []).filter(function(v) { return v.price; });
+  if (!vs.length) return 0;
+  return (vs.filter(function(v) { return v.is_preferred; })[0] || vs[0]).price || 0;
+}
+function passes(c) {
+  if (cflt.status !== 'all' && c._status !== cflt.status) return false;
+  var ks = Object.keys(cflt.fd);
+  if (ks.length && !(c._fd ? cflt.fd[c._fd.id] : cflt.fd._none)) return false;
+  if (cflt.min != null && c._budget < cflt.min) return false;
+  if (cflt.max != null && c._budget > cflt.max) return false;
+  return true;
+}
+function fltCount() { return (cflt.status !== 'all' ? 1 : 0) + Object.keys(cflt.fd).length + (cflt.min != null || cflt.max != null ? 1 : 0); }
+function fltReset() { cflt = { status: 'all', fd: {}, min: null, max: null }; }
+
 async function loadCharacters() {
+  await loadFandoms();
   characters = (await DB.getAll('characters')).sort(byCreated);
+  var allLooks = [], allItems = [];
+  try { allLooks = await DB.getAll('looks'); allItems = await DB.getAll('items'); } catch (e) {}
+  var lookChar = {}, nLooks = {}, bud = {};
+  allLooks.forEach(function(l) { lookChar[l.id] = l.charId; nLooks[l.charId] = (nLooks[l.charId] || 0) + 1; });
+  allItems.forEach(function(it) { var ch = lookChar[it.lookId]; if (ch && it.status !== 'have') bud[ch] = (bud[ch] || 0) + itemPrice(it); });   // бюджет = сколько ещё нужно потратить
+  characters.forEach(function(c) {
+    var pr = c.progress || 0;
+    c._status = (!nLooks[c.id] || pr === 0) ? 'planning' : (pr >= 100 ? 'ready' : 'progress');
+    c._budget = bud[c.id] || 0; c._fd = fandomOf(c);
+  });
   await Promise.all(characters.map(async function(c) { c._coverUrl = await _imgUrl(c.coverImageId); }));
   return characters;
 }
@@ -334,11 +397,11 @@ function setView(v) {
   var list = document.getElementById('mainContent');
   list.classList.toggle('list-grid', v !== 'chars');
   if (v === 'chars') {
-    LifeShell.update({ title: 'Персонажи', back: false });
+    LifeShell.update({ title: 'Персонажи', back: false, actions: [ACT_FILTER, ACT_SYNC] });
   } else if (v === 'looks') {
-    LifeShell.update({ title: curChar.name + ' / Образы', back: goBack });
+    LifeShell.update({ title: curChar.name + ' / Образы', back: goBack, actions: [ACT_SYNC] });
   } else {
-    LifeShell.update({ title: curChar.name + ' / ' + curLook.name, back: goBack });
+    LifeShell.update({ title: curChar.name + ' / ' + curLook.name, back: goBack, actions: [ACT_SYNC] });
   }
 }
 
@@ -392,22 +455,42 @@ function toast(msg, type) {
 
 function renderChars() {
   if (!characters.length) { showContent(''); return; }
-  var html = '<div class="char-grid">' + characters.map(function(c, idx) {
+  var list = characters.filter(passes);
+  var chips = [];
+  if (cflt.status !== 'all') chips.push(['status', '', '📌 ' + STATUS_OPTS.filter(function(o){return o[0]===cflt.status;})[0][1]]);
+  Object.keys(cflt.fd).forEach(function(k) { var o = fandomOpts.filter(function(x){return x.id===k;})[0]; chips.push(['fd', k, k === '_none' ? 'Без фандома' : (o ? fIcon(o) + ' ' + o.name : 'фандом')]); });
+  if (cflt.min != null || cflt.max != null) chips.push(['bud', '', '💰 ' + [cflt.min != null ? 'от ' + fmtP(cflt.min) : '', cflt.max != null ? 'до ' + fmtP(cflt.max) : ''].filter(Boolean).join(' ')]);
+  var act = chips.length ? '<div class="f-active">' + chips.map(function(c) { return '<button class="f-act" data-x="'+c[0]+'" data-v="'+esc(c[1])+'">'+esc(c[2])+' ✕</button>'; }).join('') + '</div>' : '';
+  var html = act;
+  if (!list.length) {
+    html += '<div class="f-none">Ничего не найдено по фильтрам<br><button class="btn-rm" id="fltReset2">Сбросить фильтры</button></div>';
+  } else html += '<div class="char-grid">' + list.map(function(c, idx) {
+    var sub = c._fd ? fIcon(c._fd) + ' ' + c._fd.name : (c.source || '');
     return '<div class="char-card" data-id="'+c.id+'" style="animation-delay:'+idx*.04+'s">'
       + '<div class="char-cover">'
       + (c._coverUrl ? '<img src="'+esc(c._coverUrl)+'" loading="lazy"/>' : '🎭')
       + '<div class="char-grad"></div><button class="edit-btn" data-edit="'+c.id+'">✎</button>'
       + '<div class="char-info"><div class="char-name">'+esc(c.name)+'</div>'
-      + (c.source ? '<div class="char-sub">'+esc(c.source)+'</div>' : '')
+      + (sub ? '<div class="char-sub">'+esc(sub)+'</div>' : '')
+      + (c._budget ? '<div class="char-bud">осталось ~'+fmtP(c._budget)+'</div>' : '')
       + '</div></div>'
       + '<div class="char-prog-bar"><div class="char-prog-fill" style="width:'+(c.progress||0)+'%"></div></div>'
       + '</div>';
   }).join('') + '</div>';
   showContent(html);
-  document.getElementById('mainContent').querySelectorAll('.char-card .edit-btn').forEach(function(b) {
+  var mc = document.getElementById('mainContent');
+  mc.querySelectorAll('.f-act').forEach(function(b) {
+    b.addEventListener('click', function() {
+      var x = b.dataset.x;
+      if (x === 'status') cflt.status = 'all'; else if (x === 'fd') delete cflt.fd[b.dataset.v]; else { cflt.min = null; cflt.max = null; }
+      renderChars();
+    });
+  });
+  var r2 = document.getElementById('fltReset2'); if (r2) r2.addEventListener('click', function() { fltReset(); renderChars(); });
+  mc.querySelectorAll('.char-card .edit-btn').forEach(function(b) {
     b.addEventListener('click', function(e) { e.stopPropagation(); openEditChar(b.dataset.edit); });
   });
-  document.getElementById('mainContent').querySelectorAll('.char-card').forEach(function(el) {
+  mc.querySelectorAll('.char-card').forEach(function(el) {
     el.addEventListener('click', function() {
       gotoLooks(characters.find(function(c){return c.id===el.dataset.id;}));
     });
@@ -416,6 +499,47 @@ function renderChars() {
       openEditChar(el.dataset.id);
     });
   });
+}
+
+// ----- ФИЛЬТРЫ (окно по схеме «Покупок») -----
+function openFilters() {
+  if (view !== 'chars') return;
+  openSheet('Фильтры');
+  buildFilterUI();
+}
+function buildFilterUI() {
+  var sCnt = { all: characters.length, planning: 0, progress: 0, ready: 0 };
+  var fCnt = {};
+  characters.forEach(function(c) { sCnt[c._status]++; var k = c._fd ? c._fd.id : '_none'; fCnt[k] = (fCnt[k] || 0) + 1; });
+  var chip = function(f, v, label, n, on) { return '<button type="button" class="f-chip'+(on?' on':'')+'" data-f="'+f+'" data-v="'+esc(v)+'">'+esc(label)+'<i>'+n+'</i></button>'; };
+  var statusH = chip('status', 'all', 'Все', sCnt.all, cflt.status === 'all') + STATUS_OPTS.map(function(o) { return chip('status', o[0], o[1], sCnt[o[0]], cflt.status === o[0]); }).join('');
+  var fdKeys = Object.keys(fCnt).filter(function(k) { return k !== '_none'; }).map(function(k) { return fandomOpts.filter(function(o){return o.id===k;})[0]; }).filter(Boolean);
+  var fdH = fdKeys.map(function(o) { return chip('fd', o.id, fIcon(o) + ' ' + o.name, fCnt[o.id], !!cflt.fd[o.id]); }).join('')
+    + (fCnt._none ? chip('fd', '_none', 'Без фандома', fCnt._none, !!cflt.fd._none) : '');
+  var body = document.getElementById('formBody');
+  body.innerHTML = '<div class="fg"><label class="fl">Статус</label><div class="f-chips">'+statusH+'</div></div>'
+    + (fdH ? '<div class="fg"><label class="fl">Фандом</label><div class="f-chips">'+fdH+'</div></div>' : '')
+    + '<div class="fg"><label class="fl">Бюджет (осталось потратить), ₽</label><div class="f-range">'
+    + '<input id="fMin" class="fi" type="number" inputmode="numeric" min="0" placeholder="от" value="'+(cflt.min != null ? cflt.min : '')+'"/><span>—</span>'
+    + '<input id="fMax" class="fi" type="number" inputmode="numeric" min="0" placeholder="до" value="'+(cflt.max != null ? cflt.max : '')+'"/></div></div>'
+    + '<button class="btn-rm" id="fReset">Сбросить</button><button class="btn-save" id="fApply">Показать ('+characters.filter(passes).length+')</button>';
+  body.onclick = function(e) {
+    var b = e.target.closest('[data-f]');
+    if (b) {
+      if (b.dataset.f === 'status') cflt.status = b.dataset.v;
+      else if (cflt.fd[b.dataset.v]) delete cflt.fd[b.dataset.v]; else cflt.fd[b.dataset.v] = true;
+      renderChars(); buildFilterUI(); return;
+    }
+    if (e.target.closest('#fReset')) { fltReset(); renderChars(); buildFilterUI(); return; }
+    if (e.target.closest('#fApply')) closeSheet();
+  };
+  var onRange = function() {
+    var a = parseFloat(document.getElementById('fMin').value), z = parseFloat(document.getElementById('fMax').value);
+    cflt.min = isNaN(a) ? null : a; cflt.max = isNaN(z) ? null : z;
+    renderChars(); document.getElementById('fApply').textContent = 'Показать (' + characters.filter(passes).length + ')';
+  };
+  document.getElementById('fMin').addEventListener('input', onRange);
+  document.getElementById('fMax').addEventListener('input', onRange);
 }
 
 function renderLooks() {
@@ -484,6 +608,7 @@ function renderItems() {
 
 // ----- SHEET -----
 function openSheet(title) {
+  document.getElementById('formBody').onclick = null;   // обработчик окна фильтров не должен переходить в другие формы
   document.getElementById('formTitle').textContent = title;
   document.getElementById('overlay').classList.add('on');
   document.getElementById('formSheet').classList.add('on');
@@ -499,6 +624,46 @@ function closeSheet() {
 // ----- CHAR FORM -----
 function openAddChar()   { buildCharForm(null); }
 function openEditChar(id){ buildCharForm(characters.find(function(c){return c.id===id;})||null); }
+// ----- выбор фандома в форме персонажа -----
+function fandomFields(char) {   // source дублирует название (его читает старый код); fandomId — основная связь
+  if (_fd) return { fandomId: _fd.id, source: _fd.name };
+  return { fandomId: null, source: (_fdKeepLegacy && char) ? (char.source || null) : null };
+}
+function fdSelRender() {
+  var el = document.getElementById('fdSel'); if (!el) return;
+  el.innerHTML = _fd ? '<span>'+esc(fIcon(_fd))+' <b>'+esc(_fd.name)+'</b></span><button type="button" id="fdClear" aria-label="Убрать">✕</button>'
+    : '<span style="color:var(--text3)">'+(_fdKeepLegacy ? 'Было: «'+esc(_curLegacy)+'» — выбери из списка или создай' : 'Не выбран')+'</span>';
+  var c = document.getElementById('fdClear'); if (c) c.onclick = function() { _fd = null; _fdKeepLegacy = false; fdSelRender(); fdListRender(); };
+}
+var _curLegacy = '';
+function fdListRender() {
+  var raw = document.getElementById('fdQ').value.trim(), q = nrm(raw);
+  var opts = fandomOpts.filter(function(o) { return !q || nrm(o.name).indexOf(q) >= 0; }).slice(0, 40);
+  var exact = fandomOpts.some(function(o) { return nrm(o.name) === q; });
+  var h = opts.map(function(o) { return '<button type="button" class="fd-opt'+(_fd&&_fd.id===o.id?' on':'')+'" data-fd="'+esc(o.id)+'">'+esc(fIcon(o))+' '+esc(o.name)+'</button>'; }).join('');
+  if (q && !exact) h += '<div class="fd-new"><input id="fdEmoji" class="fi" maxlength="8" placeholder="😀" aria-label="Эмодзи"/><button type="button" class="fd-opt create" id="fdCreate">＋ Создать «'+esc(raw)+'»</button></div>';
+  document.getElementById('fdList').innerHTML = h;
+}
+function initFandomPicker(char) {
+  _fd = char ? fandomOf(char) : null;
+  _curLegacy = char && !_fd ? (char.source || '') : '';
+  _fdKeepLegacy = !!_curLegacy;
+  fdSelRender(); fdListRender();
+  document.getElementById('fdQ').addEventListener('input', fdListRender);
+  document.getElementById('fdList').addEventListener('click', async function(e) {
+    var o = e.target.closest('[data-fd]');
+    if (o) { _fd = fandomOpts.filter(function(x){return x.id===o.dataset.fd;})[0] || null; _fdKeepLegacy = false; fdSelRender(); fdListRender(); return; }
+    if (!e.target.closest('#fdCreate')) return;
+    var name = document.getElementById('fdQ').value.trim(), em = document.getElementById('fdEmoji').value.trim();
+    if (!/\p{Extended_Pictographic}/u.test(em)) { toast('Выбери эмодзи для фандома', 'err'); document.getElementById('fdEmoji').focus(); return; }
+    try {
+      var rec = await DB.create('tags', { name: name, kind: 'category', group: 'Фандомы', scope: ['fandoms'], emoji: em }, 'shared');
+      rec.system = false; fandomOpts.push(rec);
+      fandomOpts.sort(function(a, b) { return String(a.name).localeCompare(String(b.name), 'ru'); });
+      _fd = rec; _fdKeepLegacy = false; document.getElementById('fdQ').value = ''; fdSelRender(); fdListRender();
+    } catch (err) { toast('Не создалось: ' + err.message, 'err'); }
+  });
+}
 function buildCharForm(char) {
   _editId = char ? char.id : null;
   _coverData = char ? (char._coverUrl||null) : null; _coverNew = false; _coverRemoved = false;
@@ -514,11 +679,12 @@ function buildCharForm(char) {
     + (_coverData ? '<button type="button" class="btn-rm" id="fImgRm">Убрать обложку</button>' : '') + '</div>'
     + '<div class="fg"><label class="fl">Имя *</label>'
     + '<input id="fCharName" class="fi" placeholder="Nezuko, Zero Two..." value="'+esc(char?char.name:'')+'"/></div>'
-    + '<div class="fg"><label class="fl">Источник</label>'
-    + '<input id="fCharSource" class="fi" placeholder="Аниме, игра, манга..." value="'+esc(char?char.source:'')+'"/></div>'
+    + '<div class="fg"><label class="fl">Фандом</label><div class="fd-sel" id="fdSel"></div>'
+    + '<input id="fdQ" class="fi" placeholder="Найти или создать..." autocomplete="off"/><div class="fd-list" id="fdList"></div></div>'
     + '<button class="btn-save" id="fSaveBtn">Сохранить</button>'
     + delBtn;
   if (_coverData) document.getElementById('fImgLbl').style.display='none';
+  initFandomPicker(char);
   document.getElementById('fImgUp').addEventListener('click', function(){ document.getElementById('fImgInput').click(); });
   var rmC = document.getElementById('fImgRm');
   if (rmC) rmC.addEventListener('click', function(){
@@ -547,9 +713,9 @@ function buildCharForm(char) {
         coverImageId = newCover;
       }
       if (_editId) {
-        await DB.update('characters', _editId, {name:name, source:document.getElementById('fCharSource').value.trim()||null, coverImageId:coverImageId});
+        await DB.update('characters', _editId, Object.assign({name:name, coverImageId:coverImageId}, fandomFields(char)));
       } else {
-        await DB.create('characters', {name:name, source:document.getElementById('fCharSource').value.trim()||null, coverImageId:coverImageId, progress:0});
+        await DB.create('characters', Object.assign({name:name, coverImageId:coverImageId, progress:0}, fandomFields(null)));
       }
       await loadCharacters(); renderChars(); closeSheet(); toast(char?'Обновлено ✓':'Добавлено ✓','ok');
     } catch(e){ toast('Ошибка: '+e.message,'err'); }
