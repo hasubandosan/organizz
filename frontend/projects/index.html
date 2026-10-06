@@ -674,6 +674,7 @@ function navTo(page) {
   curPage = page;
   curDetail = null;
   renderCurrentPage();
+  syncUrl();
 }
 
 /* ── Hub navigation fix for file:// protocol ── */
@@ -683,12 +684,30 @@ function openHub(e) {
   return false;
 }
 
+function taskViewOpen() { const m = document.getElementById('m-task-view'); return !!m && m.classList.contains('open'); }
 function renderCurrentPage() {
-  if (curPage === 'dashboard') renderDash();
+  if (curPage === 'detail' && curDetail) {   // раньше на странице проекта/области после создания ничего не перерисовывалось
+    if (curDetail.type === 'project') showProject(curDetail.id);
+    else if (curDetail.type === 'area') showArea(curDetail.id);
+  }
+  else if (curPage === 'dashboard') renderDash();
   else if (curPage === 'projects') renderProjects();
   else if (curPage === 'tasks') renderTasks();
   else if (curPage === 'areas') renderAreas();
   else if (curPage === 'settings') renderSettings();
+  if (curViewTaskId && taskViewOpen()) showTask(curViewTaskId);
+}
+
+/* ── Состояние в адресной строке: после обновления страницы открывается то же место ──
+   #tasks | #p=<id> проект | #a=<id> область, плюс &t=<id> если открыто окно задачи */
+function syncUrl() {
+  try {
+    const parts = [];
+    if (curPage === 'detail' && curDetail) parts.push((curDetail.type === 'project' ? 'p=' : 'a=') + encodeURIComponent(curDetail.id));
+    else if (curPage && curPage !== 'dashboard') parts.push('page=' + curPage);
+    if (curViewTaskId && taskViewOpen()) parts.push('t=' + encodeURIComponent(curViewTaskId));
+    history.replaceState(null, '', location.pathname + (parts.length ? '#' + parts.join('&') : ''));
+  } catch (e) { /* не критично */ }
 }
 
 function showDetail(html) {
@@ -697,6 +716,7 @@ function showDetail(html) {
   document.getElementById('page-detail').classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   curPage = 'detail';
+  syncUrl();
 }
 
 /* ═══════════════════════════════════════════
@@ -1427,6 +1447,7 @@ async function showTask(id) {
 
   document.getElementById('task-view-body').innerHTML = html;
   UI.openModal('m-task-view');
+  syncUrl();
 }
 
 function editTaskFromView() {
@@ -1964,6 +1985,8 @@ document.getElementById('s-clear').addEventListener('click',    doClear);
 /* ═══════════════════════════════════════════
    KEYBOARD
 ═══════════════════════════════════════════ */
+{ const mtv = document.getElementById('m-task-view');
+  if (mtv) new MutationObserver(() => { if (!taskViewOpen()) curViewTaskId = null; syncUrl(); }).observe(mtv, { attributes: true, attributeFilter: ['class'] }); }
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
@@ -1987,6 +2010,12 @@ function handleUrlParams() {
     return;
   }
   if (location.hash === '#tasks') { navTo('tasks'); return; }
+  const h = new URLSearchParams(location.hash.slice(1));
+  const PAGES = ['dashboard', 'projects', 'tasks', 'areas', 'settings'];
+  if (h.has('p')) showProject(h.get('p'));
+  else if (h.has('a')) { navTo('areas'); showArea(h.get('a')); }
+  else if (PAGES.includes(h.get('page'))) navTo(h.get('page'));
+  if (h.has('t')) showTask(h.get('t'));
 }
 
 /* ═══════════════════════════════════════════

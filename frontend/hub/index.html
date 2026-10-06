@@ -56,7 +56,13 @@
 .inbox-text { flex: 1; min-width: 0; font-size: 14px; overflow-wrap: anywhere; }
 .inbox-sort { padding: 6px 10px; font-size: 12px; min-height: 36px; }
 .inbox-row .modal-close { width: 36px; height: 36px; }
-@media (min-width: 720px) { .stat-grid { grid-template-columns: repeat(4, 1fr); } }
+.stat-row { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px 0; }
+.stat-chip { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 999px; text-decoration: none; color: inherit; min-height: 36px; transition: .15s; }
+.stat-chip:hover { border-color: var(--accent); }
+.stat-chip .ic { font-size: 16px; line-height: 1; }
+.stat-chip b { font-size: 16px; font-family: var(--m); }
+.stat-chip span { font-size: 12px; color: var(--text3); }
 </style>  
 </head>  
 <body>  
@@ -74,7 +80,7 @@
 
     <div id="hub-inbox"></div>
 
-    <div class="stat-grid" id="hub-stats" style="padding-top:16px"></div>  
+    <div class="stat-row" id="hub-stats"></div>  
 
     <div class="hub-widgets">
     <div class="section">  
@@ -186,11 +192,12 @@ function renderStorageWarn() {
 
 async function renderStats() {  
   const s = await DB.stats();  
-  document.getElementById('hub-stats').innerHTML = `  
-    <div class="stat-card s-blue"><div class="stat-num">${s.projects}</div><div class="stat-lbl">Проекты</div></div>  
-    <div class="stat-card s-green"><div class="stat-num">${s.tasks}</div><div class="stat-lbl">Задачи</div></div>  
-    <div class="stat-card s-yellow"><div class="stat-num">${s.active}</div><div class="stat-lbl">Активные</div></div>  
-    <div class="stat-card s-red"><div class="stat-num">${s.purchases}</div><div class="stat-lbl">Покупки</div></div>`;  
+  const chip = (ic, n, lbl, href) => `<a class="stat-chip" href="${href}" title="${lbl}"><span class="ic">${ic}</span><b>${n}</b><span>${lbl}</span></a>`;
+  document.getElementById('hub-stats').innerHTML =
+    chip('📋', s.projects, 'проекты', 'https://organizz-projects.pages.dev/') +
+    chip('✅', s.tasks, 'задачи', 'https://organizz-projects.pages.dev/#tasks') +
+    chip('⚡', s.active, 'активные', 'https://organizz-projects.pages.dev/') +
+    chip('🛒', s.purchases, 'покупки', 'https://organizz-purchases.pages.dev/');  
 }  
 
 async function renderProjects() {  
