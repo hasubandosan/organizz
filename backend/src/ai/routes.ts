@@ -134,9 +134,9 @@ name ингредиента — только название продукта, 
 }
 
 // 2.0 Flash закрыт Google; перебираем актуальные Flash-модели, пока одна не ответит (не 404).
-const MODELS = [process.env.GEMINI_MODEL, 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.6-flash', 'gemini-2.5-flash']
+const MODELS = [process.env.GEMINI_MODEL, 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-2.5-flash-lite']
   .filter((m, i, arr): m is string => !!m && arr.indexOf(m) === i);
-async function askGemini(text: string, tags: string[], prompt?: string): Promise<any> {
+async function askGemini(text: string, tags: string[], prompt?: string, models: string[] = MODELS): Promise<any> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new HttpError(503, 'ИИ-разбор не настроен на сервере');
   const tried: string[] = [];
@@ -147,7 +147,7 @@ async function askGemini(text: string, tags: string[], prompt?: string): Promise
       if (!overloaded) break;
       await new Promise((r) => setTimeout(r, 2500));   // всплески спроса обычно короткие
     }
-    for (const model of pass === 0 ? MODELS : MODELS.slice(0, 2)) {
+    for (const model of pass === 0 ? models : models.slice(0, 2)) {
       if (dead.has(model)) continue;
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
         method: 'POST',
@@ -227,12 +227,17 @@ const INBOX_PROMPT = `Ты помогаешь разобрать коротку�
 Формат: {"kind": "task|purchase|idea|recipe", "name": "короткое чистое название без лишних слов", "reason": "почему, до 80 символов"}
 Пиши на русском. Смысл записи не меняй и ничего не выдумывай.`;
 
+// Классификация короткой строки — задача простая: берём самые лёгкие модели (у них выше бесплатный лимит), потом общий список.
+// GEMINI_INBOX_MODEL на Render (необязательно) ставит свою модель первой.
+const INBOX_MODELS = [process.env.GEMINI_INBOX_MODEL, 'gemini-2.5-flash-lite', 'gemini-3.1-flash-lite-preview', ...MODELS]
+  .filter((m, i, arr): m is string => !!m && arr.indexOf(m) === i);
+
 aiRouter.post('/inbox', async (req: AuthedRequest, res) => {
   try {
     const text = typeof req.body?.text === 'string' ? req.body.text.trim().slice(0, 300) : '';
     if (!text) throw new HttpError(400, 'Нужен текст записи');
     if (overLimit(req.userId!)) throw new HttpError(429, 'Слишком много запросов к ИИ, попробуйте через час');
-    const out = await askGemini(text, [], INBOX_PROMPT);
+    const out = await askGemini(text, [], INBOX_PROMPT, INBOX_MODELS);
     const kind = String(out?.kind ?? '');
     if (!(INBOX_KINDS as readonly string[]).includes(kind)) throw new HttpError(502, 'ИИ вернул непонятный ответ, попробуйте ещё раз');
     res.json({ suggestion: {
