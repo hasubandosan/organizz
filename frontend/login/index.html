@@ -1,51 +1,53 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-module="hub">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>App 1</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0f">
+<title>Вход — LifeOS</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://organizz-core.pages.dev/styles.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-<div class="wrap">
-
-  <div id="authBox" class="card">
-    <div class="tabs">
-      <button id="tabLogin" class="tab active">Вход</button>
-      <button id="tabRegister" class="tab">Регистрация</button>
+<main class="lg-wrap">
+  <div class="lg-brand">
+    <div class="lo-mark lg-mark" id="lgMark">🏠</div>
+    <div>
+      <div class="lg-name">LifeOS</div>
+      <div class="lg-sub" id="lgSub">Один вход для всех модулей</div>
     </div>
-
-    <form id="loginForm" class="form">
-      <input type="email" id="loginEmail" placeholder="Email" required>
-      <input type="password" id="loginPassword" placeholder="Пароль" required>
-      <button type="submit">Войти</button>
-    </form>
-
-    <form id="registerForm" class="form hidden">
-      <input type="email" id="registerEmail" placeholder="Email" required>
-      <input type="password" id="registerPassword" placeholder="Пароль (минимум 8 символов)" required minlength="8">
-      <button type="submit">Зарегистрироваться</button>
-    </form>
-
-    <p id="authError" class="error hidden"></p>
   </div>
 
-  <div id="appBox" class="card hidden">
-    <div class="appHeader">
-      <span id="userEmail"></span>
-      <button id="logoutBtn" class="linkBtn">Выйти</button>
+  <section class="lg-card">
+    <div class="lg-tabs" role="tablist">
+      <button id="tabLogin" class="lg-tab active" role="tab" type="button">Вход</button>
+      <button id="tabRegister" class="lg-tab" role="tab" type="button">Регистрация</button>
     </div>
 
-    <form id="itemForm" class="form row">
-      <input type="text" id="itemTitle" placeholder="Новая запись" required>
-      <button type="submit">Добавить</button>
+    <p id="authInfo" class="lg-msg lg-info hidden"></p>
+
+    <form id="loginForm" class="lg-form" novalidate>
+      <label class="lg-field"><span>Email</span>
+        <input type="email" id="loginEmail" name="email" autocomplete="username" inputmode="email" autocapitalize="off" placeholder="you@example.com" required></label>
+      <label class="lg-field"><span>Пароль</span>
+        <span class="lg-pw"><input type="password" id="loginPassword" name="password" autocomplete="current-password" placeholder="Ваш пароль" required>
+        <button type="button" class="lg-eye" data-eye="loginPassword" aria-label="Показать пароль">👁</button></span></label>
+      <button type="submit" class="lg-submit" id="loginBtn">Войти</button>
     </form>
 
-    <ul id="itemsList" class="items"></ul>
-  </div>
+    <form id="registerForm" class="lg-form hidden" novalidate>
+      <label class="lg-field"><span>Email</span>
+        <input type="email" id="registerEmail" name="email" autocomplete="username" inputmode="email" autocapitalize="off" placeholder="you@example.com" required></label>
+      <label class="lg-field"><span>Пароль</span>
+        <span class="lg-pw"><input type="password" id="registerPassword" name="new-password" autocomplete="new-password" placeholder="Минимум 8 символов" minlength="8" required>
+        <button type="button" class="lg-eye" data-eye="registerPassword" aria-label="Показать пароль">👁</button></span></label>
+      <button type="submit" class="lg-submit" id="registerBtn">Создать аккаунт</button>
+    </form>
 
-</div>
+    <p id="authError" class="lg-msg lg-error hidden" role="alert" aria-live="polite"></p>
+  </section>
+</main>
 
 <script src="app.js"></script>
 </body>
