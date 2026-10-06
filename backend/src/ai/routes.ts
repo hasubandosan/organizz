@@ -141,7 +141,7 @@ async function askGemini(text: string, tags: string[], prompt?: string, models: 
   if (!key) throw new HttpError(503, 'ИИ-разбор не настроен на сервере');
   const tried: string[] = [];
   const dead = new Set<string>();          // модели, которых нет (404) — второй раз не трогаем
-  let overloaded = false, limited = false; // 5xx «высокий спрос» / 429 «лимит модели»
+  let overloaded = false, limited = false, badOutput = false; // 5xx «высокий спрос» / 429 «лимит модели»
   for (let pass = 0; pass < 2; pass++) {
     if (pass === 1) {
       if (!overloaded) break;
@@ -171,11 +171,21 @@ async function askGemini(text: string, tags: string[], prompt?: string, models: 
       }
       const data: any = await res.json();
       const out = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text ?? '').join('') ?? '';
-      try { return JSON.parse(out.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim()); }
-      catch { throw new HttpError(502, 'ИИ вернул непонятный ответ, попробуйте ещё раз'); }
+      const clean = out.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+      let parsed: any, ok = false;
+      try { parsed = JSON.parse(clean); ok = true; }
+      catch {
+        const m = clean.match(/[\[{][\s\S]*[\]}]/);   // JSON внутри лишнего текста
+        try { if (m) { parsed = JSON.parse(m[0]); ok = true; } } catch { /* не вышло */ }
+      }
+      if (ok) return parsed;
+      console.error('Gemini: ответ не JSON', model, JSON.stringify(clean.slice(0, 300)), 'finish:', data?.candidates?.[0]?.finishReason);
+      tried.push(`${model}: не JSON`); badOutput = true;
+      continue;   // пробуем следующую модель
     }
   }
   console.error('Gemini: ни одна модель не ответила', tried);
+  if (badOutput && !overloaded) throw new HttpError(502, 'ИИ вернул непонятный ответ, попробуйте ещё раз');
   if (overloaded) throw new HttpError(503, 'ИИ сейчас перегружен (у Google высокий спрос). Подождите минуту и повторите');
   if (limited) throw new HttpError(429, 'Лимит бесплатного ИИ исчерпан, попробуйте позже');
   throw new HttpError(502, `ИИ недоступен (пробовали: ${tried.join(', ')}). Укажите актуальную модель в GEMINI_MODEL на сервере`);
@@ -238,12 +248,18 @@ aiRouter.post('/inbox', async (req: AuthedRequest, res) => {
     if (!text) throw new HttpError(400, 'Нужен текст записи');
     if (overLimit(req.userId!)) throw new HttpError(429, 'Слишком много запросов к ИИ, попробуйте через час');
     const out = await askGemini(text, [], INBOX_PROMPT, INBOX_MODELS);
-    const kind = String(out?.kind ?? '');
-    if (!(INBOX_KINDS as readonly string[]).includes(kind)) throw new HttpError(502, 'ИИ вернул непонятный ответ, попробуйте ещё раз');
+    const o = Array.isArray(out) ? out[0] : out;   // модель иногда оборачивает ответ в массив
+    const RU: Record<string, string> = { 'задача': 'task', 'покупка': 'purchase', 'идея': 'idea', 'рецепт': 'recipe' };
+    const raw = String(o?.kind ?? '').trim().toLowerCase();
+    const kind = RU[raw] ?? raw;
+    if (!(INBOX_KINDS as readonly string[]).includes(kind)) {
+      console.error('AI inbox: неожиданный ответ', JSON.stringify(out).slice(0, 300));
+      throw new HttpError(502, 'ИИ вернул непонятный ответ, попробуйте ещё раз');
+    }
     res.json({ suggestion: {
       kind,
-      name: String(out?.name ?? text).trim().slice(0, 300) || text,
-      reason: String(out?.reason ?? '').trim().slice(0, 120),
+      name: String(o?.name ?? text).trim().slice(0, 300) || text,
+      reason: String(o?.reason ?? '').trim().slice(0, 120),
     } });
   } catch (e) {
     if (e instanceof HttpError) return res.status(e.status).json({ error: e.message });
