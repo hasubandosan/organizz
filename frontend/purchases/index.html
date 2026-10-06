@@ -42,6 +42,32 @@
     /* ── HEADER ── */
     .hdr{flex-shrink:0;padding:8px max(0px,calc((100% - var(--content-max))/2)) 0;background:var(--bg)}
     .lo-ib.on{color:var(--accent);background:var(--bg3)}
+    .stab i{font-style:normal;font-family:var(--mono);font-size:11px;opacity:.65;margin-left:4px}
+    .flt-btn{flex-shrink:0;height:38px;padding:0 12px;display:flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r);font-size:13px;color:var(--dim);transition:.15s}
+    .flt-btn svg{width:15px;height:15px}
+    .flt-btn.on{border-color:var(--accent);color:var(--accent)}
+    .flt-btn .n{display:none;min-width:16px;height:16px;border-radius:8px;background:var(--accent);color:var(--on-accent);font-size:10px;font-weight:800;align-items:center;justify-content:center;padding:0 4px}
+    .flt-btn.on .n{display:flex}
+    .sum-row{display:flex;align-items:center;gap:8px;padding:0 16px 6px;font-size:12px;color:var(--dim)}
+    .sum-row b{color:var(--text);font-family:var(--mono);font-weight:600}
+    .sum-row .am{color:var(--accent);font-family:var(--mono)}
+    .sum-sp{flex:1}
+    .sort-sel{background:none;border:none;color:var(--dim);font-size:12px;font-family:inherit;cursor:pointer;padding:2px 0;outline:none;text-align:right}
+    .sort-sel option{background:var(--s1);color:var(--text)}
+    .chips-row{display:flex;gap:6px;padding:0 16px 8px;overflow-x:auto;scrollbar-width:none}
+    .chips-row::-webkit-scrollbar{display:none}
+    .fchip{flex-shrink:0;display:flex;align-items:center;gap:5px;padding:3px 5px 3px 10px;border-radius:100px;background:rgba(212,245,66,.12);color:var(--accent);font-size:12px;border:1px solid rgba(212,245,66,.25);white-space:nowrap}
+    .fchip button{width:18px;height:18px;border-radius:50%;font-size:11px;line-height:1;opacity:.7}
+    .fchip button:hover{opacity:1}
+    .fchip.reset{background:none;color:var(--dim);border-color:var(--border);padding:3px 10px;cursor:pointer}
+    .f-chips{display:flex;flex-wrap:wrap;gap:6px}
+    .f-chip{padding:7px 12px;border-radius:100px;border:1px solid var(--border);background:var(--s2);font-size:13px;color:var(--dim);transition:.15s}
+    .f-chip i{font-style:normal;opacity:.55;font-family:var(--mono);font-size:11px;margin-left:4px}
+    .f-chip.on{background:rgba(212,245,66,.12);color:var(--accent);border-color:var(--accent)}
+    .f-range{display:flex;gap:8px;align-items:center}
+    .f-range .fi{flex:1;min-width:0}
+    .f-range span{color:var(--muted)}
+    .empty-reset{margin-top:10px;padding:8px 16px;border-radius:100px;border:1px solid var(--accent);color:var(--accent);font-size:13px}
     /* ── TABS (status) ── */
     .status-tabs{display:flex;gap:4px;padding:0 16px 8px;overflow-x:auto;scrollbar-width:none}
     .status-tabs::-webkit-scrollbar{display:none}
@@ -69,20 +95,8 @@
     .grid-btn:disabled{opacity:.3;pointer-events:none}
 
     /* ── STATS STRIP ── */
-    .stats-strip{display:flex;gap:6px;padding:0 16px 6px;overflow-x:auto;scrollbar-width:none}
-    .stats-strip::-webkit-scrollbar{display:none}
-    .stat{flex-shrink:0;background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:5px 11px;display:flex;flex-direction:column;gap:0}
-    .stat-l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;font-weight:600}
-    .stat-v{font-family:var(--mono);font-size:14px;font-weight:600}
-    .stat-v.a{color:var(--accent)}
-    .stat-v.o{color:var(--orange)}
 
     /* sort row */
-    .sort-row{display:flex;align-items:center;gap:6px;padding:0 16px 8px;overflow-x:auto;scrollbar-width:none}
-    .sort-row::-webkit-scrollbar{display:none}
-    .sort-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;flex-shrink:0;font-family:var(--mono)}
-    .sort-opt{flex-shrink:0;font-size:12px;color:var(--muted);padding:4px 10px;border-radius:100px;border:1px solid transparent;transition:all .15s}
-    .sort-opt.on{color:var(--accent);border-color:rgba(212,245,66,.3)}
 
     /* ── SCROLL AREA ── */
     .scroll{flex:1;overflow-y:auto;padding:4px max(16px,calc((100% - var(--content-max))/2 + 16px)) 100px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
@@ -379,17 +393,20 @@
 
   <div class="hdr">
     <div class="status-tabs" id="statusTabs">
-      <button class="stab on" data-s="all">Все</button>
-      <button class="stab" data-s="want">Хочу</button>
-      <button class="stab" data-s="ordered">Заказано</button>
-      <button class="stab" data-s="done">Куплено</button>
+      <button class="stab on" data-s="all">Все<i id="c_all">0</i></button>
+      <button class="stab" data-s="want">Хочу<i id="c_want">0</i></button>
+      <button class="stab" data-s="ordered">Заказано<i id="c_ordered">0</i></button>
+      <button class="stab" data-s="done">Куплено<i id="c_done">0</i></button>
     </div>
 
     <div class="search-row">
       <div class="search-box">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input id="searchIn" type="text" placeholder="Поиск..."/>
+        <input id="searchIn" type="text" placeholder="Поиск: название, зона, магазин, тег"/>
       </div>
+      <button class="flt-btn" id="btnFilters" title="Фильтры" aria-label="Фильтры">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg><span class="n" id="fltN">0</span>
+      </button>
       <div class="grid-ctrl" id="gridCtrl">
         <button class="grid-btn" id="gridMinus">−</button>
         <span id="gridColsLabel">7</span>
@@ -397,20 +414,16 @@
       </div>
     </div>
 
-    <div class="stats-strip">
-      <div class="stat"><div class="stat-l">Всего</div><div class="stat-v" id="stTotal">—</div></div>
-      <div class="stat"><div class="stat-l">Сумма</div><div class="stat-v a" id="stSum">—</div></div>
-      <div class="stat"><div class="stat-l">Куплено</div><div class="stat-v o" id="stDone">—</div></div>
-      <div class="stat"><div class="stat-l">Осталось</div><div class="stat-v" id="stLeft">—</div></div>
+    <div class="sum-row">
+      <span id="sumTxt"></span><span class="sum-sp"></span>
+      <select id="sortSel" class="sort-sel" aria-label="Сортировка">
+        <option value="priority">по приоритету</option>
+        <option value="price_asc">цена ↑</option>
+        <option value="price_desc">цена ↓</option>
+        <option value="date">сначала новые</option>
+      </select>
     </div>
-
-    <div class="sort-row">
-      <span class="sort-lbl">Сорт:</span>
-      <button class="sort-opt on" data-sort="priority">приоритеты</button>
-      <button class="sort-opt" data-sort="price_asc">цена ↑</button>
-      <button class="sort-opt" data-sort="price_desc">цена ↓</button>
-      <button class="sort-opt" data-sort="date">дата</button>
-    </div>
+    <div class="chips-row" id="chipsRow" style="display:none"></div>
   </div>
 
   <div class="scroll" id="scrollArea">
@@ -418,7 +431,8 @@
     <div id="mainList" style="display:none"></div>
     <div class="center-state" id="emptyEl" style="display:none">
       <div class="empty-ico">🛍️</div>
-      <div class="empty-txt">Список пуст</div>
+      <div class="empty-txt" id="emptyTxt">Список пуст</div>
+      <button class="empty-reset" id="emptyReset" style="display:none">Сбросить фильтры</button>
     </div>
   </div>
 
@@ -573,6 +587,28 @@
       <button class="btn-primary" id="zoneModalSave">Сохранить</button>
     </div>
     <button class="btn-del" id="zoneModalDel" style="display:none">Удалить зону</button>
+  </div>
+</div>
+
+<!-- FILTERS MODAL -->
+<div class="mbackdrop" id="filterBackdrop">
+  <div class="mmodal">
+    <div class="mmodal-hdr">
+      <h3>Фильтры</h3>
+      <button class="mclose" id="filterClose">✕</button>
+    </div>
+    <div class="fg"><label class="fl">Приоритет</label><div class="f-chips" id="fPrio"></div></div>
+    <div class="fg"><label class="fl">Зона</label><select id="fZone" class="fi"></select></div>
+    <div class="fg" id="fShopsWrap"><label class="fl">Магазин</label><div class="f-chips" id="fShops"></div></div>
+    <div class="fg"><label class="fl">Цена, ₽</label>
+      <div class="f-range"><input id="fMin" class="fi" type="number" inputmode="numeric" min="0" placeholder="от"/><span>—</span><input id="fMax" class="fi" type="number" inputmode="numeric" min="0" placeholder="до"/></div>
+    </div>
+    <div class="fg" id="fTagsWrap"><label class="fl">Теги</label><div class="f-chips" id="fTags"></div></div>
+    <div class="fg"><label class="fl">Навести порядок</label><div class="f-chips" id="fMisc"></div></div>
+    <div class="btn-row">
+      <button class="btn-cancel" id="fReset">Сбросить</button>
+      <button class="btn-primary" id="fApply">Показать</button>
+    </div>
   </div>
 </div>
 
@@ -963,15 +999,46 @@ function zoneMatchesFilters(zoneId, visibleIds) {
 // ══════════════════════════════════════════════════
 // FILTER / SORT
 // ══════════════════════════════════════════════════
-function getVisible() {
-  let list = [...products];
-  if (filterStatus !== 'all') list = list.filter(i => i.status === filterStatus);
+const flt = { prio: new Set(), shops: new Set(), zone: '', min: null, max: null, tags: new Set(), noPrice: false, noPhoto: false };
+const NONE = '__none';
+const PRIO_LBL = { 2: '🔴 Высокий', 1: '🟡 Средний', 0: '⚪ Низкий' };
+function fltCount() {
+  return flt.prio.size + flt.shops.size + (flt.zone ? 1 : 0) + (flt.min != null || flt.max != null ? 1 : 0) + flt.tags.size + (flt.noPrice ? 1 : 0) + (flt.noPhoto ? 1 : 0);
+}
+function fltReset() {
+  flt.prio.clear(); flt.shops.clear(); flt.tags.clear();
+  flt.zone = ''; flt.min = null; flt.max = null; flt.noPrice = false; flt.noPhoto = false;
+}
+const hasPhoto = id => (variantsByProduct[id] || []).some(v => v._imageId);
+const productShopKeys = id => { const k = (variantsByProduct[id] || []).map(v => v.shop_id || NONE); return k.length ? k : [NONE]; };
+const productTagKeys = p => [...(p.tagIds || []), ...(p.legacy || []).map(t => 'txt:' + String(t).toLowerCase())];
+function shopNameById(id) { const s = shops.find(x => x.id === id); return s ? s.name : ''; }
+
+function passesFilters(p) {
+  if (flt.prio.size && !flt.prio.has(p.priority ?? 1)) return false;
+  if (flt.zone === NONE) { if (p.zone_id) return false; }
+  else if (flt.zone && p.zone_id !== flt.zone && !(p.zone_id && isDescendantOf(p.zone_id, flt.zone))) return false;
+  if (flt.shops.size && !productShopKeys(p.id).some(k => flt.shops.has(k))) return false;
+  const price = productPrice(p.id);
+  if (flt.min != null && !(price != null && price >= flt.min)) return false;
+  if (flt.max != null && !(price != null && price <= flt.max)) return false;
+  if (flt.tags.size) { const keys = productTagKeys(p); if (![...flt.tags].some(t => keys.includes(t))) return false; }
+  if (flt.noPrice && price) return false;
+  if (flt.noPhoto && hasPhoto(p.id)) return false;
+  return true;
+}
+
+// skipStatus — для счётчиков на табах статуса (они учитывают поиск и фильтры, но не сам статус)
+function getVisible(skipStatus) {
+  let list = products.filter(passesFilters);
+  if (!skipStatus && filterStatus !== 'all') list = list.filter(i => i.status === filterStatus);
   if (searchQ) {
     const q = searchQ.toLowerCase();
     list = list.filter(i =>
       i.name.toLowerCase().includes(q) ||
       zonePath(i.zone_id).toLowerCase().includes(q) ||
-      (i.tags || []).some(t => t.toLowerCase().includes(q))
+      (i.tags || []).some(t => t.toLowerCase().includes(q)) ||
+      (variantsByProduct[i.id] || []).some(v => (v.name || '').toLowerCase().includes(q) || shopNameById(v.shop_id).toLowerCase().includes(q))
     );
   }
   switch (sortMode) {
@@ -983,18 +1050,120 @@ function getVisible() {
   return list;
 }
 
+function plural(n, one, few, many) {
+  const m10 = n % 10, m100 = n % 100;
+  return m10 === 1 && m100 !== 11 ? one : (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20) ? few : many);
+}
+function renderChips() {
+  const chips = [];
+  [...flt.prio].sort((a, b) => b - a).forEach(p => chips.push(['prio', p, PRIO_LBL[p]]));
+  if (flt.zone) chips.push(['zone', flt.zone, '🗂 ' + (flt.zone === NONE ? 'Без зоны' : zonePath(flt.zone))]);
+  flt.shops.forEach(k => chips.push(['shop', k, '🏪 ' + (k === NONE ? 'Без магазина' : shopNameById(k) || 'магазин')]));
+  if (flt.min != null || flt.max != null) {
+    const a = flt.min != null ? 'от ' + fmtPrice(flt.min) : '', b = flt.max != null ? 'до ' + fmtPrice(flt.max) : '';
+    chips.push(['price', '', [a, b].filter(Boolean).join(' ')]);
+  }
+  flt.tags.forEach(t => chips.push(['tag', t, '# ' + tagLabel(t)]));
+  if (flt.noPrice) chips.push(['noPrice', '', 'Без цены']);
+  if (flt.noPhoto) chips.push(['noPhoto', '', 'Без фото']);
+  const row = $('chipsRow');
+  row.style.display = chips.length ? 'flex' : 'none';
+  row.innerHTML = chips.map(([k, v, t]) => `<span class="fchip">${esc(t)}<button data-k="${k}" data-v="${esc(v)}" aria-label="Убрать">✕</button></span>`).join('')
+    + (chips.length > 1 ? '<button class="fchip reset" data-k="all">Сбросить всё</button>' : '');
+  const n = fltCount();
+  $('btnFilters').classList.toggle('on', n > 0);
+  $('fltN').textContent = n;
+}
+function tagLabel(key) {
+  if (key.startsWith('txt:')) return key.slice(4);
+  return (tagMap[key] && tagMap[key].name) || 'тег';
+}
+$('chipsRow').addEventListener('click', e => {
+  const b = e.target.closest('button[data-k]'); if (!b) return;
+  const k = b.dataset.k, v = b.dataset.v;
+  if (k === 'all') fltReset();
+  else if (k === 'prio') flt.prio.delete(+v);
+  else if (k === 'zone') flt.zone = '';
+  else if (k === 'shop') flt.shops.delete(v);
+  else if (k === 'price') { flt.min = null; flt.max = null; }
+  else if (k === 'tag') flt.tags.delete(v);
+  else if (k === 'noPrice') flt.noPrice = false;
+  else if (k === 'noPhoto') flt.noPhoto = false;
+  render();
+});
+
+// ── окно фильтров ──
+function zoneOptionsFlat(parentId = null, depth = 0, out = []) {
+  zoneChildren(parentId).forEach(z => { out.push({ id: z.id, label: '\u00A0\u00A0'.repeat(depth) + (z.emoji || '📦') + ' ' + z.name }); zoneOptionsFlat(z.id, depth + 1, out); });
+  return out;
+}
+function buildFilterUI() {
+  $('fPrio').innerHTML = [2, 1, 0].map(p => `<button class="f-chip${flt.prio.has(p) ? ' on' : ''}" data-f="prio" data-v="${p}">${PRIO_LBL[p]}</button>`).join('');
+  $('fZone').innerHTML = '<option value="">Все зоны</option><option value="' + NONE + '">Без зоны</option>'
+    + zoneOptionsFlat().map(o => `<option value="${esc(o.id)}">${esc(o.label)}</option>`).join('');
+  $('fZone').value = flt.zone || '';
+  const used = new Map();   // shop key -> число товаров
+  products.forEach(p => new Set(productShopKeys(p.id)).forEach(k => used.set(k, (used.get(k) || 0) + 1)));
+  const shopKeys = [...used.keys()].filter(k => k !== NONE).sort((a, b) => shopNameById(a).localeCompare(shopNameById(b), 'ru'));
+  if (used.has(NONE)) shopKeys.push(NONE);
+  $('fShopsWrap').style.display = shopKeys.length > 1 ? '' : 'none';
+  $('fShops').innerHTML = shopKeys.map(k => `<button class="f-chip${flt.shops.has(k) ? ' on' : ''}" data-f="shop" data-v="${esc(k)}">${esc(k === NONE ? 'Без магазина' : shopNameById(k))}<i>${used.get(k)}</i></button>`).join('');
+  $('fMin').value = flt.min != null ? flt.min : '';
+  $('fMax').value = flt.max != null ? flt.max : '';
+  const tc = new Map();
+  products.forEach(p => new Set(productTagKeys(p)).forEach(k => tc.set(k, (tc.get(k) || 0) + 1)));
+  const tagKeys = [...tc.entries()].sort((a, b) => b[1] - a[1]).slice(0, 40);
+  $('fTagsWrap').style.display = tagKeys.length ? '' : 'none';
+  $('fTags').innerHTML = tagKeys.map(([k, c]) => `<button class="f-chip${flt.tags.has(k) ? ' on' : ''}" data-f="tag" data-v="${esc(k)}"># ${esc(tagLabel(k))}<i>${c}</i></button>`).join('');
+  $('fMisc').innerHTML = `<button class="f-chip${flt.noPrice ? ' on' : ''}" data-f="noPrice">Без цены</button><button class="f-chip${flt.noPhoto ? ' on' : ''}" data-f="noPhoto">Без фото</button>`;
+  $('fApply').textContent = 'Показать: ' + getVisible().length;
+}
+function openFilters() { buildFilterUI(); $('filterBackdrop').classList.add('on'); }
+function closeFilters() { $('filterBackdrop').classList.remove('on'); }
+function onFltChange() { render(); buildFilterUI(); }
+$('btnFilters').addEventListener('click', openFilters);
+$('filterClose').addEventListener('click', closeFilters);
+$('fApply').addEventListener('click', closeFilters);
+$('filterBackdrop').addEventListener('click', e => { if (e.target.id === 'filterBackdrop') closeFilters(); });
+$('fReset').addEventListener('click', () => { fltReset(); onFltChange(); });
+$('fZone').addEventListener('change', e => { flt.zone = e.target.value; onFltChange(); });
+const numOrNull = v => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) ? n : null; };
+$('fMin').addEventListener('input', e => { flt.min = numOrNull(e.target.value); render(); $('fApply').textContent = 'Показать: ' + getVisible().length; });
+$('fMax').addEventListener('input', e => { flt.max = numOrNull(e.target.value); render(); $('fApply').textContent = 'Показать: ' + getVisible().length; });
+$('filterBackdrop').addEventListener('click', e => {
+  const b = e.target.closest('.f-chip'); if (!b) return;
+  const f = b.dataset.f, v = b.dataset.v;
+  const tog = (set, x) => set.has(x) ? set.delete(x) : set.add(x);
+  if (f === 'prio') tog(flt.prio, +v);
+  else if (f === 'shop') tog(flt.shops, v);
+  else if (f === 'tag') tog(flt.tags, v);
+  else if (f === 'noPrice') flt.noPrice = !flt.noPrice;
+  else if (f === 'noPhoto') flt.noPhoto = !flt.noPhoto;
+  onFltChange();
+});
+$('emptyReset').addEventListener('click', () => { fltReset(); searchQ = ''; $('searchIn').value = ''; render(); });
+
 // ══════════════════════════════════════════════════
 // RENDER
 // ══════════════════════════════════════════════════
 function render() {
   loadingEl.style.display = 'none';
-  const list = getVisible();
+  const base = getVisible(true);      // с учётом поиска и фильтров, без статуса
+  const cnt = { all: base.length, want: 0, ordered: 0, done: 0 };
+  base.forEach(i => { if (cnt[i.status] !== undefined) cnt[i.status]++; });
+  ['all', 'want', 'ordered', 'done'].forEach(k => { $('c_' + k).textContent = cnt[k]; });
+  const list = filterStatus === 'all' ? base : base.filter(i => i.status === filterStatus);
 
-  const want = products.filter(i => i.status !== 'done');
-  $('stTotal').textContent = products.length;
-  $('stSum').textContent   = products.length ? fmtPrice(want.reduce((s, i) => s + (productPrice(i.id) || 0), 0)) : '—';
-  $('stDone').textContent  = products.filter(i => i.status === 'done').length;
-  $('stLeft').textContent  = want.length;
+  const left = list.filter(i => i.status !== 'done');
+  const leftSum = left.reduce((s, i) => s + (productPrice(i.id) || 0), 0);
+  $('sumTxt').innerHTML = `<b>${list.length}</b> ${plural(list.length, 'товар', 'товара', 'товаров')}`
+    + (list.length !== products.length ? ` из ${products.length}` : '')
+    + (leftSum ? ` · <span class="am">${fmtPrice(leftSum)}</span> осталось купить` : '');
+  renderChips();
+
+  const narrowed = fltCount() > 0 || !!searchQ || filterStatus !== 'all';
+  $('emptyTxt').textContent = narrowed ? 'Ничего не найдено' : 'Список пуст';
+  $('emptyReset').style.display = fltCount() > 0 || searchQ ? 'inline-block' : 'none';
 
   if (list.length === 0) {
     mainList.style.display = 'none';
@@ -1050,7 +1219,7 @@ function renderGallery(list) {
 
 function renderZoneNode(zone, visibleIds) {
   const node = document.createElement('div');
-  node.className = 'zone-node' + (zone._open ? ' open' : '');
+  node.className = 'zone-node' + (zone._open || fltCount() > 0 || searchQ ? ' open' : '');
 
   const card = document.createElement('div');
   card.className = 'zone-card';
@@ -1801,12 +1970,7 @@ $('statusTabs').addEventListener('click', e => {
   document.querySelectorAll('.stab').forEach(t => t.classList.remove('on'));
   tab.classList.add('on'); filterStatus = tab.dataset.s; render();
 });
-document.querySelectorAll('.sort-opt').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.sort-opt').forEach(b => b.classList.remove('on'));
-    btn.classList.add('on'); sortMode = btn.dataset.sort; render();
-  });
-});
+$('sortSel').addEventListener('change', e => { sortMode = e.target.value; render(); });
 
 // ══════════════════════════════════════════════════
 // UTILS
