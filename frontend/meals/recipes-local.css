@@ -62,3 +62,37 @@
 .portion-stepper { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text2); }
 .portion-stepper .icon-btn { width: 32px; height: 32px; font-size: 18px; }
 #rv-portions { min-width: 84px; text-align: center; font-weight: 600; }
+
+/* ── Компактная панель списков (рецепты, продукты): поиск + фильтры + сводка ── */
+.rc-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.rc-bar .search-bar { flex: 1; min-width: 0; margin: 0; }
+.rc-ib, .rc-flt { height: 40px; flex: none; border-radius: var(--r); background: var(--bg2); border: 1px solid var(--border); color: var(--text2);
+  display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 17px; cursor: pointer; transition: .15s; }
+.rc-ib { width: 40px; }
+.rc-flt { padding: 0 12px; }
+.rc-flt svg { width: 16px; height: 16px; }
+.rc-flt.on { border-color: var(--accent); color: var(--accent2); }
+.rc-flt .n { display: none; min-width: 16px; height: 16px; border-radius: 8px; background: var(--accent); color: var(--on-accent);
+  font-size: 10px; font-weight: 800; align-items: center; justify-content: center; padding: 0 4px; }
+.rc-flt.on .n { display: flex; }
+.rc-ib:hover, .rc-flt:hover { color: var(--text); background: var(--bg3); }
+.mp-chips.rc-scroll { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 6px; }
+.mp-chips.rc-scroll::-webkit-scrollbar { display: none; }
+.rc-scroll .mp-chip { flex: none; white-space: nowrap; }
+.mp-chip .cnt { font-style: normal; font-family: var(--m); font-size: 10px; opacity: .6; margin-left: 5px; }
+.mp-chip.fx { display: inline-flex; align-items: center; gap: 6px; padding-right: 7px; }
+.mp-chip .x { opacity: .7; cursor: pointer; font-size: 11px; font-weight: 400; }
+.mp-chip .x:hover { opacity: 1; }
+.rc-sum { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text2); padding: 0 2px 6px; }
+.rc-sum b { color: var(--text); font-family: var(--m); font-weight: 600; }
+.rc-sum .sp { flex: 1; }
+.rc-sort { background: none; border: none; color: var(--text2); font-size: 12px; font-family: inherit; cursor: pointer; padding: 2px 0; outline: none; text-align: right; width: auto; min-height: 0; }
+.rc-sort option { background: var(--bg2); color: var(--text); }
+.rc-clear { margin-top: 10px; padding: 8px 16px; border-radius: 999px; border: 1px solid var(--accent); color: var(--accent2); font-size: 13px; }
+/* окно фильтров */
+.f-sec { margin-bottom: 14px; }
+.f-lbl { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px; }
+.f-sec .mp-chips { padding: 0; }
+.f-input { width: 100%; padding: 10px 12px; border-radius: 8px; background: var(--bg3); border: 1px solid var(--border2); color: inherit; font: inherit; font-size: 14px; }
+/* сетка рецептов сама подбирает число колонок (телефон — 2, компьютер — больше) */
+.recipe-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
