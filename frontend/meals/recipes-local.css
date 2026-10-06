@@ -159,3 +159,13 @@
 .kt-book.pic .kt-bc { display: none; }
 .kt-book.pic .kt-bt, .kt-book.pic .kt-bn { position: relative; z-index: 1; margin-top: auto; color: #fff; }
 .kt-book.pic .kt-bn { position: absolute; }
+
+/* ── Рецепты: крупная сетка, форма с «Подробнее» ── */
+.recipe-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+.recipe-edit .re-photo { max-height: 240px; aspect-ratio: 4/3; }
+.re-more { border: 1px solid var(--border); border-radius: var(--r); background: var(--bg2); padding: 0 12px; }
+.re-more > summary { list-style: none; cursor: pointer; padding: 12px 0; font-size: 14px; font-weight: 700; color: var(--accent2); min-height: 44px; }
+.re-more > summary::-webkit-details-marker { display: none; }
+.re-more > summary::before { content: '▸ '; }
+.re-more[open] > summary::before { content: '▾ '; }
+.re-more[open] { padding-bottom: 12px; }

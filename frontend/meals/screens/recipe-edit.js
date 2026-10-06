@@ -8,30 +8,27 @@ const RecipeEditScreen = {
     const r = data?.id ? await Recipes.get(data.id) : null;
     if (data?.id && !r) { container.innerHTML = '<div class="empty"><div class="empty-title">Рецепт не найден</div></div>'; return; }
     const isNew = !r;
-    this._r = r || { name: '', emoji: '🍽️', description: '', portions: 4, cookTimeMin: 30, difficulty: 1, tagIds: [], recommendedMeals: ['Обед'], ingredients: [], steps: [], collectionId: null, imageId: null };
+    this._r = r || { name: '', emoji: '🍽️', description: '', portions: 4, cookTimeMin: 30, difficulty: 1, tagIds: [], recommendedMeals: ['Обед'], ingredients: [], steps: [], collectionId: (window.RecipesScreen && RecipesScreen._state.collectionId) || null, imageId: null };
     this._newImage = null; this._removeImage = false; this._saving = false;
     const [products, collections, tags] = await Promise.all([Products.list(), Collections.list(), mealTagOptions()]);
     this._tags = tags;
     const x = this._r;
 
-    let h = '<div class="screen recipe-edit"><div class="re-header">';
-    h += '<button class="icon-btn" onclick="Router.back()">←</button>';
-    h += `<h2>${isNew ? 'Новый рецепт' : 'Редактировать'}</h2>`;
-    h += '<button class="icon-btn" id="re-save" onclick="RecipeEditScreen._save()">💾</button></div><div class="re-form">';
-
-    h += '<div class="re-row"><label>Фото</label><div id="re-photo"></div>';
+    let h = '<div class="screen recipe-edit"><div class="re-form">';
+    h += '<div class="re-row"><div id="re-photo"></div>';
     h += '<input type="file" id="re-file" accept="image/*" style="display:none" onchange="RecipeEditScreen._pick(this)"></div>';
-    h += `<div class="re-row"><label>Эмодзи (если нет фото)</label><input type="text" id="re-emoji" value="${esc(x.emoji)}" maxlength="4" style="font-size:24px;width:80px;text-align:center"></div>`;
     h += `<div class="re-row"><label>Название</label><input type="text" id="re-name" value="${esc(x.name)}" placeholder="Название рецепта"></div>`;
+    h += '<div class="re-row"><label>Книга</label><select id="re-collection"><option value="">— без книги —</option>';
+    for (const c of collections) h += `<option value="${esc(c.id)}"${c.id === x.collectionId ? ' selected' : ''}>${esc(c.emoji || '📚')} ${esc(c.name)}</option>`;
+    h += '</select></div>';
+
+    h += `<details class="re-more" id="re-more"${isNew ? '' : ' open'}><summary>Подробнее</summary><div class="re-form">`;
+    h += `<div class="re-row"><label>Эмодзи (если нет фото)</label><input type="text" id="re-emoji" value="${esc(x.emoji)}" maxlength="4" style="font-size:24px;width:80px;text-align:center"></div>`;
     h += `<div class="re-row"><label>Описание</label><textarea id="re-desc" rows="2" placeholder="Краткое описание">${esc(x.description)}</textarea></div>`;
     h += '<div class="re-row re-row-group">';
     h += `<div><label>Время (мин)</label><input type="number" id="re-time" value="${+x.cookTimeMin || 0}" min="0"></div>`;
     h += `<div><label>Порции</label><input type="number" id="re-portions" value="${+x.portions || 4}" min="1"></div>`;
     h += `<div><label>Сложность 1-3</label><input type="number" id="re-difficulty" value="${+x.difficulty || 1}" min="1" max="3"></div></div>`;
-
-    h += '<div class="re-row"><label>Коллекция</label><select id="re-collection"><option value="">— без коллекции —</option>';
-    for (const c of collections) h += `<option value="${esc(c.id)}"${c.id === x.collectionId ? ' selected' : ''}>${esc(c.emoji || '📚')} ${esc(c.name)}</option>`;
-    h += '</select></div>';
 
     h += '<div class="re-row"><label>Теги</label><div class="mp-chips" id="re-tags"></div></div>';
 
@@ -51,7 +48,8 @@ const RecipeEditScreen = {
     (x.steps || []).forEach(s => { h += this._stepRow(s); });
     h += '</div><button class="re-add-btn" onclick="RecipeEditScreen._addStep()">+ Шаг</button></div>';
     h += `<div class="re-section"><h3>📌 Заметки</h3><textarea id="re-notes" rows="3" style="width:100%" placeholder="Советы, замены, хранение, детали">${esc(x.notes || '')}</textarea></div>`;
-    h += '</div></div>';
+    h += '</div></details>';
+    h += '<button class="kt-main" id="re-save" onclick="RecipeEditScreen._save()">Сохранить</button></div></div>';
 
     container.innerHTML = h;
     LifeShell.update({ title: isNew ? 'Новый рецепт' : 'Редактирование' });
@@ -146,7 +144,7 @@ const RecipeEditScreen = {
     const data = await this._collect();
     if (!data.name) { toast('Введите название рецепта', 'err'); return; }
     this._saving = true;
-    const btn = document.getElementById('re-save'); btn.disabled = true; btn.textContent = '⏳';
+    const btn = document.getElementById('re-save'); btn.disabled = true; btn.textContent = 'Сохранение…';
     try {
       const oldImage = this._r.imageId || null;
       let imageId = oldImage;
@@ -158,7 +156,7 @@ const RecipeEditScreen = {
       if (data.id) Router.back(); else Router.go('recipe.view', { id: saved.id }, { replace: true });
     } catch (e) {
       console.error(e); toast('Ошибка: ' + e.message, 'err');
-      this._saving = false; btn.disabled = false; btn.textContent = '💾';
+      this._saving = false; btn.disabled = false; btn.textContent = 'Сохранить';
     }
   },
 };
