@@ -180,6 +180,7 @@
     .pc-status-dot{width:5px;height:5px;border-radius:50%;background:var(--text3);flex-shrink:0}
     .pc-status-dot.ordered{background:var(--orange)}
     .pc-status-dot.done{background:var(--green)}
+  .pc-status-dot.dream{background:#b79cff}
 
     /* ── LIST VIEW (flat, grouped by full zone path) ── */
     .cat-group{margin-bottom:20px}
@@ -206,6 +207,7 @@
     .item-status-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0}
     .item-status-dot.ordered{background:var(--orange);box-shadow:0 0 5px var(--orange)}
     .item-status-dot.done{background:var(--accent)}
+  .item-status-dot.dream{background:#b79cff}
     .item-tags-row{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
     .tag-pill{padding:2px 8px;border-radius:100px;font-size:11px;background:var(--s3);color:var(--dim)}
     .prio-badge{flex-shrink:0;align-self:flex-start;font-size:10px;font-weight:700;padding:3px 8px;border-radius:100px;font-family:var(--mono)}
@@ -392,13 +394,6 @@
 <div id="app">
 
   <div class="hdr">
-    <div class="status-tabs" id="statusTabs">
-      <button class="stab on" data-s="all">Все<i id="c_all">0</i></button>
-      <button class="stab" data-s="want">Хочу<i id="c_want">0</i></button>
-      <button class="stab" data-s="ordered">Заказано<i id="c_ordered">0</i></button>
-      <button class="stab" data-s="done">Куплено<i id="c_done">0</i></button>
-    </div>
-
     <div class="search-row">
       <div class="search-box">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -407,6 +402,7 @@
       <button class="flt-btn" id="btnFilters" title="Фильтры" aria-label="Фильтры">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg><span class="n" id="fltN">0</span>
       </button>
+      <button class="flt-btn" id="btnViewToggle" type="button" style="font-size:16px;line-height:1"></button>
       <div class="grid-ctrl" id="gridCtrl">
         <button class="grid-btn" id="gridMinus">−</button>
         <span id="gridColsLabel">7</span>
@@ -417,10 +413,9 @@
     <div class="sum-row">
       <span id="sumTxt"></span><span class="sum-sp"></span>
       <select id="sortSel" class="sort-sel" aria-label="Сортировка">
-        <option value="priority">по приоритету</option>
+        <option value="date">сначала новые</option>
         <option value="price_asc">цена ↑</option>
         <option value="price_desc">цена ↓</option>
-        <option value="date">сначала новые</option>
       </select>
     </div>
     <div class="chips-row" id="chipsRow" style="display:none"></div>
@@ -506,14 +501,13 @@
     <div class="fg">
       <label class="fl">Приоритет</label>
       <div class="prio-sel" id="prioSel">
-        <button type="button" class="prio-opt" data-p="2">🔴 СРОЧНО</button>
-        <button type="button" class="prio-opt" data-p="1">📅 ПЛАН</button>
-        <button type="button" class="prio-opt" data-p="0">○ ОБЫЧНЫЙ</button>
+        <button type="button" class="prio-opt" data-p="2">🔴 Высокий приоритет</button>
       </div>
     </div>
     <div class="fg">
       <label class="fl">Статус</label>
       <div class="status-sel" id="statusSel">
+        <button type="button" class="status-opt" data-sv="dream">Мечта</button>
         <button type="button" class="status-opt" data-sv="want">Хочу</button>
         <button type="button" class="status-opt" data-sv="ordered">Заказано</button>
         <button type="button" class="status-opt" data-sv="done">Куплено</button>
@@ -597,6 +591,7 @@
       <h3>Фильтры</h3>
       <button class="mclose" id="filterClose">✕</button>
     </div>
+    <div class="fg"><label class="fl">Статус</label><div class="f-chips" id="fStatus"></div></div>
     <div class="fg"><label class="fl">Приоритет</label><div class="f-chips" id="fPrio"></div></div>
     <div class="fg"><label class="fl">Зона</label><select id="fZone" class="fi"></select></div>
     <div class="fg" id="fShopsWrap"><label class="fl">Магазин</label><div class="f-chips" id="fShops"></div></div>
@@ -675,10 +670,9 @@
 <script>window.LifeShell = window.LifeShell || { mount() {}, update() {} };  /* core ещё не обновлён — без шапки, но без падения */</script>
 <script>
 // Единая шапка: логотип/название модуля и переключатель модулей рисует LifeShell, здесь только действия
-LifeShell.mount({ module: 'purchases', actions: [
-  { id: 'btnView',        icon: '☰', label: 'Показать списком',  onClick: () => setView(viewMode === 'gallery' ? 'list' : 'gallery') },
-  { id: 'btnManageZones', icon: '🗂', label: 'Все зоны',          onClick: () => { renderZoneManageList(); openSheet('manage'); } },
-  { id: 'btnSync',        icon: '⟳', label: 'Обновить',          onClick: () => syncNow() },
+LifeShell.mount({ module: 'purchases', actions: [], menuItems: [
+  { icon: '🗂', label: 'Управление зонами', onClick: () => { renderZoneManageList(); openSheet('manage'); } },
+  { icon: '⟳', label: 'Обновить данные',   onClick: () => syncNow() },
 ] });
 
 // ── STATE ──────────────────────────────────────────
@@ -689,7 +683,7 @@ let shops      = [];
 
 let filterStatus = 'all';
 let searchQ       = '';
-let sortMode      = 'priority';
+let sortMode      = 'date';
 let viewMode      = 'gallery'; // 'list' | 'gallery'
 let gridCols      = window.matchMedia('(max-width: 768px)').matches ? 4 : 8; // 4..8, по умолчанию: телефон 4 / ПК 8
 
@@ -708,7 +702,7 @@ let curTagIds   = [];   // выбранные теги (id: системные '
 let curLegacy   = [];   // старые текстовые теги (пока не превращены в настоящие)
 let tagOpts     = [];   // системные + личные теги для модуля purchases
 let tagMap      = {};
-let curPriority = 1;
+let curPriority = 0;
 let curStatus   = 'want';
 
 // ── ELEMENTS ──────────────────────────────────────
@@ -727,8 +721,8 @@ const emptyEl   = $('emptyEl');
 //   zones:              name, emoji, parentId, modules[], showInPurchases
 //   shops:              name, logo, url
 // ══════════════════════════════════════════════════
-const ST_TO_UI   = { wish: 'want', ordered: 'ordered', in_stock: 'done' };
-const ST_FROM_UI = { want: 'wish', ordered: 'ordered', done: 'in_stock' };
+const ST_TO_UI   = { dream: 'dream', wish: 'want', ordered: 'ordered', in_stock: 'done' };
+const ST_FROM_UI = { dream: 'dream', want: 'wish', ordered: 'ordered', done: 'in_stock' };
 let lastLoadAt = 0;
 
 // ── IMAGES: сжатие, кэш ссылок (B2-ссылки живут ~1 ч), чистка ──
@@ -974,7 +968,7 @@ function countProductsInZone(zoneId) {
 }
 function sumZone(zoneId) {
   let s = 0;
-  products.filter(p => (p.zone_id || null) === zoneId && p.status !== 'done').forEach(p => s += (productPrice(p.id) || 0));
+  products.filter(p => (p.zone_id || null) === zoneId && p.status !== 'done' && p.status !== 'dream').forEach(p => s += (productPrice(p.id) || 0));
   zoneChildren(zoneId).forEach(z => s += sumZone(z.id));
   return s;
 }
@@ -1001,12 +995,16 @@ function zoneMatchesFilters(zoneId, visibleIds) {
 // ══════════════════════════════════════════════════
 const flt = { prio: new Set(), shops: new Set(), zone: '', min: null, max: null, tags: new Set(), noPrice: false, noPhoto: false };
 const NONE = '__none';
-const PRIO_LBL = { 2: '🔴 Высокий', 1: '🟡 Средний', 0: '⚪ Низкий' };
+const PRIO_LBL = { 2: '🔴 Высокий', 0: '⚪ Обычный' };
+// Приоритет — флажок: 2 = высокий, всё остальное (0/1 в старых записях) = обычный
+const prioOf = p => (p.priority === 2 ? 2 : 0);
+const statusCls = s => (s === 'ordered' ? 'ordered' : s === 'done' ? 'done' : s === 'dream' ? 'dream' : '');
+const STATUS_OPTS = [['all', 'Все'], ['dream', 'Мечта'], ['want', 'Хочу'], ['ordered', 'Заказано'], ['done', 'Куплено']];
 function fltCount() {
-  return flt.prio.size + flt.shops.size + (flt.zone ? 1 : 0) + (flt.min != null || flt.max != null ? 1 : 0) + flt.tags.size + (flt.noPrice ? 1 : 0) + (flt.noPhoto ? 1 : 0);
+  return (filterStatus !== 'all' ? 1 : 0) + flt.prio.size + flt.shops.size + (flt.zone ? 1 : 0) + (flt.min != null || flt.max != null ? 1 : 0) + flt.tags.size + (flt.noPrice ? 1 : 0) + (flt.noPhoto ? 1 : 0);
 }
 function fltReset() {
-  flt.prio.clear(); flt.shops.clear(); flt.tags.clear();
+  filterStatus = 'all'; flt.prio.clear(); flt.shops.clear(); flt.tags.clear();
   flt.zone = ''; flt.min = null; flt.max = null; flt.noPrice = false; flt.noPhoto = false;
 }
 const hasPhoto = id => (variantsByProduct[id] || []).some(v => v._imageId);
@@ -1015,7 +1013,7 @@ const productTagKeys = p => [...(p.tagIds || []), ...(p.legacy || []).map(t => '
 function shopNameById(id) { const s = shops.find(x => x.id === id); return s ? s.name : ''; }
 
 function passesFilters(p) {
-  if (flt.prio.size && !flt.prio.has(p.priority ?? 1)) return false;
+  if (flt.prio.size && !flt.prio.has(prioOf(p))) return false;
   if (flt.zone === NONE) { if (p.zone_id) return false; }
   else if (flt.zone && p.zone_id !== flt.zone && !(p.zone_id && isDescendantOf(p.zone_id, flt.zone))) return false;
   if (flt.shops.size && !productShopKeys(p.id).some(k => flt.shops.has(k))) return false;
@@ -1045,8 +1043,10 @@ function getVisible(skipStatus) {
     case 'price_asc':  list.sort((a, b) => (productPrice(a.id) || 0) - (productPrice(b.id) || 0)); break;
     case 'price_desc': list.sort((a, b) => (productPrice(b.id) || 0) - (productPrice(a.id) || 0)); break;
     case 'date':       list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)); break;
-    default:           list.sort((a, b) => (b.priority || 0) - (a.priority || 0)); break;
+    default:           break;
   }
+  // Высокий приоритет всегда первее при любой сортировке (sort стабилен: порядок внутри групп сохраняется)
+  list.sort((a, b) => (prioOf(b) === 2) - (prioOf(a) === 2));
   return list;
 }
 
@@ -1056,6 +1056,7 @@ function plural(n, one, few, many) {
 }
 function renderChips() {
   const chips = [];
+  if (filterStatus !== 'all') chips.push(['status', filterStatus, '📌 ' + (STATUS_OPTS.find(o => o[0] === filterStatus) || [, filterStatus])[1]]);
   [...flt.prio].sort((a, b) => b - a).forEach(p => chips.push(['prio', p, PRIO_LBL[p]]));
   if (flt.zone) chips.push(['zone', flt.zone, '🗂 ' + (flt.zone === NONE ? 'Без зоны' : zonePath(flt.zone))]);
   flt.shops.forEach(k => chips.push(['shop', k, '🏪 ' + (k === NONE ? 'Без магазина' : shopNameById(k) || 'магазин')]));
@@ -1082,6 +1083,7 @@ $('chipsRow').addEventListener('click', e => {
   const b = e.target.closest('button[data-k]'); if (!b) return;
   const k = b.dataset.k, v = b.dataset.v;
   if (k === 'all') fltReset();
+  else if (k === 'status') filterStatus = 'all';
   else if (k === 'prio') flt.prio.delete(+v);
   else if (k === 'zone') flt.zone = '';
   else if (k === 'shop') flt.shops.delete(v);
@@ -1098,7 +1100,10 @@ function zoneOptionsFlat(parentId = null, depth = 0, out = []) {
   return out;
 }
 function buildFilterUI() {
-  $('fPrio').innerHTML = [2, 1, 0].map(p => `<button class="f-chip${flt.prio.has(p) ? ' on' : ''}" data-f="prio" data-v="${p}">${PRIO_LBL[p]}</button>`).join('');
+  const sBase = getVisible(true), sCnt = { all: sBase.length, dream: 0, want: 0, ordered: 0, done: 0 };
+  sBase.forEach(i => { if (sCnt[i.status] !== undefined) sCnt[i.status]++; });
+  $('fStatus').innerHTML = STATUS_OPTS.map(([k, l]) => `<button class="f-chip${filterStatus === k ? ' on' : ''}" data-f="status" data-v="${k}">${l}<i>${sCnt[k]}</i></button>`).join('');
+  $('fPrio').innerHTML = [2, 0].map(p => `<button class="f-chip${flt.prio.has(p) ? ' on' : ''}" data-f="prio" data-v="${p}">${PRIO_LBL[p]}</button>`).join('');
   $('fZone').innerHTML = '<option value="">Все зоны</option><option value="' + NONE + '">Без зоны</option>'
     + zoneOptionsFlat().map(o => `<option value="${esc(o.id)}">${esc(o.label)}</option>`).join('');
   $('fZone').value = flt.zone || '';
@@ -1134,7 +1139,8 @@ $('filterBackdrop').addEventListener('click', e => {
   const b = e.target.closest('.f-chip'); if (!b) return;
   const f = b.dataset.f, v = b.dataset.v;
   const tog = (set, x) => set.has(x) ? set.delete(x) : set.add(x);
-  if (f === 'prio') tog(flt.prio, +v);
+  if (f === 'status') filterStatus = v;
+  else if (f === 'prio') tog(flt.prio, +v);
   else if (f === 'shop') tog(flt.shops, v);
   else if (f === 'tag') tog(flt.tags, v);
   else if (f === 'noPrice') flt.noPrice = !flt.noPrice;
@@ -1149,12 +1155,9 @@ $('emptyReset').addEventListener('click', () => { fltReset(); searchQ = ''; $('s
 function render() {
   loadingEl.style.display = 'none';
   const base = getVisible(true);      // с учётом поиска и фильтров, без статуса
-  const cnt = { all: base.length, want: 0, ordered: 0, done: 0 };
-  base.forEach(i => { if (cnt[i.status] !== undefined) cnt[i.status]++; });
-  ['all', 'want', 'ordered', 'done'].forEach(k => { $('c_' + k).textContent = cnt[k]; });
   const list = filterStatus === 'all' ? base : base.filter(i => i.status === filterStatus);
 
-  const left = list.filter(i => i.status !== 'done');
+  const left = list.filter(i => i.status !== 'done' && i.status !== 'dream');
   const leftSum = left.reduce((s, i) => s + (productPrice(i.id) || 0), 0);
   $('sumTxt').innerHTML = `<b>${list.length}</b> ${plural(list.length, 'товар', 'товара', 'товаров')}`
     + (list.length !== products.length ? ` из ${products.length}` : '')
@@ -1286,7 +1289,7 @@ function buildProductCard(item) {
   const fav = favVariant(item.id);
   const price = fav ? fav.price : null;
   const image = fav ? fav.image_url : null;
-  const p = item.priority ?? 1;
+  const p = prioOf(item);
   const el = document.createElement('div');
   el.className = 'product-card' + (item.status === 'done' ? ' done' : '') + (fav ? ' favorite' : '');
   el.innerHTML = `
@@ -1300,7 +1303,7 @@ function buildProductCard(item) {
     <div class="pc-info">
       <div class="pc-name">${esc(item.name)}</div>
       <div class="pc-meta">
-        <span class="pc-status-dot ${item.status === 'ordered' ? 'ordered' : item.status === 'done' ? 'done' : ''}"></span>
+        <span class="pc-status-dot ${statusCls(item.status)}"></span>
         <span>${variantCount(item.id)}вар.</span>
       </div>
     </div>`;
@@ -1321,11 +1324,11 @@ function renderList(list) {
 
   mainList.innerHTML = orderedPaths.map(path => {
     const grpItems = groups[path];
-    const catSum = grpItems.filter(i => i.status !== 'done').reduce((s, i) => s + (productPrice(i.id) || 0), 0);
+    const catSum = grpItems.filter(i => i.status !== 'done' && i.status !== 'dream').reduce((s, i) => s + (productPrice(i.id) || 0), 0);
     const zone = grpItems[0].zone_id ? zoneById(grpItems[0].zone_id) : null;
     const catEmoji = zone ? (zone.emoji || '📦') : '📦';
     const cardsHtml = grpItems.map((item, idx) => {
-      const p = item.priority ?? 1;
+      const p = prioOf(item);
       const pLabel = p === 2 ? ['p2', '🔴 СРОЧНО'] : p === 1 ? ['p1', '📅 ПЛАН'] : ['p0', '○ ОБЫ'];
       const tags = (item.tags || []).map(t => `<span class="tag-pill">${esc(t)}</span>`).join('');
       const cosplayBadge = item.source_module === 'cosplay'
@@ -1338,7 +1341,7 @@ function renderList(list) {
           <div class="item-name">${esc(item.name)}</div>
           <div class="item-row">
             ${price ? `<span class="item-price">${fmtPrice(price)}</span>` : ''}
-            <span class="item-status-dot ${item.status === 'ordered' ? 'ordered' : item.status === 'done' ? 'done' : ''}"></span>
+            <span class="item-status-dot ${statusCls(item.status)}"></span>
           </div>
           ${tags || cosplayBadge ? `<div class="item-tags-row">${cosplayBadge}${tags}</div>` : ''}
         </div>
@@ -1484,7 +1487,7 @@ $('btnQuickAddSave').addEventListener('click', async () => {
   if (!name) { toast('Введи название', 'err'); return; }
   try {
     const id = await saveProduct(null, {
-      name, zone_id: quickAddZoneId || null, status: 'want', priority: 1, tags: [], tagIds: [], notes: null,
+      name, zone_id: quickAddZoneId || null, status: 'want', priority: 0, tags: [], tagIds: [], notes: null,
     });
     closeQuickAdd();
     render();
@@ -1517,8 +1520,8 @@ function renderProductDetail() {
   $('detailTitle').textContent = item.name;
   $('detailCount').textContent = `${variants.length} вариант${variants.length === 1 ? '' : variants.length < 5 ? 'а' : 'ов'} · ${item.zone_id ? zonePath(item.zone_id) : 'без зоны'}`;
 
-  const pLabel = item.priority === 2 ? ['p2', '🔴 Срочно'] : item.priority === 1 ? ['p1', '📅 План'] : ['', '○ Обычный'];
-  const sLabel = item.status === 'ordered' ? 'Заказано' : item.status === 'done' ? 'Куплено' : 'Хочу';
+  const pLabel = prioOf(item) === 2 ? ['p2', '🔴 Высокий'] : ['', '○ Обычный'];
+  const sLabel = item.status === 'ordered' ? 'Заказано' : item.status === 'done' ? 'Куплено' : item.status === 'dream' ? 'Мечта' : 'Хочу';
   $('detailBadges').innerHTML = `
     <span class="detail-badge ${pLabel[0]}">${pLabel[1]}</span>
     <span class="detail-badge">${sLabel}</span>
@@ -1612,7 +1615,7 @@ function openEditModal(id) {
     const o = tagOpts.find(x => x.name.toLowerCase() === String(t).toLowerCase());
     if (o) { if (!curTagIds.includes(o.id)) curTagIds.push(o.id); } else curLegacy.push(t);
   }
-  curPriority = item.priority ?? 1;
+  curPriority = prioOf(item);
   curStatus   = item.status || 'want';
   renderTagChips(); syncPrioBtns(); syncStatusBtns();
   $('editBackdrop').classList.add('on');
@@ -1648,12 +1651,12 @@ $('btnSaveEdit').addEventListener('click', async () => {
 });
 
 document.querySelectorAll('.prio-opt').forEach(btn => {
-  btn.addEventListener('click', () => { curPriority = +btn.dataset.p; syncPrioBtns(); });
+  btn.addEventListener('click', () => { curPriority = curPriority === 2 ? 0 : 2; syncPrioBtns(); });
 });
 function syncPrioBtns() {
   document.querySelectorAll('.prio-opt').forEach(btn => {
     btn.className = 'prio-opt';
-    if (+btn.dataset.p === curPriority) btn.classList.add(`on-${curPriority}`);
+    if (curPriority === 2) btn.classList.add('on-2');
   });
 }
 document.querySelectorAll('.status-opt').forEach(btn => {
@@ -1964,12 +1967,12 @@ async function syncNow() {
   catch (e) { toast('Ошибка загрузки: ' + e.message, 'err'); }
   render();
 }
+function syncViewBtn() {
+  const b = $('btnViewToggle'), g = viewMode === 'gallery';
+  b.textContent = g ? '☰' : '▦'; b.title = b.ariaLabel = g ? 'Показать списком' : 'Показать галереей';
+}
+$('btnViewToggle').addEventListener('click', () => { setView(viewMode === 'gallery' ? 'list' : 'gallery'); syncViewBtn(); });
 $('searchIn').addEventListener('input', e => { searchQ = e.target.value; render(); });
-$('statusTabs').addEventListener('click', e => {
-  const tab = e.target.closest('.stab'); if (!tab) return;
-  document.querySelectorAll('.stab').forEach(t => t.classList.remove('on'));
-  tab.classList.add('on'); filterStatus = tab.dataset.s; render();
-});
 $('sortSel').addEventListener('change', e => { sortMode = e.target.value; render(); });
 
 // ══════════════════════════════════════════════════
@@ -2036,6 +2039,7 @@ document.addEventListener('visibilitychange', async () => {
     else if (z._open === undefined) z._open = true;
   });
   setView(viewMode);
+  syncViewBtn();
   if (savedUI && typeof savedUI.scrollTop === 'number') {
     requestAnimationFrame(() => { $('scrollArea').scrollTop = savedUI.scrollTop; });
   }

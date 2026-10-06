@@ -72,7 +72,10 @@ const LifeShell = (function () {
       document.body.appendChild(menu);
     }
     const e = userEmail();
+    // opts.menuItems — пункты, которые добавляет конкретный модуль (например «Зоны» в покупках)
+    const mi = (opts.menuItems || []).map((x, i) => `<button role="menuitem" data-mi="${i}">${x.icon ? esc(x.icon) + ' ' : ''}${esc(x.label)}</button>`).join('');
     menu.innerHTML = `<div class="lo-mh"><span class="lo-ava lg">${esc(initial(e))}</span><div class="lo-mi"><b>${e ? 'Аккаунт' : 'Гость'}</b><span>${esc(e || 'вход не выполнен')}</span></div></div>
+      ${mi ? mi + '<div class="lo-msep"></div>' : ''}
       <button role="menuitem" data-m="account">👤 Аккаунт</button>
       <button role="menuitem" data-m="settings">⚙️ Настройки</button>
       <div class="lo-msep"></div>
@@ -81,6 +84,8 @@ const LifeShell = (function () {
     const b = el.querySelector('[data-acct]'); if (b) b.setAttribute('aria-expanded', 'true');
   }
   function onMenuClick(e) {
+    const mi = e.target.closest('[data-mi]');
+    if (mi) { closeMenu(); const it = (opts.menuItems || [])[+mi.dataset.mi]; if (it && typeof it.onClick === 'function') it.onClick(); return; }
     const b = e.target.closest('[data-m]'); if (!b) return;
     closeMenu(); runItem(b.dataset.m);
   }
