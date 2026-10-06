@@ -169,3 +169,15 @@
 .re-more > summary::before { content: '▸ '; }
 .re-more[open] > summary::before { content: '▾ '; }
 .re-more[open] { padding-bottom: 12px; }
+
+/* ── Помощники ── */
+.kt-people { flex-wrap: wrap; }
+.kt-person { cursor: pointer; max-width: 64px; text-align: center; }
+.kt-person > span:last-child { max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kt-person.add .kt-pe { border-style: dashed; }
+.kt-pe { font-size: 26px; }
+.pp-card { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 8px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); cursor: pointer; }
+.pp-card:active { transform: scale(.98); }
+.pp-card.add { border-style: dashed; background: transparent; opacity: .8; }
+.pp-ava { width: 64px; height: 64px; border-radius: 50%; background: var(--bg3); display: flex; align-items: center; justify-content: center; font-size: 32px; }
+.pp-name { font-size: 14px; font-weight: 700; text-align: center; word-break: break-word; }

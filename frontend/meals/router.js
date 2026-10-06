@@ -3,7 +3,7 @@
 
 const Router = {
   _routes: {}, _stack: [],
-  _tabOf: { home: 'home', recipe: 'recipes', recipes: 'recipes', collections: 'collections', product: 'collections', products: 'collections' },
+  _tabOf: { home: 'home', people: 'home', recipe: 'recipes', recipes: 'recipes', collections: 'collections', product: 'collections', products: 'collections' },
 
   register(name, screen) { this._routes[name] = screen; },
 
