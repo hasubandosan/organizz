@@ -3,7 +3,7 @@
 
 const Router = {
   _routes: {}, _stack: [],
-  _tabOf: { recipe: 'recipes', recipes: 'recipes', collections: 'collections', product: 'products', products: 'products' },
+  _tabOf: { home: 'home', recipe: 'recipes', recipes: 'recipes', collections: 'collections', product: 'products', products: 'products' },
 
   register(name, screen) { this._routes[name] = screen; },
 
@@ -21,12 +21,13 @@ const Router = {
       const t = this._stack[this._stack.length - 1];
       await this._render(t.name, t.data);
     } else {
-      await this.go('recipes', null, { reset: true });
+      await this.go('home', null, { reset: true });
     }
   },
 
   async _render(name, data) {
     const container = document.getElementById('app-content');
+    LifeShell.update({ actions: [] });   // кнопки шапки задаёт сам экран
     container.innerHTML = '<div class="empty"><div class="empty-icon">🍽️</div><div class="empty-desc">Загрузка…</div></div>';
     try {
       await Promise.race([

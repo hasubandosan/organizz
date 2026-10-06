@@ -10,8 +10,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   document.getElementById('bottom-nav').classList.remove('hidden');
-  LifeShell.mount({ module: 'meals', title: 'Рецепты', replace: '#app-header' });
+  LifeShell.mount({ module: 'meals', title: 'Кухня', replace: '#app-header' });
 
+  Router.register('home',         HomeScreen);
   Router.register('recipes',      RecipesScreen);
   Router.register('recipe.view',  RecipeViewScreen);
   Router.register('recipe.edit',  RecipeEditScreen);
@@ -25,5 +26,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.querySelectorAll('.nav-item').forEach(btn =>
     btn.addEventListener('click', () => Router.go(btn.dataset.route, null, { reset: true })));
 
-  await Router.go('recipes', null, { reset: true });
+  await Router.go('home', null, { reset: true });
 });
