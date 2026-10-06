@@ -20,10 +20,9 @@ const RecipesScreen = {
     let html = '<div class="screen">';
     html += '<div class="rc-bar"><div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="rc-search" placeholder="Поиск: название, ингредиент, тег" value="' + esc(st.search) + '"></div>';
     html += '<button class="rc-flt" id="rc-flt" title="Фильтры" aria-label="Фильтры"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg><span class="n" id="rc-fltn">0</span></button>';
-    html += '<button class="rc-ib" id="rc-new" title="Новый рецепт" aria-label="Новый рецепт">＋</button>';
     html += '<button class="rc-ib" id="rc-ai" title="Импорт через ИИ" aria-label="Импорт через ИИ">🤖</button></div>';
     if (collections.length) {
-      html += '<div class="mp-chips rc-scroll" id="rc-cols"><span class="mp-chip" data-col="">Все<i class="cnt"></i></span>';
+      html += '<div class="mp-chips rc-scroll" id="rc-cols"><span class="mp-chip" data-col="">Все книги<i class="cnt"></i></span>';
       for (const c of collections) html += `<span class="mp-chip" data-col="${esc(c.id)}">${esc(c.emoji || '📚')} ${esc(c.name)}<i class="cnt"></i></span>`;
       html += '</div>';
     }
@@ -32,12 +31,11 @@ const RecipesScreen = {
     html += '<div class="mp-chips" id="rc-active" style="display:none"></div>';
     html += '<div id="rc-grid"></div></div>';
     container.innerHTML = html;
-    LifeShell.update({ title: 'Рецепты' });
+    LifeShell.update({ title: 'Рецепты', actions: [{ icon: '＋', label: 'Новый рецепт', onClick: () => Router.go('recipe.new') }] });
 
     const $ = id => document.getElementById(id);
     $('rc-search').addEventListener('input', e => { st.search = e.target.value; this._refresh(); });
     $('rc-flt').addEventListener('click', () => this._openFilters());
-    $('rc-new').addEventListener('click', () => Router.go('recipe.new'));
     $('rc-ai').addEventListener('click', () => AIImport.open());
     $('rc-sort').addEventListener('change', e => { st.sort = e.target.value; this._refresh(); });
     const cols = $('rc-cols');
@@ -122,6 +120,8 @@ const RecipesScreen = {
       const cnt = el.querySelector('.cnt'); if (cnt) cnt.textContent = el.dataset.col ? (byCol[el.dataset.col] || 0) : allCols;
     });
 
+    const book = this._cols.find(c => c.id === st.collectionId);
+    LifeShell.update({ title: book ? book.name : 'Рецепты' });
     const n = items.length;
     document.getElementById('rc-sumtxt').innerHTML = `<b>${n}</b> ${this._plural(n)}` + (n !== total ? ` из ${total}` : '');
     document.getElementById('rc-sort').value = st.sort;
