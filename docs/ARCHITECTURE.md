@@ -153,3 +153,10 @@ entityType. `path` — полный путь начиная с `/<appSlug>/...`.
 - CORS backend: `ALLOWED_ORIGIN` — один домен (сейчас он один, Netlify-сайт общий).
 - `meals` — самый крупный и самостоятельный модуль (свой router/db/screens, PWA), миграция
   потребует аккуратного маппинга его хранилища на `DB.*`.
+
+## Каталог продуктов: структура `catalog.products.data` (jsonb, без миграций)
+Колонки `name`, `category`, `unit` — как есть; всё остальное в `data` (единое для всех модулей, менять только осознанно):
+`emoji`; `protein`, `fat`, `carbs`, `kcal` — на 100 г/мл; `packageSize` — размер упаковки в единицах `unit`; `price` — ₽ за упаковку
+(как в легаси, без регионов); `unitWeight` — г в одной штуке (только для `шт`); `props` — id свойств (`gluten`, `lactose`, `vegan`, `raw`, …);
+`source` — `'ai'` (заполнено скриптом `backend/scripts/fill-catalog-data.ts`, приблизительно) или `'user'` (правка человеком).
+Нормализация на клиенте — `normProduct()` в `frontend/meals/db.js`.
