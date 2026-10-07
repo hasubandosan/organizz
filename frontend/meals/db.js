@@ -82,6 +82,31 @@ const People = {
 // Редактировать напрямую нельзя: только предложить новый продукт/правку
 // через заявку на модерацию (admin одобряет/отклоняет, голоса — подсказка).
 // MEAL_COL.products (личная коллекция) больше не используется для продуктов.
+// Данные продукта лежат в catalog.products.data (jsonb): emoji, protein/fat/carbs/kcal на 100 г|мл,
+// price (₽ за упаковку), packageSize (размер упаковки в единицах unit), props (id свойств) — как в легаси.
+const PRODUCT_PROPS = [
+  { id: 'gluten', label: 'Без глютена' }, { id: 'lactose', label: 'Без лактозы' }, { id: 'vegan', label: 'Веганский' },
+  { id: 'raw', label: 'Сырой продукт' }, { id: 'frozen', label: 'Замороженный' }, { id: 'bio', label: 'Био/Органик' },
+  { id: 'local', label: 'Местный' }, { id: 'seasonal', label: 'Сезонный' },
+];
+const PRODUCT_CATS = ['Мясо', 'Рыба', 'Молочные', 'Овощи', 'Фрукты', 'Крупы', 'Бакалея', 'Напитки', 'Соусы', 'Специи', 'Прочее'];
+const _CAT_RU = { meat: 'Мясо', fish: 'Рыба', dairy: 'Молочные', vegetables: 'Овощи', fruits: 'Фрукты', grains: 'Крупы', grocery: 'Бакалея', drinks: 'Напитки', sauces: 'Соусы', spices: 'Специи' };
+const _UNIT_RU = { g: 'г', kg: 'кг', ml: 'мл', l: 'л', pcs: 'шт' };
+const catRu  = c => _CAT_RU[String(c || '').toLowerCase()] || c || '';
+const unitRu = u => _UNIT_RU[String(u || '').toLowerCase()] || u || 'г';
+
+// Плоский вид продукта каталога для расчётов и экранов
+function normProduct(row) {
+  if (!row) return null;
+  const d = row.data || {};
+  return {
+    id: row.id, name: row.name, category: catRu(row.category), unit: unitRu(row.unit),
+    emoji: d.emoji || '🥕', protein: +d.protein || 0, fat: +d.fat || 0, carbs: +d.carbs || 0, kcal: +d.kcal || 0,
+    price: +d.price || 0, packageSize: +d.packageSize || 100, props: Array.isArray(d.props) ? d.props : [],
+    hasNutrition: !!(+d.kcal || +d.protein || +d.fat || +d.carbs),
+  };
+}
+
 const Products = {
   async list(search = '') {
     let items = await DB.request('/catalog/products');
@@ -95,18 +120,18 @@ const Products = {
   },
 
   // Предложить новый продукт. Уходит в catalog.suggestions со статусом pending.
-  async suggestNew({ name, category = '', unit = 'г' }) {
+  async suggestNew({ name, category = '', unit = 'г', data }) {
     return DB.request('/catalog/suggestions', {
       method: 'POST',
-      body: JSON.stringify({ type: 'new_product', payload: { name: String(name || '').trim(), category, unit } }),
+      body: JSON.stringify({ type: 'new_product', payload: { name: String(name || '').trim(), category, unit, ...(data ? { data } : {}) } }),
     });
   },
 
   // Предложить правку существующего продукта
-  async suggestEdit(productId, { name, category, unit }) {
+  async suggestEdit(productId, { name, category, unit, data }) {
     return DB.request('/catalog/suggestions', {
       method: 'POST',
-      body: JSON.stringify({ type: 'edit_product', productId, payload: { name, category, unit } }),
+      body: JSON.stringify({ type: 'edit_product', productId, payload: { name, category, unit, ...(data ? { data } : {}) } }),
     });
   },
 };
