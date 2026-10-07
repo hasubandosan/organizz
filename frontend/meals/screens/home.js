@@ -5,7 +5,7 @@ const HomeScreen = {
   _DAYS: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
 
   async render(container) {
-    const [recipes, cols] = await Promise.all([Recipes.list(), Collections.list()]);
+    const [recipes, cols, people] = await Promise.all([Recipes.list(), Collections.list(), People.list().catch(() => [])]);
     const byNew = [...recipes].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
     const today = (new Date().getDay() + 6) % 7;   // Пн=0
 
@@ -41,9 +41,10 @@ const HomeScreen = {
     }
     h += '</div></section>';
 
-    // 4. Помощники (люди) — экран появится на шаге 4
-    h += '<section class="kt-sec"><div class="kt-h"><h2>Помощники</h2><span class="kt-tag">скоро</span></div>'
-      + '<div class="kt-people"><div class="kt-person soon"><span class="kt-pe">＋</span><span>Добавить</span></div></div></section>';
+    // 4. Помощники (люди)
+    h += '<section class="kt-sec"><div class="kt-h"><h2>Помощники</h2><span class="sp"></span><button class="kt-link" id="kt-people">Все →</button></div><div class="kt-people">';
+    for (const p of people.slice(0, 10)) h += `<div class="kt-person" data-go="people"><span class="kt-pe">${esc(p.emoji || '🙂')}</span><span>${esc(p.name)}</span></div>`;
+    h += '<div class="kt-person add" id="kt-addp"><span class="kt-pe">＋</span><span>Добавить</span></div></div></section>';
 
     container.innerHTML = h + '</div>';
 
@@ -51,9 +52,13 @@ const HomeScreen = {
     $('kt-new').addEventListener('click', () => Router.go('recipe.new'));
     $('kt-all').addEventListener('click', () => { RecipesScreen._state.collectionId = ''; Router.go('recipes'); });
     $('kt-books').addEventListener('click', () => Router.go('collections'));
+    $('kt-people').addEventListener('click', () => Router.go('people'));
+    $('kt-addp').addEventListener('click', () => Router.go('people', { add: true }));
     container.querySelector('.kt-home').addEventListener('click', e => {
       const rid = e.target.closest('[data-rid]');
       if (rid) return Router.go('recipe.view', { id: rid.dataset.rid });
+      const pp = e.target.closest('.kt-person[data-go]');
+      if (pp) return Router.go('people');
       const b = e.target.closest('.kt-book');
       if (!b) return;
       if (b.dataset.go) Router.go(b.dataset.go);

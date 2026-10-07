@@ -5,7 +5,7 @@
 ══════════════════════════════════════════════ */
 'use strict';
 
-const MEAL_COL = { recipes: 'meal_recipes', collections: 'meal_collections', products: 'meal_products' };
+const MEAL_COL = { recipes: 'meal_recipes', collections: 'meal_collections', products: 'meal_products', people: 'meal_people' };
 const MEAL_TYPES = ['Завтрак', 'Обед', 'Ужин', 'Перекус'];
 const _byName = (a, b) => (a.name || '').localeCompare(b.name || '', 'ru');
 
@@ -66,6 +66,16 @@ const Collections = {
     if (c?.imageId) await DB.deleteImage(c.imageId).catch(() => {});
     return DB.delete(MEAL_COL.collections, id);
   },
+};
+
+// Люди («помощники»): те, кто ест. dietId зарезервирован под будущую сущность «режим питания».
+const People = {
+  async list() { return (await DB.getAll(MEAL_COL.people)).sort(_byName); },
+  async save(p) {
+    const row = { name: String(p.name || '').trim(), emoji: p.emoji || '🙂', dietId: p.dietId || null };
+    return p.id ? DB.update(MEAL_COL.people, p.id, row) : DB.create(MEAL_COL.people, row);
+  },
+  async del(id) { return DB.delete(MEAL_COL.people, id); },
 };
 
 // Продукты — ОБЩИЙ каталог (schema catalog на backend, не личные данные).

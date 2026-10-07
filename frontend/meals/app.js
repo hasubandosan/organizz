@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   Router.register('home',         HomeScreen);
   Router.register('recipes',      RecipesScreen);
+  Router.register('people',       PeopleScreen);
   Router.register('recipe.view',  RecipeViewScreen);
   Router.register('recipe.edit',  RecipeEditScreen);
   Router.register('recipe.new',   RecipeEditScreen);
