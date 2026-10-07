@@ -25,7 +25,7 @@ const SuggestionsScreen = {
       return `<div class="product-row">
         <div class="product-body">
           <div class="product-name">${esc(s.payload?.name || '')}</div>
-          <div class="product-meta">${label}${s.payload?.category ? ' · ' + esc(s.payload.category) : ''}${s.payload?.unit ? ' · ' + esc(s.payload.unit) : ''}</div>
+          <div class="product-meta">${label}${s.payload?.category ? ' · ' + esc(s.payload.category) : ''}${s.payload?.unit ? ' · ' + esc(s.payload.unit) : ''}${s.payload?.data?.kcal ? ' · ' + (+s.payload.data.kcal) + ' ккал' : ''}${s.payload?.data?.price ? ' · ' + (+s.payload.data.price) + ' ₽' : ''}</div>
         </div>
         <button class="icon-btn${s.myVote ? ' active' : ''}" onclick="SuggestionsScreen._toggleVote('${esc(s.id)}', ${s.myVote})">
           👍 ${s.voteCount || 0}

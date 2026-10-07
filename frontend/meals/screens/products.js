@@ -10,15 +10,13 @@ const ProductsScreen = {
     if (st.cat && !this._all.some(p => this._catKey(p) === st.cat)) st.cat = '';
     container.innerHTML = `<div class="screen">
       <div class="rc-bar"><div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="pr-search" placeholder="Поиск продуктов..." value="${esc(st.search)}"></div>
-        <button class="rc-ib" id="pr-new" title="Предложить продукт" aria-label="Предложить продукт">＋</button>
         <button class="rc-ib" id="pr-sugg" title="Предложка" aria-label="Предложка">🗳</button></div>
       <div class="mp-chips rc-scroll" id="pr-cats"></div>
       <div class="rc-sum"><span id="pr-sum"></span></div>
       <div id="pr-list"></div></div>`;
-    LifeShell.update({ title: 'Продукты' });
+    LifeShell.update({ title: 'Энциклопедия продуктов', actions: [{ icon: '＋', label: 'Предложить продукт', onClick: () => Router.go('product.new') }] });
     const $ = id => document.getElementById(id);
     $('pr-search').addEventListener('input', e => { st.search = e.target.value; this._refresh(); });
-    $('pr-new').addEventListener('click', () => Router.go('product.new'));
     $('pr-sugg').addEventListener('click', () => Router.go('product.suggestions'));
     $('pr-cats').addEventListener('click', e => {
       const c = e.target.closest('[data-cat]'); if (!c) return;
@@ -27,7 +25,7 @@ const ProductsScreen = {
     this._refresh();
   },
 
-  _catKey(p) { return p.category ? p.category : '__none'; },
+  _catKey(p) { return p.category ? catRu(p.category) : '__none'; },
 
   _refresh() {
     const list = document.getElementById('pr-list');
@@ -47,9 +45,11 @@ const ProductsScreen = {
     const items = bySearch.filter(p => !st.cat || this._catKey(p) === st.cat);
     document.getElementById('pr-sum').innerHTML = `<b>${items.length}</b> ${this._plural(items.length)}` + (items.length !== this._all.length ? ` из ${this._all.length}` : '');
     list.innerHTML = items.length
-      ? items.map(p => `<div class="product-row" onclick="Router.go('product.edit', { id: '${esc(p.id)}' })">
-          <div class="product-emoji">🛒</div>
-          <div class="product-body"><div class="product-name">${esc(p.name)}</div><div class="product-meta">${esc(p.unit || 'г')}${p.category ? ' · ' + esc(p.category) : ''}</div></div></div>`).join('')
+      ? items.map(raw => { const p = normProduct(raw); return `<div class="product-row" onclick="Router.go('product.edit', { id: '${esc(p.id)}' })">
+          <div class="product-emoji">${esc(p.emoji)}</div>
+          <div class="product-body"><div class="product-name">${esc(p.name)}</div>
+            <div class="product-meta">${p.hasNutrition ? `${p.kcal} ккал · Б ${p.protein} · Ж ${p.fat} · У ${p.carbs}` : 'нет данных о КБЖУ'}${p.category ? ' · ' + esc(p.category) : ''}</div></div>
+          ${p.price ? `<div class="product-price">${p.price} ₽<small>/${p.packageSize} ${esc(p.unit)}</small></div>` : ''}</div>`; }).join('')
       : '<div class="empty"><div class="empty-icon">🥕</div><div class="empty-title">' + (this._all.length ? 'Ничего не найдено' : 'В каталоге пока пусто') + '</div></div>';
   },
   _plural(n) {

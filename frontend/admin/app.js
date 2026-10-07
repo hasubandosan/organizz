@@ -43,7 +43,7 @@ async function loadQueue() {
         <div class="row-meta">
           ${s.type === 'new_product' ? 'Новый продукт' : 'Правка продукта'}
           ${s.payload?.category ? ' · ' + esc(s.payload.category) : ''}
-          ${s.payload?.unit ? ' · ' + esc(s.payload.unit) : ''}
+          ${s.payload?.unit ? ' · ' + esc(s.payload.unit) : ''}${s.payload?.data?.kcal ? ' · ' + (+s.payload.data.kcal) + ' ккал' : ''}${s.payload?.data?.price ? ' · ' + (+s.payload.data.price) + ' ₽' : ''}
           · 👍 ${s.voteCount || 0}
         </div>
       </div>
