@@ -34,6 +34,7 @@
         <span class="lg-pw"><input type="password" id="loginPassword" name="password" autocomplete="current-password" placeholder="Ваш пароль" required>
         <button type="button" class="lg-eye" data-eye="loginPassword" aria-label="Показать пароль">👁</button></span></label>
       <button type="submit" class="lg-submit" id="loginBtn">Войти</button>
+      <button type="button" class="lg-link" id="forgotLink">Забыли пароль?</button>
     </form>
 
     <form id="registerForm" class="lg-form hidden" novalidate>
@@ -43,6 +44,34 @@
         <span class="lg-pw"><input type="password" id="registerPassword" name="new-password" autocomplete="new-password" placeholder="Минимум 8 символов" minlength="8" required>
         <button type="button" class="lg-eye" data-eye="registerPassword" aria-label="Показать пароль">👁</button></span></label>
       <button type="submit" class="lg-submit" id="registerBtn">Создать аккаунт</button>
+    </form>
+
+    <form id="verifyForm" class="lg-form hidden" novalidate>
+      <p class="lg-hint" id="verifyHint">Мы отправили код на вашу почту. Если письма нет — проверьте «Спам».</p>
+      <label class="lg-field"><span>Код из письма</span>
+        <input type="text" id="verifyCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6 цифр" required></label>
+      <button type="submit" class="lg-submit" id="verifyBtn">Подтвердить</button>
+      <button type="button" class="lg-link" id="resendBtn">Выслать код ещё раз</button>
+      <button type="button" class="lg-link" data-back>← Назад</button>
+    </form>
+
+    <form id="forgotForm" class="lg-form hidden" novalidate>
+      <p class="lg-hint">Укажите почту аккаунта — пришлём код для смены пароля.</p>
+      <label class="lg-field"><span>Email</span>
+        <input type="email" id="forgotEmail" autocomplete="username" inputmode="email" autocapitalize="off" placeholder="you@example.com" required></label>
+      <button type="submit" class="lg-submit" id="forgotBtn">Выслать код</button>
+      <button type="button" class="lg-link" data-back>← Назад</button>
+    </form>
+
+    <form id="resetForm" class="lg-form hidden" novalidate>
+      <p class="lg-hint">Если такой аккаунт есть, код уже в письме (проверьте «Спам»).</p>
+      <label class="lg-field"><span>Код из письма</span>
+        <input type="text" id="resetCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6 цифр" required></label>
+      <label class="lg-field"><span>Новый пароль</span>
+        <span class="lg-pw"><input type="password" id="resetPassword" autocomplete="new-password" placeholder="Минимум 8 символов" minlength="8" required>
+        <button type="button" class="lg-eye" data-eye="resetPassword" aria-label="Показать пароль">👁</button></span></label>
+      <button type="submit" class="lg-submit" id="resetBtn">Сменить пароль</button>
+      <button type="button" class="lg-link" data-back>← Назад</button>
     </form>
 
     <p id="authError" class="lg-msg lg-error hidden" role="alert" aria-live="polite"></p>

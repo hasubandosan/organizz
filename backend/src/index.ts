@@ -22,6 +22,7 @@ const app = express();
 const allowedOrigins = process.env.ALLOWED_ORIGIN?.split(',').map((s) => s.trim()).filter(Boolean);
 app.use(cors(allowedOrigins ? { origin: allowedOrigins } : {}));
 
+app.set('trust proxy', 1); // за прокси Render — чтобы req.ip был настоящим адресом клиента
 app.use(express.json());
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
