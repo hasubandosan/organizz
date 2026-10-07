@@ -7,6 +7,9 @@ const $ = (id) => document.getElementById(id);
 const authError = $('authError'), authInfo = $('authInfo');
 const tabLogin = $('tabLogin'), tabRegister = $('tabRegister');
 const loginForm = $('loginForm'), registerForm = $('registerForm');
+const verifyForm = $('verifyForm'), forgotForm = $('forgotForm'), resetForm = $('resetForm');
+const ALL_FORMS = [loginForm, registerForm, verifyForm, forgotForm, resetForm];
+let pendingEmail = '';   // почта, на которую ушёл код (регистрация / сброс пароля)
 
 // Модули (для заголовка и акцентного цвета «куда вы идёте»)
 const MODULES = {
@@ -29,7 +32,7 @@ function targetModule() {
 })();
 
 function showError(msg) { authError.textContent = msg; authError.classList.remove('hidden'); }
-function clearError() { authError.classList.add('hidden'); }
+function clearError() { authError.classList.add('hidden'); authInfo.classList.add('hidden'); }
 function showInfo(msg) { authInfo.textContent = msg; authInfo.classList.remove('hidden'); }
 
 // Текст ошибки из ответа backend (строка или zod-объект)
@@ -41,15 +44,20 @@ function errText(data, fallback) {
   return fallback;
 }
 
-// --- вкладки Вход / Регистрация ---
-function setTab(reg) {
-  tabRegister.classList.toggle('active', reg); tabLogin.classList.toggle('active', !reg);
-  registerForm.classList.toggle('hidden', !reg); loginForm.classList.toggle('hidden', reg);
+// --- вкладки Вход / Регистрация и экраны с кодом ---
+function showForm(form, focusId) {
+  ALL_FORMS.forEach((f) => f.classList.toggle('hidden', f !== form));
+  const inTabs = form === loginForm || form === registerForm;
+  document.querySelector('.lg-tabs').classList.toggle('hidden', !inTabs);
+  tabRegister.classList.toggle('active', form === registerForm); tabLogin.classList.toggle('active', form === loginForm);
   clearError();
-  (reg ? $('registerEmail') : $('loginEmail')).focus();
+  if (focusId) $(focusId).focus();
 }
+function setTab(reg) { showForm(reg ? registerForm : loginForm, reg ? 'registerEmail' : 'loginEmail'); }
 tabLogin.addEventListener('click', () => setTab(false));
 tabRegister.addEventListener('click', () => setTab(true));
+document.querySelectorAll('[data-back]').forEach((b) => b.addEventListener('click', () => setTab(false)));
+$('forgotLink').addEventListener('click', () => { $('forgotEmail').value = $('loginEmail').value; showForm(forgotForm, 'forgotEmail'); });
 
 // --- показать / скрыть пароль ---
 document.querySelectorAll('[data-eye]').forEach((b) => b.addEventListener('click', () => {
@@ -60,7 +68,7 @@ document.querySelectorAll('[data-eye]').forEach((b) => b.addEventListener('click
 }));
 
 // --- отправка формы: блокировка кнопки, подсказка про «спящий» сервер (бесплатный хостинг просыпается ~30–60 с) ---
-async function submit(btn, busyText, path, body, fallbackError) {
+async function submit(btn, busyText, path, body, fallbackError, onOk) {
   clearError();
   const idle = btn.textContent;
   btn.disabled = true; btn.textContent = busyText;
@@ -74,12 +82,13 @@ async function submit(btn, busyText, path, body, fallbackError) {
     }
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(errText(data, fallbackError));
-    await onAuthSuccess(data.token, data.user.email);
+    if (onOk) onOk(data); else await onAuthSuccess(data.token, data.user.email);
   } catch (err) {
     showError(err.message);
     btn.disabled = false; btn.textContent = idle;
   } finally {
     clearTimeout(wake);
+    if (onOk) { btn.disabled = false; btn.textContent = idle; }
   }
 }
 
@@ -87,12 +96,54 @@ registerForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const email = $('registerEmail').value.trim(), password = $('registerPassword').value;
   if (password.length < 8) return showError('Пароль — минимум 8 символов');
-  submit($('registerBtn'), 'Создаём аккаунт…', '/auth/register', { email, password, appSlug: APP_SLUG }, 'Ошибка регистрации');
+  submit($('registerBtn'), 'Отправляем код…', '/auth/register', { email, password, appSlug: APP_SLUG }, 'Ошибка регистрации', () => {
+    pendingEmail = email; $('verifyCode').value = '';
+    $('verifyHint').textContent = `Мы отправили код на ${email}. Если письма нет — проверьте «Спам».`;
+    showForm(verifyForm, 'verifyCode');
+  });
 });
 
 loginForm.addEventListener('submit', (e) => {
   e.preventDefault();
   submit($('loginBtn'), 'Входим…', '/auth/login', { email: $('loginEmail').value.trim(), password: $('loginPassword').value }, 'Неверный email или пароль');
+});
+
+verifyForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  submit($('verifyBtn'), 'Проверяем…', '/auth/verify', { email: pendingEmail, code: $('verifyCode').value.trim() }, 'Неверный код');
+});
+
+// повторная отправка кода (сервер пускает не чаще раза в минуту)
+$('resendBtn').addEventListener('click', async () => {
+  clearError();
+  const btn = $('resendBtn'); btn.disabled = true;
+  try {
+    const res = await fetch(`${API_BASE}/auth/resend`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: pendingEmail }) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(errText(data, 'Не удалось отправить код'));
+    showInfo('Новый код отправлен.');
+  } catch (err) { showError(err.message); }
+  setTimeout(() => { btn.disabled = false; }, 5000);
+});
+
+// забыли пароль: шаг 1 — почта, шаг 2 — код и новый пароль
+forgotForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const email = $('forgotEmail').value.trim();
+  submit($('forgotBtn'), 'Отправляем…', '/auth/forgot', { email }, 'Не удалось отправить код', () => {
+    pendingEmail = email; $('resetCode').value = ''; $('resetPassword').value = '';
+    showForm(resetForm, 'resetCode');
+  });
+});
+resetForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const password = $('resetPassword').value;
+  if (password.length < 8) return showError('Пароль — минимум 8 символов');
+  submit($('resetBtn'), 'Сохраняем…', '/auth/reset', { email: pendingEmail, code: $('resetCode').value.trim(), password }, 'Не удалось сменить пароль', () => {
+    $('loginEmail').value = pendingEmail; $('loginPassword').value = '';
+    showForm(loginForm, 'loginPassword');
+    showInfo('Пароль изменён. Войдите с новым паролем.');
+  });
 });
 
 // --- возврат на модуль (модули на разных доменах → токен едет в #fragment) ---

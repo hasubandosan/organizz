@@ -34,3 +34,9 @@ body { min-height: 100dvh; display: flex; align-items: center; justify-content: 
 .lg-msg { margin: 12px 0 0; padding: 10px 12px; border-radius: var(--r2); font-size: 13px; line-height: 1.45; }
 .lg-error { background: rgba(240,80,96,.1); border: 1px solid rgba(240,80,96,.35); color: #f58a95; }
 .lg-info { margin: 0 0 14px; background: color-mix(in srgb, var(--accent) 12%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); color: var(--text2); }
+
+.lg-link { background: none; border: 0; padding: 6px; color: var(--text3); font-size: 13px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.lg-link:hover { color: var(--text); }
+.lg-link:disabled { opacity: .55; cursor: default; }
+.lg-hint { margin: 0; font-size: 13px; line-height: 1.45; color: var(--text2); }
+#verifyCode, #resetCode { font-size: 20px; letter-spacing: 6px; text-align: center; }
