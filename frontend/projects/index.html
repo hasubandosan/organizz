@@ -233,6 +233,11 @@
   margin-bottom: 14px;
 }
 .detail-img-gallery .img-thumb { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--r2); cursor: pointer; }
+.detail-img-gallery .gimg { position: relative; }
+.detail-img-gallery .gimg .cover-btn { position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; border-radius: 50%; border: 0; cursor: pointer;
+  background: rgba(0,0,0,.55); color: #fff; font-size: 14px; line-height: 1; display: flex; align-items: center; justify-content: center; }
+.detail-img-gallery .gimg .cover-btn.on { background: var(--accent); color: var(--on-accent, #fff); cursor: default; }
+.detail-cover { width: 100%; max-height: 200px; object-fit: cover; border-radius: var(--r2); margin-bottom: 12px; cursor: pointer; display: block; }
 
 /* ── Purchase variant editor (mirrors the Purchases module) ── */
 .pv-vars-editor { display: flex; flex-direction: column; gap: 8px; margin-top: 5px; }
@@ -1271,6 +1276,14 @@ async function mkProjCard(p, ctx = {}) {
     ${tasks.length ? `<div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--text3);font-family:var(--m)"><span>${done}/${tasks.length} tasks</span><span>${pct}%</span></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>` : ''}
   </div>`;
 }
+// первая картинка в imageIds = главная (она же на карточке проекта и в шапке)
+async function setProjectCover(projId, imageId) {
+  const p = await DB.getById('projects', projId); if (!p) return;
+  const ids = [imageId, ...(p.imageIds || []).filter(x => x !== imageId)];
+  await DB.update('projects', projId, { imageIds: ids });
+  UI.toast('Main picture set');
+  showProject(projId);
+}
 async function editProj(id) { const p = await DB.getById('projects', id); if (p) openProjModal(p); }
 
 /* ═══════════════════════════════════════════
@@ -1781,11 +1794,17 @@ async function showProject(id) {
 
   // images — compact auto-fill gallery instead of the fixed 3-col picker grid
   // (which stretches into huge tiles on a full-width page like this one).
-  let imgH = '';
+  let imgH = '', coverH = '';
   if (p.imageIds?.length) {
     let th = '';
-    for (const iid of p.imageIds) { const img = await DB.getImage(iid); if (img) th += `<img class="img-thumb" src="${img.data}" onclick="UI.previewImage('${img.data}')">`; }
-    imgH = `<div class="detail-section-title">Images</div><div class="detail-img-gallery">${th}</div>`;
+    for (const iid of p.imageIds) {
+      const img = await DB.getImage(iid); if (!img) continue;
+      const main = iid === p.imageIds[0];
+      if (main) coverH = `<img class="detail-cover" src="${img.data}" onclick="UI.previewImage('${img.data}')">`;
+      th += `<div class="gimg"><img class="img-thumb" src="${img.data}" onclick="UI.previewImage('${img.data}')">`
+        + (p.imageIds.length > 1 ? `<button class="cover-btn ${main ? 'on' : ''}" title="${main ? 'Main picture' : 'Make main picture'}" ${main ? '' : `onclick="setProjectCover('${p.id}','${iid}')"`}>${main ? '★' : '☆'}</button>` : '') + `</div>`;
+    }
+    if (p.imageIds.length > 1) imgH = `<div class="detail-section-title">Images</div><div class="detail-img-gallery">${th}</div>`;
   }
 
   let tasksH = ''; for (const t of rootT) tasksH += await mkTaskRow(t, allT, true, 0, { [p.id]: p });
@@ -1816,6 +1835,7 @@ async function showProject(id) {
         <button class="topbar-btn" onclick="deleteProject('${p.id}')" aria-label="Delete project"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button>
       </div>
     </div>
+    ${coverH}
     <div class="detail-title">${area?area.emoji+' ':''}${p.name}</div>
     ${p.description ? `<div class="detail-desc">${p.description}</div>` : ''}
     <div class="card-footer" style="margin-top:8px">${UI.statusBadge(p.status)}${UI.priorityBadge(p.priority)}${(p.tags||[]).map(t=>UI.tagBadge(t)).join('')}</div>
