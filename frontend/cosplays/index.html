@@ -63,19 +63,21 @@
   .lc-s{font-size:12px;color:var(--text3);margin-top:2px}
 
   /* инвентарь образа: ячейки по слотам, с головы до ног, по центру */
-  .inv{display:flex;flex-direction:column;gap:12px}
-  .slot{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:10px 10px 12px}
-  .slot-h{display:flex;align-items:center;gap:6px;justify-content:center;font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px}
-  .slot-tiles{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
-  .tile{width:104px;cursor:pointer;text-align:center}
-  .tile .ph{border-radius:10px;border:2px solid var(--border2);font-size:30px}
+  .inv{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}
+  .slot{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:8px 8px 10px}
+  .slot-h{display:flex;align-items:center;gap:6px;justify-content:center;font-size:11px;font-weight:700;color:var(--text2);margin-bottom:8px}
+  .slot-tiles{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+  .tile{width:78px;cursor:pointer;text-align:center}
+  .tw{position:relative}
+  .mk{position:absolute;top:3px;left:3px;font-size:11px;line-height:1;background:rgba(0,0,0,.6);border-radius:5px;padding:2px 3px;z-index:2}
+  .tile .ph{border-radius:9px;border:2px solid var(--border2);font-size:22px}
   .tile.st-dream .ph{border-color:#b79cff}
   .tile.st-ordered .ph{border-color:var(--orange)}
   .tile.st-in_stock .ph{border-color:var(--green)}
   .tile:hover .ph{filter:brightness(1.12)}
-  .tile-n{font-size:11px;font-weight:600;margin-top:5px;line-height:1.25;max-height:2.5em;overflow:hidden}
-  .tile-p{font-size:11px;color:var(--text3);font-family:var(--mono)}
-  .tile.add .ph{border:2px dashed var(--border2);background:transparent;font-size:26px}
+  .tile-n{font-size:10.5px;font-weight:600;margin-top:4px;line-height:1.2;max-height:2.4em;overflow:hidden}
+  .tile-p{font-size:10px;color:var(--text3);font-family:var(--mono)}
+  .tile.add .ph{border:2px dashed var(--border2);background:transparent;font-size:20px}
   .tile.add:hover .ph{border-color:var(--accent);color:var(--accent2)}
 
   .fab{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));right:max(18px,calc((100vw - var(--content-max))/2 + 18px));height:50px;padding:0 20px;border-radius:25px;background:var(--accent);color:var(--on-accent);font-size:14px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.45);z-index:50}
@@ -116,6 +118,9 @@
   .var-row.pref{border-color:var(--accent)}
   .var-i{flex:1;min-width:0;font-size:13px;cursor:pointer}
   .var-i small{display:block;color:var(--text3);font-size:11px}
+  .fd-ico{width:22px;height:22px;object-fit:contain;vertical-align:middle;border-radius:5px}
+  .fd-cur{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:14px;font-weight:600}
+  .fd-cur .ib{margin-left:auto}
   .ib{width:30px;height:30px;border-radius:8px;background:var(--bg4);color:var(--text2);font-size:14px;flex:none}
   .ib.on{color:var(--accent);background:rgba(160,112,240,.12)}
   .others{font-size:12px;color:var(--text2)}
@@ -130,7 +135,8 @@
     .cp-side{position:static;display:grid;grid-template-columns:130px 1fr;gap:6px 14px;align-items:start}
     .cp-title{grid-column:1/-1;font-size:20px;margin-bottom:2px}
     .cp-photo{grid-row:2/6}
-    .tile{width:92px}
+    .tile{width:70px}
+    .inv{grid-template-columns:1fr}
   }
 </style>
 </head>
@@ -147,6 +153,8 @@
 <script src="https://organizz-core.pages.dev/nav.js"></script>
 <script src="https://organizz-core.pages.dev/shell.js"></script>
 <script>window.LifeShell = window.LifeShell || { mount() {}, update() {} };</script>
+<script src="https://organizz-core.pages.dev/fandoms.js"></script>
+<script>window.LIFEOS_FANDOMS = window.LIFEOS_FANDOMS || [];</script>
 <script>
 'use strict';
 /* ═════════ Косплей v2 ═════════
@@ -185,8 +193,20 @@ const TYPES = [
   { tag: 'sys:cp-weapon',    label: 'Оружие / бутафория', emoji: '⚔️', slot: 'props' },
   { tag: 'sys:cp-artifact',  label: 'Артефакт / реквизит', emoji: '🔮', slot: 'props' },
 ];
+// Фандомы: системный каталог (общий, с эмодзи/логотипом) + свои у пользователя (только название и эмодзи)
+const FD_BASE = 'https://organizz-core.pages.dev/';
+const SYS_FANDOMS = (window.LIFEOS_FANDOMS || []).map(f => ({ ...f, id: 'sys:' + f.id, system: true }));
+const fandomById = id => id ? (fandoms.find(f => f.id === id) || SYS_FANDOMS.find(f => f.id === id) || null) : null;
+const allFandoms = () => [...fandoms.map(f => ({ ...f, system: false })), ...SYS_FANDOMS];
+function fdIcon(f) {
+  const em = esc(f && f.emoji ? f.emoji : '✨');
+  return f && f.logo ? `<img class="fd-ico" src="${FD_BASE}${esc(f.logo)}" alt="" onerror="this.outerHTML='${em}'">` : em;
+}
 const typeOf = tag => TYPES.find(t => t.tag === tag) || TYPES[TYPES.length - 1];
 const STATUSES = [['dream', 'Мечта'], ['wish', 'Хочу'], ['ordered', 'Заказано'], ['in_stock', 'Куплено']];
+// предмет «сделать самой» (DIY): без покупки, свой статус
+const MAKE_ST = [['todo', 'Задумано'], ['doing', 'В работе'], ['done', 'Готово']];
+const MAKE_CLS = { todo: 'dream', doing: 'ordered', done: 'in_stock' };
 
 // ───────── состояние ─────────
 let fandoms = [], chars = [], looks = [], items = [];
@@ -255,18 +275,22 @@ function prepImage(file, aspect, maxSide = 1000, q = 0.85) {
 // ───────── вычисления ─────────
 const itemsOfLook = id => items.filter(i => i.lookId === id);
 function itemView(it) {
+  if (it.how === 'make') {
+    return { it, p: null, vs: [], main: null, make: true, name: it.name || 'Без названия', status: MAKE_CLS[it.makeStatus || 'todo'],
+      price: null, imgId: it.photoImageId || null, imgSlug: 'cosplays', type: typeOf((it.tagIds || [])[0]) };
+  }
   const p = purchases.get(it.purchaseId);
   const vs = variants.get(it.purchaseId) || [];
   const main = vs.find(v => v.isPrimary) || vs[0];
   const withImg = (main && main.imageIds && main.imageIds[0]) ? main : vs.find(v => v.imageIds && v.imageIds[0]);
   return {
     it, p, vs, main, name: p ? p.name : '(покупка удалена)', status: p ? (p.status || 'wish') : 'wish',
-    price: main ? main.price : null, imgId: withImg ? withImg.imageIds[0] : null, type: typeOf((it.tagIds || [])[0]),
+    price: main ? main.price : null, imgId: withImg ? withImg.imageIds[0] : null, imgSlug: PUR, type: typeOf((it.tagIds || [])[0]),
   };
 }
 function lookProgress(lookId) {
   const its = itemsOfLook(lookId); if (!its.length) return { n: 0, done: 0, pct: 0 };
-  const done = its.filter(i => (purchases.get(i.purchaseId) || {}).status === 'in_stock').length;
+  const done = its.filter(i => i.how === 'make' ? i.makeStatus === 'done' : (purchases.get(i.purchaseId) || {}).status === 'in_stock').length;
   return { n: its.length, done, pct: Math.round(done * 100 / its.length) };
 }
 function charProgress(charId) {
@@ -311,13 +335,13 @@ function render() {
   const ch = r.c ? chars.find(x => x.id === r.c) : null;
   const lk = r.l ? looks.find(x => x.id === r.l) : null;
   if ((r.v !== 'home' && !ch) || (r.v === 'look' && (!lk || lk.charId !== ch.id))) { location.hash = '#/'; return; }
-  const fd = ch && ch.fandomId ? fandoms.find(f => f.id === ch.fandomId) : null;
+  const fd = ch && ch.fandomId ? fandomById(ch.fandomId) : null;
   const title = r.v === 'home' ? 'Персонажи' : r.v === 'char' ? ch.name : `${ch.name} · ${lk.name}`;
   LifeShell.update({ title, back: r.v !== 'home' ? () => history.length > 1 ? history.back() : (location.hash = '#/') : false });
   if (r.v === 'home') { crumbs.style.display = 'none'; }
   else {
     crumbs.style.display = 'flex';
-    const fdTxt = fd ? `${esc(fd.emoji || '✨')} ${esc(fd.name)}` : 'Без фандома';
+    const fdTxt = fd ? `${fdIcon(fd)} ${esc(fd.name)}` : 'Без фандома';
     crumbs.innerHTML = `<a href="#/">🎭 Косплей</a>›<a href="#/">${fdTxt}</a>›` +
       (r.v === 'char' ? `<b>${esc(ch.name)}</b>` : `<a href="#/c/${ch.id}">${esc(ch.name)}</a>›<b>${esc(lk.name)}</b>`);
   }
@@ -333,11 +357,11 @@ function render() {
 function viewHome() {
   if (!chars.length) return `<div class="empty"><div class="ico">🎭</div><div>Пока нет персонажей</div><button class="cb pri" onclick="charForm()">＋ Добавить первого</button></div>`;
   const groups = new Map();
-  chars.forEach(c => { const k = c.fandomId && fandoms.some(f => f.id === c.fandomId) ? c.fandomId : ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(c); });
-  const order = [...fandoms.map(f => f.id).filter(id => groups.has(id)), ...(groups.has('') ? [''] : [])];
+  chars.forEach(c => { const k = c.fandomId && fandomById(c.fandomId) ? c.fandomId : ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(c); });
+  const order = [...allFandoms().sort(byName).map(f => f.id).filter(id => groups.has(id)), ...(groups.has('') ? [''] : [])];
   return order.map(id => {
-    const f = fandoms.find(x => x.id === id), list = groups.get(id).slice().sort(byName);
-    return `<div class="fd-h"><span>${f ? esc(f.emoji || '✨') : '🎭'}</span>${f ? esc(f.name) : 'Без фандома'}<i>${list.length}</i></div>
+    const f = fandomById(id), list = groups.get(id).slice().sort(byName);
+    return `<div class="fd-h"><span>${f ? fdIcon(f) : '🎭'}</span>${f ? esc(f.name) : 'Без фандома'}<i>${list.length}</i></div>
       <div class="char-grid">${list.map(c => {
         const p = charProgress(c.id);
         return `<a class="char-card" href="#/c/${c.id}">${ph('p34', 'cosplays', c.coverImageId, '🎭')}
@@ -353,7 +377,7 @@ function viewChar(ch, fd) {
     <aside class="cp-side">
       <h1 class="cp-title">${esc(ch.name)}</h1>
       <div class="cp-photo">${ph('p34', 'cosplays', ch.coverImageId, '🎭')}</div>
-      <div class="cp-meta">${fd ? esc(fd.emoji || '✨') + ' ' + esc(fd.name) : 'Без фандома'}</div>
+      <div class="cp-meta">${fd ? fdIcon(fd) + ' ' + esc(fd.name) : 'Без фандома'}</div>
       <div class="cp-act"><button class="cb sm" onclick="charForm('${ch.id}')">✎ Изменить</button></div>
     </aside>
     <section>
@@ -373,7 +397,7 @@ function viewLook(ch, lk, fd) {
   const p = lookProgress(lk.id);
   const slotsHtml = SLOTS.map(s => {
     const here = its.filter(v => v.type.slot === s.id);
-    const tiles = here.map(v => `<div class="tile st-${v.status}" onclick="showItem('${v.it.id}')">${ph('sq', PUR, v.imgId, v.type.emoji)}
+    const tiles = here.map(v => `<div class="tile st-${v.status}" onclick="showItem('${v.it.id}')"><div class="tw">${ph('sq', v.imgSlug, v.imgId, v.type.emoji)}${v.make ? '<span class="mk" title="Сделать самой">🛠</span>' : ''}</div>
         <div class="tile-n">${esc(v.name)}</div><div class="tile-p">${v.price != null ? money(v.price) : '&nbsp;'}</div></div>`).join('');
     const addTile = `<div class="tile add" onclick="addItemForm('${lk.id}','${(TYPES.find(t => t.slot === s.id) || TYPES[0]).tag}')" title="Добавить: ${esc(s.label)}"><div class="ph sq">＋</div></div>`;
     return `<div class="slot"><div class="slot-h">${s.emoji} ${s.label}</div><div class="slot-tiles">${tiles}${here.length ? '' : addTile}${here.length ? addTile : ''}</div></div>`;
@@ -395,16 +419,39 @@ async function openRef(id) { const u = await imgUrl('cosplays', id); if (u) ligh
 function charForm(id) {
   const c = id ? chars.find(x => x.id === id) : null;
   let cover = null;
-  const fo = fandoms.map(f => `<option value="${f.id}"${c && c.fandomId === f.id ? ' selected' : ''}>${esc(f.emoji || '✨')} ${esc(f.name)}</option>`).join('');
+  let fdId = c && c.fandomId && fandomById(c.fandomId) ? c.fandomId : '';   // выбранный фандом
+  let fdNew = null;                                                          // свой фандом {name, emoji}: создадим при сохранении
   openModal({
     title: c ? 'Персонаж' : 'Новый персонаж',
     body: field('Имя', `<input class="fi" id="cName" value="${esc(c ? c.name : '')}" placeholder="Имя персонажа" autocomplete="off">`) +
-      field('Фандом', `<select class="fi" id="cFandom"><option value="">— без фандома —</option>${fo}<option value="__new">＋ Новый фандом…</option></select>
-        <div class="row" id="nf" style="display:none;margin-top:8px"><input class="fi" id="nfEmoji" style="width:70px;text-align:center" value="✨" maxlength="4"><input class="fi" id="nfName" placeholder="Название фандома"></div>`) +
+      field('Фандом', `<div class="fd-cur" id="fdCur"></div>
+        <input class="fi" id="fdQ" placeholder="Найти фандом (Наруто, Ведьмак…) или создать свой" autocomplete="off">
+        <div class="sug" id="fdList" style="max-height:190px;overflow:auto"></div>`) +
       field('Фото (портрет, обрежется по центру 3:4)', `<div class="up p34" id="cUp">${c && c.coverImageId ? `<img data-img="cosplays:${c.coverImageId}" alt="" class="ok">` : '<span>📷 Выбрать</span>'}</div><input type="file" id="cFile" accept="image/*" hidden>`),
     footer: (c ? '<button class="cb dng" id="cDel" type="button">Удалить</button>' : '') + '<button class="cb" data-x2 type="button">Отмена</button><button class="cb pri" id="cSave" type="button">Сохранить</button>',
   }, el => {
-    $('cFandom').onchange = e => { $('nf').style.display = e.target.value === '__new' ? 'flex' : 'none'; };
+    const showCur = () => {
+      const f = fdNew ? { emoji: fdNew.emoji, name: fdNew.name + ' (новый)' } : fandomById(fdId);
+      $('fdCur').innerHTML = f ? `<span>${fdIcon(f)}</span><span>${esc(f.name)}</span><button type="button" class="ib" id="fdClear" title="Убрать фандом">✕</button>` : '<span class="others">Без фандома</span>';
+      if ($('fdClear')) $('fdClear').onclick = () => { fdId = ''; fdNew = null; showCur(); };
+    };
+    const paintFd = () => {
+      const raw = $('fdQ').value.trim(), q = raw.toLowerCase();
+      const match = f => !q || String(f.name).toLowerCase().includes(q) || (f.aliases || []).some(x => String(x).toLowerCase().includes(q));
+      const list = allFandoms().filter(match).sort((x, y) => (x.system - y.system) || byName(x, y)).slice(0, 40);
+      const exact = allFandoms().some(f => String(f.name).toLowerCase() === q);
+      let html = list.map(f => `<div class="sug-row" data-f="${f.id}"><span style="font-size:20px;width:26px;text-align:center">${fdIcon(f)}</span><div class="sug-t">${esc(f.name)}<small>${f.system ? esc(f.group || 'Каталог') : 'Мой фандом'}</small></div></div>`).join('');
+      if (raw && !exact) html += `<div class="sug-row" data-new="1"><input class="fi" id="nfEmoji" value="✨" maxlength="4" style="width:56px;text-align:center;padding:6px" onclick="event.stopPropagation()"><div class="sug-t">＋ Создать свой фандом «${esc(raw)}»<small>У своего фандома — только эмодзи, без картинки</small></div></div>`;
+      $('fdList').innerHTML = html || '<div class="others">Ничего не найдено</div>';
+    };
+    showCur(); paintFd();
+    $('fdQ').oninput = paintFd;
+    $('fdList').onclick = e => {
+      const r = e.target.closest('[data-f],[data-new]'); if (!r) return;
+      if (r.dataset.new) { fdNew = { name: $('fdQ').value.trim(), emoji: ($('nfEmoji').value.trim() || '✨') }; fdId = ''; }
+      else { fdId = r.dataset.f; fdNew = null; }
+      $('fdQ').value = ''; paintFd(); showCur();
+    };
     $('cUp').onclick = () => $('cFile').click();
     $('cFile').onchange = async e => {
       const f = e.target.files[0]; if (!f) return;
@@ -412,15 +459,11 @@ function charForm(id) {
     };
     $('cSave').onclick = ev => lock(ev.currentTarget, async () => {
       const name = $('cName').value.trim(); if (!name) return toast('Введите имя');
-      let fandomId = $('cFandom').value;
-      if (fandomId === '__new') {
-        const nm = $('nfName').value.trim(); if (!nm) return toast('Введите название фандома');
-        fandomId = upsert(fandoms, await DB.create('fandoms', { name: nm, emoji: $('nfEmoji').value.trim() || '✨' })).id;
-        fandoms.sort(byName);
-      }
+      let fandomId = fdId || null;
+      if (fdNew) { fandomId = upsert(fandoms, await DB.create('fandoms', { name: fdNew.name, emoji: fdNew.emoji })).id; fandoms.sort(byName); }
       let coverImageId = c ? c.coverImageId || null : null;
       if (cover) { const nid = await DB.saveImage(cover, { name: 'cover' }); if (coverImageId) await dropImg(coverImageId); coverImageId = nid; }
-      const data = { name, fandomId: fandomId || null, coverImageId };
+      const data = { name, fandomId, coverImageId };
       upsert(chars, c ? await DB.update('characters', c.id, data) : await DB.create('characters', data));
       closeModal(); render();
     });
@@ -434,7 +477,7 @@ function charForm(id) {
   });
 }
 async function removeLook(l, quiet) {
-  for (const it of itemsOfLook(l.id)) await DB.delete('items', it.id);
+  for (const it of itemsOfLook(l.id)) { if (it.photoImageId) await dropImg(it.photoImageId); await DB.delete('items', it.id); }
   items = items.filter(i => i.lookId !== l.id);
   for (const id of l.refImageIds || []) await dropImg(id);
   await DB.delete('looks', l.id); looks = looks.filter(x => x.id !== l.id);
@@ -488,7 +531,7 @@ function addItemForm(lookId, presetTag) {
     body: field('Тип', `<div class="chips" id="aiTypes">${TYPES.map(t => `<button type="button" class="chip" data-t="${t.tag}">${t.emoji} ${t.label}</button>`).join('')}</div>`) +
       field('Название', '<input class="fi" id="aiName" placeholder="Например: парик каре блонд" autocomplete="off">') +
       '<div class="fl">Уже есть в покупках — можно выбрать</div><div class="sug" id="aiSug"></div>',
-    footer: '<button class="cb" data-x2 type="button">Отмена</button><button class="cb pri" id="aiNew" type="button">Создать новую покупку</button>',
+    footer: '<button class="cb" data-x2 type="button">Отмена</button><button class="cb" id="aiMake" type="button">🛠 Сделать самой</button><button class="cb pri" id="aiNew" type="button">Создать новую покупку</button>',
   }, el => {
     const paintTypes = () => el.querySelectorAll('#aiTypes .chip').forEach(b => b.classList.toggle('on', b.dataset.t === tag));
     const paintSug = () => {
@@ -505,6 +548,11 @@ function addItemForm(lookId, presetTag) {
     $('aiTypes').onclick = e => { const b = e.target.closest('[data-t]'); if (b) { tag = b.dataset.t; paintTypes(); } };
     $('aiName').oninput = paintSug;
     $('aiSug').onclick = e => { const r = e.target.closest('[data-p]'); if (r) lock(r, () => linkItem(lookId, r.dataset.p, tag)); };
+    $('aiMake').onclick = ev => lock(ev.currentTarget, async () => {
+      const name = $('aiName').value.trim(); if (!name) return toast('Введите название');
+      const it = await DB.create('items', { lookId, how: 'make', makeStatus: 'todo', name, tagIds: [tag] });
+      items.push(it); closeModal(); render(); showItem(it.id);
+    });
     $('aiNew').onclick = ev => lock(ev.currentTarget, async () => {
       const name = $('aiName').value.trim(); if (!name) return toast('Введите название');
       const p = await DB.create('purchases', { name, status: 'wish', priority: 0, tagIds: [tag], sourceType: 'cosplay' }, PUR);
@@ -522,6 +570,7 @@ async function linkItem(lookId, purchaseId, tag) {
 let editVariant = null;   // null | 'new' | id варианта
 function showItem(id, keepForm) {
   const it = items.find(x => x.id === id); if (!it) return;
+  if (it.how === 'make') return showCraft(id);
   if (!keepForm) editVariant = null;
   const v = itemView(it), p = v.p;
   const others = items.filter(x => x.purchaseId === it.purchaseId && x.id !== it.id).map(x => {
@@ -607,6 +656,37 @@ function showItem(id, keepForm) {
     }
   });
 }
+// карточка предмета «сделать самой»: название, тип, статус работы, фото, заметка
+function showCraft(id) {
+  const it = items.find(x => x.id === id); if (!it) return;
+  let newImg = null;
+  openModal({
+    title: '🛠 ' + esc(it.name || 'Сделать самой'), lg: true,
+    body: field('Название', `<input class="fi" id="mName" value="${esc(it.name || '')}">`) +
+      field('Тип', `<div class="chips" id="mTypes">${TYPES.map(t => `<button type="button" class="chip${t.tag === (it.tagIds || [])[0] ? ' on' : ''}" data-t="${t.tag}">${t.emoji} ${t.label}</button>`).join('')}</div>`) +
+      field('Статус работы', `<div class="chips" id="mStat">${MAKE_ST.map(([k, l]) => `<button type="button" class="chip${(it.makeStatus || 'todo') === k ? ' on' : ''}" data-s="${k}">${l}</button>`).join('')}</div>`) +
+      field('Фото', `<div class="up sq" id="mUp" style="width:100px">${it.photoImageId ? `<img data-img="cosplays:${it.photoImageId}" class="ok" alt="">` : '<span>📷</span>'}</div><input type="file" id="mFile" accept="image/*" hidden>`) +
+      field('Заметки (материалы, идеи, шаги)', `<textarea class="fi" id="mNotes" placeholder="Необязательно">${esc(it.notes || '')}</textarea>`),
+    footer: '<button class="cb dng" id="mDel" type="button">Убрать из образа</button><button class="cb pri" data-x2 type="button">Готово</button>',
+  }, el => {
+    const save = async patch => { upsert(items, await DB.update('items', it.id, patch)); render(); };
+    $('mName').onchange = e => lock(e.target, async () => { const n = e.target.value.trim(); if (n) await save({ name: n }); });
+    $('mTypes').onclick = e => { const b = e.target.closest('[data-t]'); if (b) lock(b, async () => { await save({ tagIds: [b.dataset.t] }); showCraft(id); }); };
+    $('mStat').onclick = e => { const b = e.target.closest('[data-s]'); if (b) lock(b, async () => { await save({ makeStatus: b.dataset.s }); showCraft(id); }); };
+    $('mNotes').onchange = e => lock(e.target, () => save({ notes: e.target.value.trim() || null }));
+    $('mUp').onclick = () => $('mFile').click();
+    $('mFile').onchange = e => { const f = e.target.files[0]; if (f) lock(e.target, async () => {
+      newImg = await prepImage(f, 1, 900);
+      const nid = await DB.saveImage(newImg, { name: 'craft-photo' });
+      if (it.photoImageId) await dropImg(it.photoImageId);
+      await save({ photoImageId: nid }); showCraft(id);
+    }); };
+    $('mDel').onclick = ev => lock(ev.currentTarget, async () => {
+      if (!confirm('Убрать предмет из образа?')) return;
+      await dropImg(it.photoImageId); await DB.delete('items', it.id); items = items.filter(x => x.id !== it.id); closeModal(); render();
+    });
+  });
+}
 function upsertVar(rec) {
   const arr = variants.get(rec.purchaseId) || []; upsert(arr, rec); arr.sort(byCreated); variants.set(rec.purchaseId, arr);
 }
@@ -616,11 +696,15 @@ async function migrateLegacy() {
   let changed = false;
   try {
     for (const c of chars.filter(x => x.source && !x.fandomId)) {          // «источник» -> фандом
+      const src = String(c.source).trim().toLowerCase();
+      const sys = SYS_FANDOMS.find(f => String(f.name).toLowerCase() === src || (f.aliases || []).some(x => String(x).toLowerCase() === src));
+      if (sys) { await DB.update('characters', c.id, { fandomId: sys.id, source: null }); changed = true; continue; }
       let f = fandoms.find(x => String(x.name).toLowerCase() === String(c.source).trim().toLowerCase());
       if (!f) { f = await DB.create('fandoms', { name: String(c.source).trim(), emoji: '✨' }); fandoms.push(f); }
       await DB.update('characters', c.id, { fandomId: f.id, source: null }); changed = true;
     }
-    for (const it of items.filter(x => !x.purchaseId && x.name)) {         // предмет с вложенными вариантами -> покупка
+    for (const it of items.filter(x => !x.purchaseId && x.name && x.how !== 'make')) {
+      if (it.status === 'make') { await DB.update('items', it.id, { how: 'make', makeStatus: 'todo', status: null, variants: null, typeIdx: null }); changed = true; continue; }         // предмет с вложенными вариантами -> покупка
       const status = it.status === 'have' ? 'in_stock' : 'wish';
       const tagIds = [...(it.tagIds || [])]; if (it.status === 'make') tagIds.push('sys:src-make');
       const p = await DB.create('purchases', { name: it.name, status, priority: 0, tagIds, notes: it.notes || null, sourceType: 'cosplay' }, PUR);
