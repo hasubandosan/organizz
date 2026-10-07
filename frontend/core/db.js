@@ -197,6 +197,23 @@ async function _runMigrations() {
 
 
 /* ── ENTITY FACTORY ─────────────────────────── */
+/* Сжатие фото перед загрузкой (экономит место в B2 и трафик). Маленькие файлы, GIF/SVG и любые сбои — без изменений. */
+async function _shrinkImage(dataUrl, maxSide = 1600, quality = 0.82, minBytes = 300000) {
+  try {
+    const m = /^data:(image\/(?:jpeg|png|webp));base64,/.exec(dataUrl || '');
+    if (!m || dataUrl.length < minBytes * 1.34) return dataUrl;   // base64 ≈ ×1.34 от размера файла
+    const img = await new Promise((ok, fail) => { const i = new Image(); i.onload = () => ok(i); i.onerror = fail; i.src = dataUrl; });
+    const k = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.max(1, Math.round(img.naturalWidth * k)), h = Math.max(1, Math.round(img.naturalHeight * k));
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);             // прозрачность PNG -> белый фон
+    ctx.drawImage(img, 0, 0, w, h);
+    const out = c.toDataURL('image/jpeg', quality);
+    return out.length < dataUrl.length ? out : dataUrl;           // не делаем хуже
+  } catch { return dataUrl; }
+}
+
 function _uid() {
   return (typeof crypto !== 'undefined' && crypto.randomUUID)
     ? crypto.randomUUID()
@@ -407,6 +424,7 @@ const _V = {
      getImage(id) -> { ..., data } где data пригоден для <img src>.
      Старые записи с base64 в поле data продолжают работать как есть. */
   async saveImage(base64, meta = {}, appSlug) {
+    base64 = await _shrinkImage(base64);                        // большие фото сжимаем до ~1600 px, JPEG
     const id = _uid();
     const createdAt = new Date().toISOString();
     try {
