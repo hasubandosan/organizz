@@ -1,969 +1,666 @@
 <!DOCTYPE html>
 <html lang="ru" data-module="cosplays">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <meta name="theme-color" content="#0a0a0f"/>
-  <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-  <title>Косплей — LifeOS</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="https://organizz-core.pages.dev/styles.css"/>
-  <style>
-    html, body { height: 100%; overflow: hidden; }
-    body { font-family: var(--f); }
-    #app { display: flex; flex-direction: column; height: 100dvh; }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#0a0a0f"/>
+<title>Косплей — LifeOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://organizz-core.pages.dev/styles.css"/>
+<style>
+  html,body{height:100%;overflow:hidden}
+  body{font-family:var(--f)}
+  #app{display:flex;flex-direction:column;height:100dvh}
+  .lo-header{flex:none}
+  .scroll{flex:1;overflow-y:auto;padding:4px max(16px,calc((100% - var(--content-max))/2 + 16px)) 110px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+  a{color:inherit;text-decoration:none}
 
+  /* хлебные крошки */
+  .crumbs{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px max(16px,calc((100% - var(--content-max))/2 + 16px));font-size:12px;color:var(--text3)}
+  .crumbs a{color:var(--text2);padding:3px 6px;border-radius:6px}
+  .crumbs a:hover{background:var(--bg3);color:var(--accent2)}
+  .crumbs b{color:var(--text);font-weight:600;padding:3px 6px}
 
+  .empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:60px 16px;color:var(--text3);text-align:center}
+  .empty .ico{font-size:48px;opacity:.35}
 
-    .lo-header{flex:none}
-    .scroll{flex:1;overflow-y:auto;padding:4px max(16px,calc((100% - var(--content-max))/2 + 16px)) 100px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
-    .scroll::-webkit-scrollbar{width:3px}
-    .scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+  /* главная: фандомы -> персонажи */
+  .fd-h{display:flex;align-items:center;gap:8px;margin:18px 0 10px;font-size:15px;font-weight:700}
+  .fd-h i{font-style:normal;font-size:12px;color:var(--text3);font-weight:500}
+  .char-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .char-card{display:block;background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color .15s,transform .15s}
+  .char-card:hover{border-color:var(--purple)}
+  .char-card:active{transform:scale(.97)}
+  .ph{position:relative;width:100%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:38px;color:var(--text3);overflow:hidden}
+  .ph.p34{aspect-ratio:3/4}
+  .ph.sq{aspect-ratio:1/1}
+  .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .25s}
+  .ph img.ok{opacity:1}
+  .cc-b{padding:9px 10px 10px}
+  .cc-n{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cc-s{font-size:11px;color:var(--text3);margin-top:2px}
+  .bar{height:3px;background:var(--bg4);border-radius:3px;overflow:hidden;margin-top:7px}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--purple),var(--accent2))}
 
-    .center{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;height:220px;color:var(--text3)}
-    .empty-ico{font-size:48px;opacity:.3}
-    .empty-txt{font-size:13px;font-weight:600}
-    @keyframes pop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
-    @keyframes slideR{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+  /* страница персонажа / образа: слева портрет, справа содержимое */
+  .cp{display:grid;grid-template-columns:260px 1fr;gap:22px;align-items:start;margin-top:6px}
+  .cp-side{position:sticky;top:0}
+  .cp-title{font-size:22px;line-height:1.2;font-weight:800;color:var(--accent);margin:0 0 12px;word-break:break-word}
+  .cp-photo{border-radius:14px;border:1px solid var(--border)}
+  .cp-thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .cp-thumbs .ph{width:52px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-size:16px}
+  .cp-meta{margin-top:10px;font-size:12px;color:var(--text2)}
+  .cp-note{margin-top:8px;font-size:12px;color:var(--text3);white-space:pre-wrap}
+  .cp-act{display:flex;gap:8px;margin-top:12px}
+  .sec-h{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin:0 0 10px}
+  .look-list{display:flex;flex-direction:column;gap:8px}
+  .look-card{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:8px;transition:border-color .15s}
+  .look-card:hover{border-color:var(--purple)}
+  .look-card .ph{width:72px;flex:none;border-radius:8px;font-size:24px}
+  .lc-b{flex:1;min-width:0}
+  .lc-n{font-size:14px;font-weight:700}
+  .lc-s{font-size:12px;color:var(--text3);margin-top:2px}
 
-    .char-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
-    /* образы и предметы — в несколько колонок на широком экране */
-    #mainContent.list-grid{display:grid !important;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:8px;align-items:start}
-    #mainContent.list-grid > .look-card,#mainContent.list-grid > .item-card{margin-bottom:0}
-    .char-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:border-color .2s,transform .15s;animation:pop .25s cubic-bezier(.16,1,.3,1) both;position:relative}
-    .char-card:active{transform:scale(.95)}
-    .char-card:hover{border-color:var(--purple)}
-    .char-cover{width:100%;aspect-ratio:3/4;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:40px;position:relative;overflow:hidden}
-    .char-cover img{width:100%;height:100%;object-fit:cover}
-    .char-grad{position:absolute;bottom:0;left:0;right:0;height:60%;background:linear-gradient(to top,rgba(10,10,15,.95),transparent)}
-    .char-info{position:absolute;bottom:0;left:0;right:0;padding:10px 12px}
-    .char-name{font-size:14px;font-weight:700;line-height:1.2}
-    .char-sub{font-size:11px;color:var(--text2);margin-top:2px}
-    .char-prog-bar{position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--bg3)}
-    .char-prog-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--accent2));transition:width .4s}
+  /* инвентарь образа: ячейки по слотам, с головы до ног, по центру */
+  .inv{display:flex;flex-direction:column;gap:12px}
+  .slot{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:10px 10px 12px}
+  .slot-h{display:flex;align-items:center;gap:6px;justify-content:center;font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px}
+  .slot-tiles{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+  .tile{width:104px;cursor:pointer;text-align:center}
+  .tile .ph{border-radius:10px;border:2px solid var(--border2);font-size:30px}
+  .tile.st-dream .ph{border-color:#b79cff}
+  .tile.st-ordered .ph{border-color:var(--orange)}
+  .tile.st-in_stock .ph{border-color:var(--green)}
+  .tile:hover .ph{filter:brightness(1.12)}
+  .tile-n{font-size:11px;font-weight:600;margin-top:5px;line-height:1.25;max-height:2.5em;overflow:hidden}
+  .tile-p{font-size:11px;color:var(--text3);font-family:var(--mono)}
+  .tile.add .ph{border:2px dashed var(--border2);background:transparent;font-size:26px}
+  .tile.add:hover .ph{border-color:var(--accent);color:var(--accent2)}
 
-    .look-card{display:flex;align-items:center;gap:0;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;cursor:pointer;margin-bottom:8px;transition:border-color .15s,transform .1s;animation:slideR .22s cubic-bezier(.16,1,.3,1) both}
-    .look-card:active{transform:scale(.98)}
-    .look-thumb{width:80px;height:80px;flex-shrink:0;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden}
-    .look-thumb img{width:100%;height:100%;object-fit:cover}
-    .look-body{flex:1;min-width:0;padding:12px}
-    .look-name{font-size:15px;font-weight:700;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .look-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-    .sc{padding:3px 10px;border-radius:100px;font-size:11px;font-weight:700}
-    .sc-planning{background:rgba(107,114,128,.15);color:#9ca3af}
-    .sc-progress{background:rgba(240,128,80,.15);color:var(--orange)}
-    .sc-ready{background:rgba(61,214,140,.15);color:var(--green)}
-    .look-count{font-size:12px;color:var(--text3)}
-    .look-prog{height:3px;background:var(--bg3);margin-top:7px;border-radius:3px;overflow:hidden}
-    .look-prog-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--accent2))}
+  .fab{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));right:max(18px,calc((100vw - var(--content-max))/2 + 18px));height:50px;padding:0 20px;border-radius:25px;background:var(--accent);color:var(--on-accent);font-size:14px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.45);z-index:50}
 
-    .item-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;cursor:pointer;overflow:hidden;transition:border-color .15s;animation:pop .2s cubic-bezier(.16,1,.3,1) both}
-    .item-inner{display:flex;align-items:flex-start;gap:12px;padding:12px}
-    .item-thumb{width:62px;height:62px;flex-shrink:0;border-radius:8px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden}
-    .item-thumb img{width:100%;height:100%;object-fit:cover}
-    .item-body{flex:1;min-width:0}
-    .item-name{font-size:14px;font-weight:700;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .item-type{font-size:12px;color:var(--text3);margin-bottom:5px}
-    .item-st{padding:3px 10px;border-radius:100px;font-size:11px;font-weight:700}
-    .is-have{background:rgba(61,214,140,.12);color:var(--green)}
-    .is-buy{background:rgba(160,112,240,.12);color:var(--purple)}
-    .is-make{background:rgba(103,232,249,.12);color:var(--cyan)}
-    .vars-strip{display:flex;gap:6px;padding:0 12px 10px;overflow-x:auto;scrollbar-width:none}
-    .vars-strip::-webkit-scrollbar{display:none}
-    .var-chip{flex-shrink:0;display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:8px;background:var(--bg3);border:1px solid var(--border2);font-size:12px;color:var(--text3);text-decoration:none;transition:border-color .15s,color .15s}
-    .var-chip:hover{border-color:var(--purple);color:var(--text)}
-    .var-chip.pref{border-color:var(--purple);color:var(--purple)}
-    .var-price{font-weight:700}
+  /* формы и кнопки */
+  .fg{margin-bottom:14px}
+  .fl{display:block;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+  .fi{width:100%;padding:10px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2);font-size:14px;color:var(--text)}
+  .fi:focus{outline:none;border-color:var(--accent)}
+  textarea.fi{min-height:70px;resize:vertical}
+  .row{display:flex;gap:8px}
+  .cb{padding:10px 16px;border-radius:var(--r);font-size:13px;font-weight:700;border:1px solid var(--border2);background:var(--bg3);color:var(--text)}
+  .cb:hover{border-color:var(--accent)}
+  .cb.pri{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+  .cb.dng{color:#f05060;border-color:rgba(240,80,96,.4)}
+  .cb.sm{padding:6px 12px;font-size:12px}
+  .cb:disabled{opacity:.5;pointer-events:none}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{padding:7px 12px;border-radius:100px;font-size:12px;font-weight:600;border:1px solid var(--border2);background:var(--bg3);color:var(--text2)}
+  .chip.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+  .up{position:relative;border:1.5px dashed var(--border2);border-radius:var(--r2);background:var(--bg3);display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:13px;cursor:pointer;overflow:hidden}
+  .up.p34{aspect-ratio:3/4;max-width:200px}
+  .up.sq{aspect-ratio:1/1;max-width:140px}
+  .up img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .refs{display:flex;flex-wrap:wrap;gap:8px}
+  .ref{position:relative;width:76px}
+  .ref .ph{border-radius:8px;border:1px solid var(--border)}
+  .ref button{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--bg4);border:1px solid var(--border2);font-size:11px;color:var(--text2)}
+  .ref-add{width:76px;aspect-ratio:3/4;border:1.5px dashed var(--border2);border-radius:8px;background:var(--bg3);color:var(--text3);font-size:22px}
+  .sug{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+  .sug-row{display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2);padding:6px 8px;cursor:pointer}
+  .sug-row:hover{border-color:var(--accent)}
+  .sug-row .ph{width:38px;border-radius:6px;font-size:14px;flex:none}
+  .sug-t{flex:1;min-width:0;font-size:13px;font-weight:600}
+  .sug-t small{display:block;font-weight:400;color:var(--text3);font-size:11px}
+  .var-row{display:flex;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2);padding:8px;margin-bottom:6px}
+  .var-row .ph{width:48px;border-radius:6px;font-size:16px;flex:none;cursor:pointer}
+  .var-row.pref{border-color:var(--accent)}
+  .var-i{flex:1;min-width:0;font-size:13px;cursor:pointer}
+  .var-i small{display:block;color:var(--text3);font-size:11px}
+  .ib{width:30px;height:30px;border-radius:8px;background:var(--bg4);color:var(--text2);font-size:14px;flex:none}
+  .ib.on{color:var(--accent);background:rgba(160,112,240,.12)}
+  .others{font-size:12px;color:var(--text2)}
+  .others a{color:var(--accent2)}
+  .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--bg4);border:1px solid var(--border2);padding:10px 16px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:900;max-width:90vw}
+  .toast.on{opacity:1;transform:translateX(-50%)}
+  .lb{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:800;display:flex;align-items:center;justify-content:center;padding:20px}
+  .lb img{max-width:100%;max-height:100%;border-radius:10px}
 
-    .fab{position:fixed;bottom:calc(20px + var(--sb));right:max(18px,calc((100vw - var(--content-max))/2 + 18px));width:52px;height:52px;border-radius:50%;background:var(--accent);color:var(--on-accent);font-size:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(160,112,240,.45);transition:transform .15s;z-index:20}
-    .fab:active{transform:scale(.9)}
-    .edit-btn{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-size:14px;display:flex;align-items:center;justify-content:center;z-index:3}
-    .look-card{position:relative}
-    .look-card .edit-btn{top:50%;transform:translateY(-50%)}
-    .btn-rm{width:100%;padding:8px;margin-top:6px;border:1px dashed var(--border2);color:var(--text3);border-radius:var(--r2);font-size:12px}
-    .pu-badge{display:inline-block;margin-left:6px;font-size:11px;color:var(--purple)}
-
-    .f-chips{display:flex;flex-wrap:wrap;gap:6px}
-    .f-chip{padding:7px 12px;min-height:36px;border-radius:100px;border:1px solid var(--border);background:var(--bg3);font-size:13px;color:var(--text2);transition:.15s}
-    .f-chip i{font-style:normal;opacity:.55;font-family:var(--m);font-size:11px;margin-left:4px}
-    .f-chip.on{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent2);border-color:var(--accent)}
-    .f-range{display:flex;align-items:center;gap:8px}.f-range .fi{flex:1;min-width:0}
-    .f-active{display:flex;flex-wrap:wrap;gap:6px;padding:0 0 10px}
-    .f-act{padding:5px 10px;border-radius:100px;background:color-mix(in srgb,var(--accent) 14%,transparent);border:1px solid var(--accent);color:var(--accent2);font-size:12px}
-    .f-none{padding:40px 16px;text-align:center;color:var(--text3);font-size:14px}
-    .f-none button{margin-top:12px}
-    .char-bud{font-size:11px;color:var(--text2);font-family:var(--m);margin-top:2px}
-    .fd-sel{display:flex;align-items:center;gap:8px;min-height:36px;margin-bottom:6px;font-size:14px}
-    .fd-sel button{color:var(--text3);font-size:16px;padding:4px 8px}
-    .fd-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;max-height:176px;overflow-y:auto}
-    .fd-opt{padding:7px 11px;min-height:36px;border-radius:100px;border:1px solid var(--border);background:var(--bg3);font-size:13px;color:var(--text)}
-    .fd-opt.on{border-color:var(--accent);color:var(--accent2)}
-    .fd-new{display:flex;align-items:center;gap:6px;width:100%}.fd-new .fi{width:64px;text-align:center}
-    .fd-opt.create{flex:1;border-style:dashed;text-align:left}
-    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(6px)}
-    .overlay.on{opacity:1;pointer-events:all}
-    .sheet{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-radius:16px 16px 0 0;border-top:1px solid var(--border2);z-index:101;max-height:88dvh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .32s cubic-bezier(.16,1,.3,1)}
-    .sheet.on{transform:translateY(0)}   /* ДО media-блока: иначе на компьютере перебивает центрирование и окно уезжает вправо-вниз */
-    /* от 720px — аккуратное окно по центру, а не шторка на всю ширину */
-    @media(min-width:720px){
-      .sheet{left:50%;right:auto;bottom:auto;top:50%;width:min(520px,calc(100% - 48px));max-height:min(86dvh,820px);border:1px solid var(--border2);border-radius:16px;
-        transform:translate(-50%,-46%) scale(.97);opacity:0;pointer-events:none;transition:transform .2s,opacity .2s}
-      .sheet.on{transform:translate(-50%,-50%);opacity:1;pointer-events:all}
-      .sheet-drag{display:none}
-    }
-    .sheet-drag{width:36px;height:4px;background:var(--border2);border-radius:4px;margin:12px auto 0;flex-shrink:0}
-    .sheet-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;flex-shrink:0}
-    .sheet-title{font-size:16px;font-weight:700}
-    .close-btn{width:30px;height:30px;border-radius:8px;background:var(--bg3);display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:16px}
-    .sheet-body{overflow-y:auto;padding:0 16px calc(12px + var(--sb));flex:1}
-
-    .fg{margin-bottom:14px}
-    .fl{display:block;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
-    .fi{width:100%;padding:11px 13px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2);font-size:14px;color:var(--text);transition:border-color .15s}
-    .fi:focus{border-color:var(--accent)}
-    .fi::placeholder{color:var(--text3)}
-    textarea.fi{resize:vertical;min-height:70px}
-    select.fi{cursor:pointer;appearance:none}
-    .frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-
-    .img-up{width:100%;height:130px;border-radius:var(--r2);border:1.5px dashed var(--border2);background:var(--bg3);display:flex;align-items:center;justify-content:center;gap:8px;color:var(--text3);font-size:13px;cursor:pointer;position:relative;overflow:hidden;transition:border-color .15s}
-    .img-up:hover{border-color:var(--accent)}
-    .img-up img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-    .img-mask{position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;font-size:13px;opacity:0;transition:opacity .15s}
-    .img-up:hover .img-mask{opacity:1}
-
-    .pill-sel{display:flex;gap:6px;flex-wrap:wrap}
-    .pill-opt{padding:8px 14px;border-radius:100px;font-size:12px;font-weight:700;border:1px solid var(--border2);background:var(--bg3);color:var(--text3);transition:all .15s;cursor:pointer}
-    .pill-opt.on-planning{background:rgba(107,114,128,.15);color:#9ca3af;border-color:#4b5563}
-    .pill-opt.on-progress{background:rgba(240,128,80,.15);color:var(--orange);border-color:var(--orange)}
-    .pill-opt.on-ready{background:rgba(61,214,140,.15);color:var(--green);border-color:var(--green)}
-    .pill-opt.on-have{background:rgba(61,214,140,.12);color:var(--green);border-color:var(--green)}
-    .pill-opt.on-buy{background:rgba(160,112,240,.12);color:var(--purple);border-color:var(--purple)}
-    .pill-opt.on-make{background:rgba(103,232,249,.12);color:var(--cyan);border-color:var(--cyan)}
-
-    .refs-wrap{display:flex;gap:8px;flex-wrap:wrap}
-    .ref-thumb{width:70px;height:70px;border-radius:8px;overflow:hidden;position:relative;background:var(--bg3);flex-shrink:0}
-    .ref-thumb img{width:100%;height:100%;object-fit:cover}
-    .ref-del{position:absolute;top:2px;right:2px;width:18px;height:18px;background:rgba(0,0,0,.7);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;cursor:pointer}
-    .ref-add{width:70px;height:70px;border-radius:8px;border:1.5px dashed var(--border2);background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--text3);cursor:pointer;transition:border-color .15s,color .15s;flex-shrink:0}
-    .ref-add:hover{border-color:var(--accent);color:var(--accent2)}
-    .vars-editor{display:flex;flex-direction:column;gap:8px}
-    .var-row{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r2)}
-    .var-row.pref{border-color:var(--purple)}
-    .var-fields{flex:1;display:flex;flex-direction:column;gap:6px}
-    .var-fields input{font-size:13px;background:var(--bg4);padding:6px 10px;border-radius:6px;border:1px solid var(--border2);color:var(--text);width:100%}
-    .var-fields input:focus{border-color:var(--accent);outline:none}
-    .var-right{display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0}
-    .star-btn{font-size:18px;opacity:.35;transition:opacity .15s;cursor:pointer}
-    .star-btn.on{opacity:1}
-    .del-var{font-size:18px;color:var(--text3);cursor:pointer;transition:color .15s}
-    .del-var:hover{color:var(--red)}
-    .btn-add-var{width:100%;padding:10px;border:1.5px dashed var(--border2);border-radius:var(--r2);font-size:13px;font-weight:600;color:var(--text3);transition:all .15s;cursor:pointer}
-    .btn-add-var:hover{border-color:var(--accent);color:var(--accent2)}
-    .btn-save{width:100%;padding:14px;background:var(--accent);color:var(--on-accent);border-radius:var(--r);font-size:14px;font-weight:700;transition:transform .1s,opacity .15s;margin-top:6px;position:sticky;bottom:0;box-shadow:0 -14px 14px -8px var(--bg2)}
-    .btn-save:active{transform:scale(.98)}
-    .btn-save:disabled{opacity:.4;pointer-events:none}
-    .btn-del{width:100%;padding:12px;border:1px solid rgba(240,80,96,.25);color:var(--red);border-radius:var(--r2);font-size:13px;font-weight:600;transition:background .15s;margin-top:6px;cursor:pointer}
-    .btn-del:hover{background:rgba(240,80,96,.08)}
-  </style>
+  @media (max-width:720px){
+    .cp{grid-template-columns:1fr;gap:14px}
+    .cp-side{position:static;display:grid;grid-template-columns:130px 1fr;gap:6px 14px;align-items:start}
+    .cp-title{grid-column:1/-1;font-size:20px;margin-bottom:2px}
+    .cp-photo{grid-row:2/6}
+    .tile{width:92px}
+  }
+</style>
 </head>
 <body>
 <div id="app">
-  <div class="nav"></div>
-  <div class="scroll">
-    <div class="center" id="loadingEl"><div class="spinner"></div></div>
-    <div id="mainContent" style="display:none"></div>
-    <div class="center" id="emptyEl" style="display:none">
-      <div class="empty-ico">🎭</div>
-      <div class="empty-txt">Пусто — нажми +</div>
-    </div>
-  </div>
-  <button class="fab" id="fabAdd">+</button>
+  <div class="crumbs" id="crumbs" style="display:none"></div>
+  <div class="scroll" id="main"></div>
 </div>
-
-<div class="overlay" id="overlay"></div>
-<div class="sheet" id="formSheet">
-  <div class="sheet-drag"></div>
-  <div class="sheet-hdr">
-    <div class="sheet-title" id="formTitle"></div>
-    <button class="close-btn" id="formClose">✕</button>
-  </div>
-  <div class="sheet-body" id="formBody"></div>
-</div>
-
-<div class="toast" id="toastEl"></div>
+<button class="fab" id="fab" type="button" style="display:none"></button>
+<div class="toast" id="toast"></div>
 
 <script>window.LIFEOS_APP_SLUG = 'cosplays';</script>
 <script src="https://organizz-core.pages.dev/db.js"></script>
 <script src="https://organizz-core.pages.dev/nav.js"></script>
 <script src="https://organizz-core.pages.dev/shell.js"></script>
-<script>window.LifeShell = window.LifeShell || { mount() {}, update() {} };  /* core ещё не обновлён — без шапки, но без падения */</script>
-<script src="https://organizz-core.pages.dev/ui.js"></script>
+<script>window.LifeShell = window.LifeShell || { mount() {}, update() {} };</script>
 <script>
 'use strict';
+/* ═════════ Косплей v2 ═════════
+   Свои данные (модуль cosplays): fandoms, characters, looks, items.
+   items — это СВЯЗЬ «образ ↔ покупка»: {lookId, purchaseId, tagIds:[тип], notes}.
+   Название, цена, магазины, фото и статус живут в модуле «Покупки» (purchases, purchase_variants, shops),
+   поэтому один и тот же предмет можно использовать у разных героев и менять в одном месте. */
 
-// Единая шапка: логотип/модуль и переключатель рисует LifeShell; заголовок экрана и «назад» обновляет setView()
-var ACT_SYNC = { id: 'btnSync', icon: '⟳', label: 'Обновить', onClick: function(){ syncNow(); } };
-var ACT_FILTER = { id: 'btnFilter', label: 'Фильтры', onClick: function(){ openFilters(); },
-  html: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>' };
-LifeShell.mount({ module: 'cosplays', replace: '.nav', title: 'Персонажи', actions: [ACT_FILTER, ACT_SYNC] });
+const PUR = 'purchases';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const byCreated = (a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || ''));
+const byName = (a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ru');
+const money = n => n == null || n === '' ? '' : new Intl.NumberFormat('ru-RU').format(n) + ' ₽';
 
-function esc(s) {
-  const a = '&' + 'amp;';
-  const l = '&' + 'lt;';
-  const g = '&' + 'gt;';
-  const q = '&' + 'quot;';
-  return String(s||'').replace(/&/g, a).replace(/</g, l).replace(/>/g, g).replace(/"/g, q);
-}
+// «с головы до ног»; тип предмета = системный тег «Элемент образа»
+const SLOTS = [
+  { id: 'head',  label: 'Голова',            emoji: '💇' },
+  { id: 'face',  label: 'Лицо',              emoji: '💄' },
+  { id: 'body',  label: 'Тело',              emoji: '👗' },
+  { id: 'acc',   label: 'Украшения и детали', emoji: '💍' },
+  { id: 'feet',  label: 'Обувь',             emoji: '👠' },
+  { id: 'props', label: 'Реквизит',          emoji: '⚔️' },
+];
+const TYPES = [
+  { tag: 'sys:cp-wig',       label: 'Парик / причёска',   emoji: '💇', slot: 'head' },
+  { tag: 'sys:cp-makeup',    label: 'Грим / макияж',      emoji: '💄', slot: 'face' },
+  { tag: 'sys:cp-lenses',    label: 'Линзы',              emoji: '👁️', slot: 'face' },
+  { tag: 'sys:cp-dress',     label: 'Платье / костюм',    emoji: '👗', slot: 'body' },
+  { tag: 'sys:cp-armor',     label: 'Броня / детали',     emoji: '🛡️', slot: 'body' },
+  { tag: 'sys:cp-underwear', label: 'Бельё / база',       emoji: '🩱', slot: 'body' },
+  { tag: 'sys:cp-accessory', label: 'Аксессуар / украшение', emoji: '💍', slot: 'acc' },
+  { tag: 'sys:cp-wings',     label: 'Крылья / аппликации', emoji: '🪽', slot: 'acc' },
+  { tag: 'sys:cp-bag',       label: 'Сумка / пояс',       emoji: '👜', slot: 'acc' },
+  { tag: 'sys:cp-shoes',     label: 'Обувь',              emoji: '👠', slot: 'feet' },
+  { tag: 'sys:cp-weapon',    label: 'Оружие / бутафория', emoji: '⚔️', slot: 'props' },
+  { tag: 'sys:cp-artifact',  label: 'Артефакт / реквизит', emoji: '🔮', slot: 'props' },
+];
+const typeOf = tag => TYPES.find(t => t.tag === tag) || TYPES[TYPES.length - 1];
+const STATUSES = [['dream', 'Мечта'], ['wish', 'Хочу'], ['ordered', 'Заказано'], ['in_stock', 'Куплено']];
 
-function fmtP(n) {
-  if (n == null || n === '') return '';
-  return Number(n).toLocaleString('ru-RU') + ' ₽';
-}
+// ───────── состояние ─────────
+let fandoms = [], chars = [], looks = [], items = [];
+let purchases = new Map(), variants = new Map(), shops = [];
 
-// ----- STATE -----
-var view = 'chars';
-var curChar = null;
-var curLook = null;
-var characters = [];
-var looks = [];
-var items = [];
-var itemTypes = [];
+async function loadAll() {
+  const [f, c, l, i, p, v, s] = await Promise.all([
+    DB.getAll('fandoms'), DB.getAll('characters'), DB.getAll('looks'), DB.getAll('items'),
+    DB.getAll('purchases', PUR).catch(() => []), DB.getAll('purchase_variants', PUR).catch(() => []), DB.getAll('shops', PUR).catch(() => []),
+  ]);
+  fandoms = f.sort(byName); chars = c.sort(byCreated); looks = l.sort(byCreated); items = i.sort(byCreated);
+  purchases = new Map(p.map(x => [x.id, x]));
+  variants = new Map();
+  v.sort(byCreated).forEach(x => { if (!variants.has(x.purchaseId)) variants.set(x.purchaseId, []); variants.get(x.purchaseId).push(x); });
+  shops = s.sort(byName);
+}
+const upsert = (arr, rec) => { const k = arr.findIndex(x => x.id === rec.id); k >= 0 ? (arr[k] = rec) : arr.push(rec); return rec; };
 
-// form state
-var _editId = null;
-var _variantsDraft = [];
-var _refsDraft = [];
-var _coverData = null;
-var _photoData = null;
-var _coverRemoved = false, _photoRemoved = false;
-var _coverNew = false, _photoNew = false;   // true — выбрана НОВАЯ картинка (её надо загрузить в хранилище)
-var _refsIdBySrc = {};                       // url референса -> id картинки (для уже сохранённых)
-
-const TYPE_NAMES = ['💇 Причёска','👠 Обувь','👗 Одежда','💍 Аксессуары','💄 Грим','⚔️ Реквизит'];
-const TYPE_EMOJIS = ['💇','👠','👗','💍','💄','⚔️'];
-// Тип предмета = системный тег «Элемент образа» (см. docs/TAGS_AND_REFS.md); в записи хранится tagIds
-const TYPE_TAGS = ['sys:cp-wig','sys:cp-shoes','sys:cp-dress','sys:cp-accessory','sys:cp-makeup','sys:cp-artifact'];
-
-// ----- LOAD (from core DB) -----
-function byCreated(a, b) { return String(a.createdAt || '').localeCompare(String(b.createdAt || '')); }
-async function _imgUrl(id) {
-  if (!id) return null;
-  try { var r = await DB.getImage(id); return r && r.data ? r.data : null; } catch (e) { return null; }
+// ───────── картинки ─────────
+const imgCache = new Map();
+function imgUrl(slug, id) {
+  if (!id) return Promise.resolve(null);
+  const k = slug + ':' + id, hit = imgCache.get(k);
+  if (hit && Date.now() - hit.t < 40 * 60000) return hit.p;
+  const p = DB.getImage(id, slug === 'cosplays' ? undefined : slug).then(r => (r && r.data) || null).catch(() => null);
+  imgCache.set(k, { p, t: Date.now() });
+  return p;
 }
-async function dropImages(ids) {
-  for (var i = 0; i < ids.length; i++) { if (ids[i]) { try { await DB.deleteImage(ids[i]); } catch (e) {} } }
-}
-var PU = 'purchases';
-function puRefId(x) { var r = (x.refs || []).filter(function(r){ return r.module === 'purchases'; })[0]; return r ? r.id : null; }
-// прогресс образа = доля предметов «Уже есть»; прогресс персонажа = среднее по его образам
-async function recalcProgress(charId, lookId) {
-  try {
-    if (lookId) {
-      var its = (await DB.getAll('items')).filter(function(x){ return x.lookId === lookId; });
-      var p = its.length ? Math.round(its.filter(function(x){ return x.status === 'have'; }).length * 100 / its.length) : 0;
-      await DB.update('looks', lookId, {progress: p});
-    }
-    var ls = (await DB.getAll('looks')).filter(function(l){ return l.charId === charId; });
-    var cp = ls.length ? Math.round(ls.reduce(function(a, l){ return a + (l.progress || 0); }, 0) / ls.length) : 0;
-    await DB.update('characters', charId, {progress: cp});
-  } catch (e) {}
-}
-async function removeItemCascade(item) {
-  await dropImages([item.photoImageId]);
-  var pid = puRefId(item);
-  if (pid) {   // непокупленную покупку убираем вместе с предметом, купленную оставляем как историю
-    try { var pu = await DB.getById('purchases', pid, PU); if (pu && pu.status !== 'in_stock') await DB.delete('purchases', pid, PU); } catch (e) {}
-  }
-  await DB.delete('items', item.id);
-}
-async function removeLookCascade(look) {
-  var its = (await DB.getAll('items')).filter(function(x){ return x.lookId === look.id; });
-  for (var i = 0; i < its.length; i++) await removeItemCascade(its[i]);
-  await dropImages(look.refImageIds || []);
-  await DB.delete('looks', look.id);
-}
-async function removeCharCascade(char) {
-  var ls = (await DB.getAll('looks')).filter(function(l){ return l.charId === char.id; });
-  for (var i = 0; i < ls.length; i++) await removeLookCascade(ls[i]);
-  await dropImages([char.coverImageId]);
-  await DB.delete('characters', char.id);
-}
-// «Купить» -> покупка в модуле «Покупки», связь refs с обеих сторон
-async function syncPurchase(item) {
-  var pid = puRefId(item);
-  if (item.status !== 'buy') return;
-  var tag = (item.tagIds || [])[0];
-  if (pid) {
-    try { await DB.update('purchases', pid, {name: item.name, notes: item.notes || null}, PU); return; } catch (e) { /* покупку удалили — создадим заново */ }
-  }
-  var rec = await DB.create('purchases', {
-    name: item.name, status: 'wish', priority: 1, tags: [], tagIds: tag ? [tag] : [], notes: item.notes || null,
-    sourceType: 'cosplay',
-    refs: [{module: 'cosplays', type: 'items', id: item.id}]
-  }, PU);
-  var refs = (item.refs || []).filter(function(r){ return r.module !== 'purchases'; });
-  refs.push({module: 'purchases', type: 'purchases', id: rec.id});
-  await DB.update('items', item.id, {refs: refs});
-}
-// ----- ФАНДОМЫ И ФИЛЬТРЫ -----
-var fandomOpts = [], _fd = null, _fdKeepLegacy = false;
-var cflt = { status: 'all', fd: {}, min: null, max: null };
-var STATUS_OPTS = [['planning', 'Планирую'], ['progress', 'В процессе'], ['ready', 'Готов']];
-function fIcon(o) { return o.icon || o.emoji || '🎭'; }
-function nrm(s) { return String(s || '').toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ').trim(); }
-async function loadFandoms() {
-  try {
-    // системные: группа «Фандомы»; личные: тег со scope ['fandoms'] (личные теги без scope виден везде — их сюда не берём)
-    fandomOpts = (await DB.getTagOptions('fandoms')).filter(function(o) {
-      return o.system ? o.group === 'Фандомы' : (Array.isArray(o.scope) && o.scope.indexOf('fandoms') >= 0);
-    }).sort(function(a, b) { return String(a.name).localeCompare(String(b.name), 'ru'); });
-  } catch (e) { fandomOpts = []; }
-}
-function fandomOf(c) {
-  return fandomOpts.filter(function(o) { return o.id === c.fandomId; })[0]
-    || (c.source ? fandomOpts.filter(function(o) { return nrm(o.name) === nrm(c.source); })[0] : null) || null;
-}
-function itemPrice(it) {   // цена вещи = цена предпочтительного варианта (или первого с ценой)
-  var vs = (it.variants || []).filter(function(v) { return v.price; });
-  if (!vs.length) return 0;
-  return (vs.filter(function(v) { return v.is_preferred; })[0] || vs[0]).price || 0;
-}
-function passes(c) {
-  if (cflt.status !== 'all' && c._status !== cflt.status) return false;
-  var ks = Object.keys(cflt.fd);
-  if (ks.length && !(c._fd ? cflt.fd[c._fd.id] : cflt.fd._none)) return false;
-  if (cflt.min != null && c._budget < cflt.min) return false;
-  if (cflt.max != null && c._budget > cflt.max) return false;
-  return true;
-}
-function fltCount() { return (cflt.status !== 'all' ? 1 : 0) + Object.keys(cflt.fd).length + (cflt.min != null || cflt.max != null ? 1 : 0); }
-function fltReset() { cflt = { status: 'all', fd: {}, min: null, max: null }; }
-
-async function loadCharacters() {
-  await loadFandoms();
-  characters = (await DB.getAll('characters')).sort(byCreated);
-  var allLooks = [], allItems = [];
-  try { allLooks = await DB.getAll('looks'); allItems = await DB.getAll('items'); } catch (e) {}
-  var lookChar = {}, nLooks = {}, bud = {};
-  allLooks.forEach(function(l) { lookChar[l.id] = l.charId; nLooks[l.charId] = (nLooks[l.charId] || 0) + 1; });
-  allItems.forEach(function(it) { var ch = lookChar[it.lookId]; if (ch && it.status !== 'have') bud[ch] = (bud[ch] || 0) + itemPrice(it); });   // бюджет = сколько ещё нужно потратить
-  characters.forEach(function(c) {
-    var pr = c.progress || 0;
-    c._status = (!nLooks[c.id] || pr === 0) ? 'planning' : (pr >= 100 ? 'ready' : 'progress');
-    c._budget = bud[c.id] || 0; c._fd = fandomOf(c);
+function hydrate(root) {
+  (root || document).querySelectorAll('img[data-img]').forEach(async el => {
+    const [slug, id] = el.dataset.img.split(':');
+    const u = await imgUrl(slug, id);
+    if (u) { el.src = u; el.classList.add('ok'); }
   });
-  await Promise.all(characters.map(async function(c) { c._coverUrl = await _imgUrl(c.coverImageId); }));
-  return characters;
 }
-async function loadLooks(charId) {
-  looks = (await DB.getAll('looks')).filter(function(l) { return l.charId === charId; }).sort(byCreated);
-  await Promise.all(looks.map(async function(l) {
-    var ids = l.refImageIds || [];
-    var urls = await Promise.all(ids.map(_imgUrl));
-    l._refIds = []; l._refUrls = [];
-    ids.forEach(function(id, i) { if (urls[i]) { l._refIds.push(id); l._refUrls.push(urls[i]); } });
-  }));
-  return looks;
+const ph = (cls, slug, id, fallback) => `<div class="ph ${cls}">${id ? `<img data-img="${slug}:${id}" alt="">` : ''}<span>${fallback || ''}</span></div>`;
+async function dropImg(id, slug) { if (id) { try { await DB.deleteImage(id, slug === 'cosplays' ? undefined : slug); } catch (e) { /* не критично */ } } }
+
+// обрезка по центру до нужной пропорции + сжатие (портрет 3:4, предметы 1:1)
+function prepImage(file, aspect, maxSide = 1000, q = 0.85) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onerror = () => reject(new Error('Не удалось прочитать файл'));
+    fr.onload = () => {
+      const im = new Image();
+      im.onerror = () => reject(new Error('Это не картинка'));
+      im.onload = () => {
+        let sw = im.width, sh = im.height, sx = 0, sy = 0;
+        if (aspect) {
+          if (sw / sh > aspect) { const nw = sh * aspect; sx = (sw - nw) / 2; sw = nw; }
+          else { const nh = sw / aspect; sy = (sh - nh) / 2; sh = nh; }
+        }
+        const k = Math.min(1, maxSide / Math.max(sw, sh));
+        const w = Math.round(sw * k), h = Math.round(sh * k);
+        const c = document.createElement('canvas'); c.width = w; c.height = h;
+        const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, w, h);
+        x.drawImage(im, sx, sy, sw, sh, 0, 0, w, h);
+        resolve(c.toDataURL('image/jpeg', q));
+      };
+      im.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
 }
-async function loadItems(lookId) {
-  items = (await DB.getAll('items')).filter(function(x) { return x.lookId === lookId; }).sort(byCreated);
-  var allPu = []; try { allPu = await DB.getAll('purchases', PU); } catch (e) {}
-  for (var k = 0; k < items.length; k++) {
-    var pid = puRefId(items[k]);
-    items[k]._pu = pid ? (allPu.filter(function(q){ return q.id === pid; })[0] || null) : null;
-    if (items[k]._pu && items[k]._pu.status === 'in_stock' && items[k].status === 'buy') {
-      items[k].status = 'have';
-      try { await DB.update('items', items[k].id, {status: 'have'}); } catch (e) {}
+
+// ───────── вычисления ─────────
+const itemsOfLook = id => items.filter(i => i.lookId === id);
+function itemView(it) {
+  const p = purchases.get(it.purchaseId);
+  const vs = variants.get(it.purchaseId) || [];
+  const main = vs.find(v => v.isPrimary) || vs[0];
+  const withImg = (main && main.imageIds && main.imageIds[0]) ? main : vs.find(v => v.imageIds && v.imageIds[0]);
+  return {
+    it, p, vs, main, name: p ? p.name : '(покупка удалена)', status: p ? (p.status || 'wish') : 'wish',
+    price: main ? main.price : null, imgId: withImg ? withImg.imageIds[0] : null, type: typeOf((it.tagIds || [])[0]),
+  };
+}
+function lookProgress(lookId) {
+  const its = itemsOfLook(lookId); if (!its.length) return { n: 0, done: 0, pct: 0 };
+  const done = its.filter(i => (purchases.get(i.purchaseId) || {}).status === 'in_stock').length;
+  return { n: its.length, done, pct: Math.round(done * 100 / its.length) };
+}
+function charProgress(charId) {
+  const ls = looks.filter(l => l.charId === charId); let n = 0, done = 0;
+  ls.forEach(l => { const p = lookProgress(l.id); n += p.n; done += p.done; });
+  return { looks: ls.length, n, done, pct: n ? Math.round(done * 100 / n) : 0 };
+}
+
+// ───────── интерфейс: утилиты ─────────
+let toastT;
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600); }
+async function lock(btn, fn) {
+  btn.disabled = true;
+  try { await fn(); } catch (e) { console.error(e); toast('Ошибка: ' + (e.message || e)); } finally { btn.disabled = false; }
+}
+const field = (label, inner) => `<div class="fg"><label class="fl">${label}</label>${inner}</div>`;
+function closeModal() { const m = $('mdl'); if (m) m.remove(); }
+function openModal({ title, body, footer, lg }, mount) {
+  closeModal();
+  const el = document.createElement('div');
+  el.className = 'modal-overlay open'; el.id = 'mdl';
+  el.innerHTML = `<div class="modal${lg ? ' lg' : ''}"><div class="modal-header"><div class="modal-title">${title}</div><button class="modal-close" data-x type="button">✕</button></div>
+    <div class="modal-body">${body}</div>${footer ? `<div class="modal-footer">${footer}</div>` : ''}</div>`;
+  el.addEventListener('mousedown', e => { if (e.target === el) closeModal(); });
+  el.addEventListener('click', e => { if (e.target.closest('[data-x],[data-x2]')) closeModal(); });
+  document.body.appendChild(el);
+  hydrate(el);
+  if (mount) mount(el);
+  return el;
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); const lb = document.querySelector('.lb'); if (lb) lb.remove(); } });
+function lightbox(url) { const d = document.createElement('div'); d.className = 'lb'; d.innerHTML = `<img src="${esc(url)}" alt="">`; d.onclick = () => d.remove(); document.body.appendChild(d); }
+
+// ───────── маршрутизация (#/, #/c/<id>, #/c/<id>/l/<id>) ─────────
+function route() {
+  const m = location.hash.replace(/^#\/?/, '').split('/');
+  if (m[0] === 'c' && m[1]) return m[2] === 'l' && m[3] ? { v: 'look', c: m[1], l: m[3] } : { v: 'char', c: m[1] };
+  return { v: 'home' };
+}
+function render() {
+  const r = route(), main = $('main'), crumbs = $('crumbs'), fab = $('fab');
+  const ch = r.c ? chars.find(x => x.id === r.c) : null;
+  const lk = r.l ? looks.find(x => x.id === r.l) : null;
+  if ((r.v !== 'home' && !ch) || (r.v === 'look' && (!lk || lk.charId !== ch.id))) { location.hash = '#/'; return; }
+  const fd = ch && ch.fandomId ? fandoms.find(f => f.id === ch.fandomId) : null;
+  const title = r.v === 'home' ? 'Персонажи' : r.v === 'char' ? ch.name : `${ch.name} · ${lk.name}`;
+  LifeShell.update({ title, back: r.v !== 'home' ? () => history.length > 1 ? history.back() : (location.hash = '#/') : false });
+  if (r.v === 'home') { crumbs.style.display = 'none'; }
+  else {
+    crumbs.style.display = 'flex';
+    const fdTxt = fd ? `${esc(fd.emoji || '✨')} ${esc(fd.name)}` : 'Без фандома';
+    crumbs.innerHTML = `<a href="#/">🎭 Косплей</a>›<a href="#/">${fdTxt}</a>›` +
+      (r.v === 'char' ? `<b>${esc(ch.name)}</b>` : `<a href="#/c/${ch.id}">${esc(ch.name)}</a>›<b>${esc(lk.name)}</b>`);
+  }
+  fab.style.display = '';
+  fab.textContent = r.v === 'home' ? '＋ Персонаж' : r.v === 'char' ? '＋ Образ' : '＋ Предмет';
+  fab.onclick = () => r.v === 'home' ? charForm() : r.v === 'char' ? lookForm(null, ch.id) : addItemForm(lk.id);
+  main.innerHTML = r.v === 'home' ? viewHome() : r.v === 'char' ? viewChar(ch, fd) : viewLook(ch, lk, fd);
+  hydrate(main);
+  main.scrollTop = 0;
+}
+
+// ───────── экраны ─────────
+function viewHome() {
+  if (!chars.length) return `<div class="empty"><div class="ico">🎭</div><div>Пока нет персонажей</div><button class="cb pri" onclick="charForm()">＋ Добавить первого</button></div>`;
+  const groups = new Map();
+  chars.forEach(c => { const k = c.fandomId && fandoms.some(f => f.id === c.fandomId) ? c.fandomId : ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(c); });
+  const order = [...fandoms.map(f => f.id).filter(id => groups.has(id)), ...(groups.has('') ? [''] : [])];
+  return order.map(id => {
+    const f = fandoms.find(x => x.id === id), list = groups.get(id).slice().sort(byName);
+    return `<div class="fd-h"><span>${f ? esc(f.emoji || '✨') : '🎭'}</span>${f ? esc(f.name) : 'Без фандома'}<i>${list.length}</i></div>
+      <div class="char-grid">${list.map(c => {
+        const p = charProgress(c.id);
+        return `<a class="char-card" href="#/c/${c.id}">${ph('p34', 'cosplays', c.coverImageId, '🎭')}
+          <div class="cc-b"><div class="cc-n">${esc(c.name)}</div>
+          <div class="cc-s">${p.looks} ${p.looks === 1 ? 'образ' : 'образов'}${p.n ? ` · ${p.pct}%` : ''}</div>
+          ${p.n ? `<div class="bar"><i style="width:${p.pct}%"></i></div>` : ''}</div></a>`;
+      }).join('')}</div>`;
+  }).join('');
+}
+function viewChar(ch, fd) {
+  const ls = looks.filter(l => l.charId === ch.id);
+  return `<div class="cp">
+    <aside class="cp-side">
+      <h1 class="cp-title">${esc(ch.name)}</h1>
+      <div class="cp-photo">${ph('p34', 'cosplays', ch.coverImageId, '🎭')}</div>
+      <div class="cp-meta">${fd ? esc(fd.emoji || '✨') + ' ' + esc(fd.name) : 'Без фандома'}</div>
+      <div class="cp-act"><button class="cb sm" onclick="charForm('${ch.id}')">✎ Изменить</button></div>
+    </aside>
+    <section>
+      <div class="sec-h">Образы <span>${ls.length}</span></div>
+      ${ls.length ? `<div class="look-list">${ls.map(l => {
+        const p = lookProgress(l.id), first = (l.refImageIds || [])[0];
+        return `<a class="look-card" href="#/c/${ch.id}/l/${l.id}">${ph('sq', 'cosplays', first, '✨')}
+          <div class="lc-b"><div class="lc-n">${esc(l.name)}</div>
+          <div class="lc-s">${p.n ? `${p.n} ${p.n === 1 ? 'предмет' : 'предметов'} · готово ${p.pct}%` : 'Предметов пока нет'}</div>
+          ${p.n ? `<div class="bar"><i style="width:${p.pct}%"></i></div>` : ''}</div></a>`;
+      }).join('')}</div>` : `<div class="empty"><div class="ico">✨</div><div>Образов пока нет</div></div>`}
+    </section></div>`;
+}
+function viewLook(ch, lk, fd) {
+  const refs = lk.refImageIds || [];
+  const its = itemsOfLook(lk.id).map(itemView);
+  const p = lookProgress(lk.id);
+  const slotsHtml = SLOTS.map(s => {
+    const here = its.filter(v => v.type.slot === s.id);
+    const tiles = here.map(v => `<div class="tile st-${v.status}" onclick="showItem('${v.it.id}')">${ph('sq', PUR, v.imgId, v.type.emoji)}
+        <div class="tile-n">${esc(v.name)}</div><div class="tile-p">${v.price != null ? money(v.price) : '&nbsp;'}</div></div>`).join('');
+    const addTile = `<div class="tile add" onclick="addItemForm('${lk.id}','${(TYPES.find(t => t.slot === s.id) || TYPES[0]).tag}')" title="Добавить: ${esc(s.label)}"><div class="ph sq">＋</div></div>`;
+    return `<div class="slot"><div class="slot-h">${s.emoji} ${s.label}</div><div class="slot-tiles">${tiles}${here.length ? '' : addTile}${here.length ? addTile : ''}</div></div>`;
+  }).join('');
+  return `<div class="cp">
+    <aside class="cp-side">
+      <h1 class="cp-title">${esc(ch.name)} · ${esc(lk.name)}</h1>
+      <div class="cp-photo">${ph('p34', 'cosplays', refs[0], '✨')}</div>
+      ${refs.length > 1 ? `<div class="cp-thumbs">${refs.slice(1).map(id => `<div onclick="openRef('${id}')">${ph('sq', 'cosplays', id, '')}</div>`).join('')}</div>` : ''}
+      <div class="cp-meta">${p.n ? `Готово ${p.done} из ${p.n} (${p.pct}%)` : 'Добавьте первый предмет'}</div>
+      ${lk.notes ? `<div class="cp-note">${esc(lk.notes)}</div>` : ''}
+      <div class="cp-act"><button class="cb sm" onclick="lookForm('${lk.id}','${ch.id}')">✎ Изменить</button></div>
+    </aside>
+    <section><div class="inv">${slotsHtml}</div></section></div>`;
+}
+async function openRef(id) { const u = await imgUrl('cosplays', id); if (u) lightbox(u); }
+
+// ───────── форма персонажа ─────────
+function charForm(id) {
+  const c = id ? chars.find(x => x.id === id) : null;
+  let cover = null;
+  const fo = fandoms.map(f => `<option value="${f.id}"${c && c.fandomId === f.id ? ' selected' : ''}>${esc(f.emoji || '✨')} ${esc(f.name)}</option>`).join('');
+  openModal({
+    title: c ? 'Персонаж' : 'Новый персонаж',
+    body: field('Имя', `<input class="fi" id="cName" value="${esc(c ? c.name : '')}" placeholder="Имя персонажа" autocomplete="off">`) +
+      field('Фандом', `<select class="fi" id="cFandom"><option value="">— без фандома —</option>${fo}<option value="__new">＋ Новый фандом…</option></select>
+        <div class="row" id="nf" style="display:none;margin-top:8px"><input class="fi" id="nfEmoji" style="width:70px;text-align:center" value="✨" maxlength="4"><input class="fi" id="nfName" placeholder="Название фандома"></div>`) +
+      field('Фото (портрет, обрежется по центру 3:4)', `<div class="up p34" id="cUp">${c && c.coverImageId ? `<img data-img="cosplays:${c.coverImageId}" alt="" class="ok">` : '<span>📷 Выбрать</span>'}</div><input type="file" id="cFile" accept="image/*" hidden>`),
+    footer: (c ? '<button class="cb dng" id="cDel" type="button">Удалить</button>' : '') + '<button class="cb" data-x2 type="button">Отмена</button><button class="cb pri" id="cSave" type="button">Сохранить</button>',
+  }, el => {
+    $('cFandom').onchange = e => { $('nf').style.display = e.target.value === '__new' ? 'flex' : 'none'; };
+    $('cUp').onclick = () => $('cFile').click();
+    $('cFile').onchange = async e => {
+      const f = e.target.files[0]; if (!f) return;
+      try { cover = await prepImage(f, 3 / 4, 1000); $('cUp').innerHTML = `<img src="${cover}" alt="">`; } catch (err) { toast(err.message); }
+    };
+    $('cSave').onclick = ev => lock(ev.currentTarget, async () => {
+      const name = $('cName').value.trim(); if (!name) return toast('Введите имя');
+      let fandomId = $('cFandom').value;
+      if (fandomId === '__new') {
+        const nm = $('nfName').value.trim(); if (!nm) return toast('Введите название фандома');
+        fandomId = upsert(fandoms, await DB.create('fandoms', { name: nm, emoji: $('nfEmoji').value.trim() || '✨' })).id;
+        fandoms.sort(byName);
+      }
+      let coverImageId = c ? c.coverImageId || null : null;
+      if (cover) { const nid = await DB.saveImage(cover, { name: 'cover' }); if (coverImageId) await dropImg(coverImageId); coverImageId = nid; }
+      const data = { name, fandomId: fandomId || null, coverImageId };
+      upsert(chars, c ? await DB.update('characters', c.id, data) : await DB.create('characters', data));
+      closeModal(); render();
+    });
+    if (c) $('cDel').onclick = ev => lock(ev.currentTarget, async () => {
+      if (!confirm(`Удалить «${c.name}» вместе с образами? Покупки останутся в модуле «Покупки».`)) return;
+      for (const l of looks.filter(x => x.charId === c.id)) await removeLook(l, true);
+      await dropImg(c.coverImageId);
+      await DB.delete('characters', c.id); chars = chars.filter(x => x.id !== c.id);
+      closeModal(); location.hash = '#/'; render();
+    });
+  });
+}
+async function removeLook(l, quiet) {
+  for (const it of itemsOfLook(l.id)) await DB.delete('items', it.id);
+  items = items.filter(i => i.lookId !== l.id);
+  for (const id of l.refImageIds || []) await dropImg(id);
+  await DB.delete('looks', l.id); looks = looks.filter(x => x.id !== l.id);
+}
+
+// ───────── форма образа ─────────
+function lookForm(id, charId) {
+  const l = id ? looks.find(x => x.id === id) : null;
+  let refs = (l ? (l.refImageIds || []) : []).map(rid => ({ id: rid, data: null }));
+  const draw = () => {
+    $('refs').innerHTML = refs.map((r, i) => `<div class="ref">${r.data ? `<div class="ph p34"><img src="${r.data}" class="ok" alt=""></div>` : ph('p34', 'cosplays', r.id, '')}<button type="button" data-rm="${i}">✕</button></div>`).join('')
+      + '<button type="button" class="ref-add" id="refAdd">＋</button>';
+    hydrate($('refs'));
+    $('refAdd').onclick = () => $('lFile').click();
+  };
+  openModal({
+    title: l ? 'Образ' : 'Новый образ',
+    body: field('Название образа', `<input class="fi" id="lName" value="${esc(l ? l.name : '')}" placeholder="Например: Бал, Базовый, Финальная форма" autocomplete="off">`) +
+      field('Референсы (первое фото — главное, обрезается 3:4)', '<div class="refs" id="refs"></div><input type="file" id="lFile" accept="image/*" multiple hidden>') +
+      field('Заметки', `<textarea class="fi" id="lNotes" placeholder="Необязательно">${esc(l ? l.notes || '' : '')}</textarea>`),
+    footer: (l ? '<button class="cb dng" id="lDel" type="button">Удалить</button>' : '') + '<button class="cb" data-x2 type="button">Отмена</button><button class="cb pri" id="lSave" type="button">Сохранить</button>',
+  }, el => {
+    draw();
+    $('refs').onclick = e => { const b = e.target.closest('[data-rm]'); if (b) { refs.splice(+b.dataset.rm, 1); draw(); } };
+    $('lFile').onchange = async e => {
+      for (const f of e.target.files) { try { refs.push({ id: null, data: await prepImage(f, 3 / 4, 1000) }); } catch (err) { toast(err.message); } }
+      e.target.value = ''; draw();
+    };
+    $('lSave').onclick = ev => lock(ev.currentTarget, async () => {
+      const name = $('lName').value.trim(); if (!name) return toast('Введите название образа');
+      const ids = [];
+      for (const r of refs) ids.push(r.id || await DB.saveImage(r.data, { name: 'reference' }));
+      if (l) for (const old of (l.refImageIds || [])) if (!ids.includes(old)) await dropImg(old);
+      const data = { name, notes: $('lNotes').value.trim() || null, refImageIds: ids };
+      upsert(looks, l ? await DB.update('looks', l.id, data) : await DB.create('looks', { charId, ...data }));
+      closeModal(); render();
+    });
+    if (l) $('lDel').onclick = ev => lock(ev.currentTarget, async () => {
+      if (!confirm(`Удалить образ «${l.name}»? Покупки останутся в модуле «Покупки».`)) return;
+      await removeLook(l); closeModal(); location.hash = '#/c/' + l.charId; render();
+    });
+  });
+}
+
+// ───────── добавить предмет: выбрать существующую покупку или создать новую ─────────
+function addItemForm(lookId, presetTag) {
+  let tag = presetTag || TYPES[0].tag;
+  const inLook = new Set(itemsOfLook(lookId).map(i => i.purchaseId));
+  openModal({
+    title: 'Добавить предмет',
+    body: field('Тип', `<div class="chips" id="aiTypes">${TYPES.map(t => `<button type="button" class="chip" data-t="${t.tag}">${t.emoji} ${t.label}</button>`).join('')}</div>`) +
+      field('Название', '<input class="fi" id="aiName" placeholder="Например: парик каре блонд" autocomplete="off">') +
+      '<div class="fl">Уже есть в покупках — можно выбрать</div><div class="sug" id="aiSug"></div>',
+    footer: '<button class="cb" data-x2 type="button">Отмена</button><button class="cb pri" id="aiNew" type="button">Создать новую покупку</button>',
+  }, el => {
+    const paintTypes = () => el.querySelectorAll('#aiTypes .chip').forEach(b => b.classList.toggle('on', b.dataset.t === tag));
+    const paintSug = () => {
+      const q = $('aiName').value.trim().toLowerCase();
+      const list = [...purchases.values()].filter(p => !inLook.has(p.id) && (!q || String(p.name).toLowerCase().includes(q)))
+        .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || ''))).slice(0, 8);
+      $('aiSug').innerHTML = list.length ? list.map(p => {
+        const vs = variants.get(p.id) || [], m = vs.find(v => v.isPrimary) || vs[0], im = vs.find(v => v.imageIds && v.imageIds[0]);
+        const st = (STATUSES.find(s => s[0] === (p.status || 'wish')) || [, 'Хочу'])[1];
+        return `<div class="sug-row" data-p="${p.id}">${ph('sq', PUR, im ? im.imageIds[0] : null, '🛍️')}<div class="sug-t">${esc(p.name)}<small>${st}${m && m.price != null ? ' · ' + money(m.price) : ''}</small></div><span class="cb sm">Выбрать</span></div>`;
+      }).join('') : '<div class="others">Ничего похожего — создайте новую покупку кнопкой ниже.</div>';
+    };
+    paintTypes(); paintSug();
+    $('aiTypes').onclick = e => { const b = e.target.closest('[data-t]'); if (b) { tag = b.dataset.t; paintTypes(); } };
+    $('aiName').oninput = paintSug;
+    $('aiSug').onclick = e => { const r = e.target.closest('[data-p]'); if (r) lock(r, () => linkItem(lookId, r.dataset.p, tag)); };
+    $('aiNew').onclick = ev => lock(ev.currentTarget, async () => {
+      const name = $('aiName').value.trim(); if (!name) return toast('Введите название');
+      const p = await DB.create('purchases', { name, status: 'wish', priority: 0, tagIds: [tag], sourceType: 'cosplay' }, PUR);
+      purchases.set(p.id, p);
+      await linkItem(lookId, p.id, tag);
+    });
+  });
+}
+async function linkItem(lookId, purchaseId, tag) {
+  const it = await DB.create('items', { lookId, purchaseId, tagIds: [tag] });
+  items.push(it); closeModal(); render(); showItem(it.id);
+}
+
+// ───────── карточка предмета: статус, варианты (где купить), использование у других героев ─────────
+let editVariant = null;   // null | 'new' | id варианта
+function showItem(id, keepForm) {
+  const it = items.find(x => x.id === id); if (!it) return;
+  if (!keepForm) editVariant = null;
+  const v = itemView(it), p = v.p;
+  const others = items.filter(x => x.purchaseId === it.purchaseId && x.id !== it.id).map(x => {
+    const l = looks.find(y => y.id === x.lookId), c = l && chars.find(y => y.id === l.charId);
+    return l && c ? `<a href="#/c/${c.id}/l/${l.id}" onclick="closeModal()">${esc(c.name)} · ${esc(l.name)}</a>` : '';
+  }).filter(Boolean);
+  const shopName = sid => { const s = shops.find(x => x.id === sid); return s ? `${esc(s.logo || '🛍️')} ${esc(s.name)}` : ''; };
+  const varsHtml = v.vs.map(x => `<div class="var-row${x.isPrimary ? ' pref' : ''}">
+      <div data-vimg="${x.id}">${ph('sq', PUR, x.imageIds && x.imageIds[0], '🛍️')}</div>
+      <div class="var-i" data-vedit="${x.id}">${esc(x.title || (shopName(x.shopId).replace(/<[^>]*>/g, '') || 'Вариант'))}<small>${[shopName(x.shopId), x.price != null ? money(x.price) : ''].filter(Boolean).join(' · ')}</small></div>
+      <button type="button" class="ib${x.isPrimary ? ' on' : ''}" data-vstar="${x.id}" title="Основной вариант">★</button>
+      ${x.url ? `<a class="ib" href="${esc(x.url)}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center" title="Открыть ссылку">🔗</a>` : ''}
+      <button type="button" class="ib" data-vdel="${x.id}" title="Удалить">✕</button></div>`).join('');
+  const ev = editVariant && editVariant !== 'new' ? v.vs.find(x => x.id === editVariant) : null;
+  const shopOpts = shops.map(s => `<option value="${s.id}"${ev && ev.shopId === s.id ? ' selected' : ''}>${esc(s.logo || '🛍️')} ${esc(s.name)}</option>`).join('');
+  const formHtml = editVariant ? `<div class="fg" style="background:var(--bg3);border:1px solid var(--accent);border-radius:var(--r);padding:10px">
+      <div class="row"><input class="fi" id="vTitle" placeholder="Название варианта (необязательно)" value="${esc(ev ? ev.title || '' : '')}"><input class="fi" id="vPrice" type="number" inputmode="decimal" placeholder="Цена" style="max-width:120px" value="${ev && ev.price != null ? ev.price : ''}"></div>
+      <div class="row" style="margin-top:8px"><select class="fi" id="vShop"><option value="">— магазин —</option>${shopOpts}<option value="__new">＋ Новый магазин…</option></select></div>
+      <input class="fi" id="vUrl" placeholder="Ссылка на товар" style="margin-top:8px" value="${esc(ev ? ev.url || '' : '')}">
+      <div class="row" style="margin-top:8px;align-items:center"><div class="up sq" id="vUp" style="width:84px">${ev && ev.imageIds && ev.imageIds[0] ? `<img data-img="${PUR}:${ev.imageIds[0]}" class="ok" alt="">` : '<span>📷</span>'}</div><input type="file" id="vFile" accept="image/*" hidden>
+        <div style="flex:1"></div><button class="cb sm" type="button" id="vCancel">Отмена</button><button class="cb sm pri" type="button" id="vSave">Сохранить</button></div></div>` : '';
+  openModal({
+    title: esc(v.name), lg: true,
+    body: field('Название покупки', `<input class="fi" id="iName" value="${esc(p ? p.name : '')}" ${p ? '' : 'disabled'}>`) +
+      field('Тип', `<div class="chips" id="iTypes">${TYPES.map(t => `<button type="button" class="chip${t.tag === (it.tagIds || [])[0] ? ' on' : ''}" data-t="${t.tag}">${t.emoji} ${t.label}</button>`).join('')}</div>`) +
+      field('Статус', `<div class="chips" id="iStat">${STATUSES.map(([k, l]) => `<button type="button" class="chip${v.status === k ? ' on' : ''}" data-s="${k}">${l}</button>`).join('')}</div>`) +
+      field('Где купить (варианты)', (varsHtml || '<div class="others" style="margin-bottom:8px">Вариантов пока нет — предмет в покупках «абстрактный».</div>') + formHtml +
+        (editVariant ? '' : '<button class="cb sm" type="button" id="vAdd">＋ Добавить вариант</button>')) +
+      field('Заметка к предмету в этом образе', `<textarea class="fi" id="iNotes" placeholder="Необязательно">${esc(it.notes || '')}</textarea>`) +
+      (others.length ? field('Этот предмет также используется', `<div class="others">${others.join(' · ')}</div>`) : ''),
+    footer: '<button class="cb dng" id="iUnlink" type="button">Убрать из образа</button><a class="cb" href="https://organizz-purchases.pages.dev/" target="_blank" rel="noopener">Открыть «Покупки»</a><button class="cb pri" data-x2 type="button">Готово</button>',
+  }, el => {
+    const reopen = () => { render(); showItem(id, true); };
+    $('iName').onchange = e => lock(e.target, async () => {
+      const name = e.target.value.trim(); if (!name || !p) return;
+      purchases.set(p.id, await DB.update('purchases', p.id, { name }, PUR)); render();
+    });
+    $('iTypes').onclick = e => { const b = e.target.closest('[data-t]'); if (b) lock(b, async () => { upsert(items, await DB.update('items', it.id, { tagIds: [b.dataset.t] })); reopen(); }); };
+    $('iStat').onclick = e => { const b = e.target.closest('[data-s]'); if (b && p) lock(b, async () => { purchases.set(p.id, await DB.update('purchases', p.id, { status: b.dataset.s }, PUR)); reopen(); }); };
+    $('iNotes').onchange = e => lock(e.target, async () => { upsert(items, await DB.update('items', it.id, { notes: e.target.value.trim() || null })); });
+    $('iUnlink').onclick = ev => lock(ev.currentTarget, async () => {
+      if (!confirm('Убрать предмет из этого образа? Сама покупка останется в «Покупках» и в других образах.')) return;
+      await DB.delete('items', it.id); items = items.filter(x => x.id !== it.id); closeModal(); render();
+    });
+    if ($('vAdd')) $('vAdd').onclick = () => { editVariant = 'new'; showItem(id, true); };
+    el.querySelectorAll('[data-vedit]').forEach(b => b.onclick = () => { editVariant = b.dataset.vedit; showItem(id, true); });
+    el.querySelectorAll('[data-vimg]').forEach(b => b.onclick = async () => { const x = v.vs.find(y => y.id === b.dataset.vimg); const u = x && x.imageIds && await imgUrl(PUR, x.imageIds[0]); if (u) lightbox(u); });
+    el.querySelectorAll('[data-vstar]').forEach(b => b.onclick = () => lock(b, async () => {
+      for (const x of v.vs) { const want = x.id === b.dataset.vstar; if (!!x.isPrimary !== want) upsertVar(await DB.update('purchase_variants', x.id, { isPrimary: want }, PUR)); }
+      reopen();
+    }));
+    el.querySelectorAll('[data-vdel]').forEach(b => b.onclick = () => lock(b, async () => {
+      const x = v.vs.find(y => y.id === b.dataset.vdel); if (!x || !confirm('Удалить вариант?')) return;
+      await DB.delete('purchase_variants', x.id);
+      for (const im of x.imageIds || []) await dropImg(im, PUR);
+      variants.set(it.purchaseId, (variants.get(it.purchaseId) || []).filter(y => y.id !== x.id)); reopen();
+    }));
+    if (editVariant) {
+      let newImg = null;
+      $('vUp').onclick = () => $('vFile').click();
+      $('vFile').onchange = async e => { const f = e.target.files[0]; if (!f) return; try { newImg = await prepImage(f, 1, 900); $('vUp').innerHTML = `<img src="${newImg}" alt="">`; } catch (err) { toast(err.message); } };
+      $('vCancel').onclick = () => { editVariant = null; showItem(id, true); };
+      $('vShop').onchange = e => { if (e.target.value === '__new') lock(e.target, async () => {
+        const nm = (prompt('Название магазина') || '').trim();
+        if (!nm) { e.target.value = ''; return; }
+        const s = await DB.create('shops', { name: nm, logo: '🛍️' }, PUR); shops.push(s); shops.sort(byName);
+        editVariant = editVariant; showItem(id, true);
+      }); };
+      $('vSave').onclick = ev => lock(ev.currentTarget, async () => {
+        const price = $('vPrice').value.trim() === '' ? null : parseFloat($('vPrice').value.replace(',', '.'));
+        const patch = { title: $('vTitle').value.trim() || null, price: isFinite(price) ? price : null, shopId: ($('vShop').value && $('vShop').value !== '__new') ? $('vShop').value : null, url: $('vUrl').value.trim() || null };
+        if (newImg) patch.imageIds = [await DB.saveImage(newImg, { name: 'variant-photo' }, PUR)];
+        if (ev && editVariant !== 'new') {
+          const old = v.vs.find(y => y.id === editVariant);
+          upsertVar(await DB.update('purchase_variants', editVariant, patch, PUR));
+          if (newImg && old) for (const im of old.imageIds || []) await dropImg(im, PUR);
+        } else {
+          const first = !(variants.get(it.purchaseId) || []).length;
+          upsertVar(await DB.create('purchase_variants', { purchaseId: it.purchaseId, isPrimary: first, ...patch }, PUR));
+        }
+        editVariant = null; reopen();
+      });
     }
-  }
-  await Promise.all(items.map(async function(x) {
-    x._photoUrl = await _imgUrl(x.photoImageId);
-    var ti = TYPE_TAGS.indexOf((x.tagIds || [])[0]);
-    x.typeIdx = ti >= 0 ? ti : 0;
-  }));
-  return items;
+  });
+}
+function upsertVar(rec) {
+  const arr = variants.get(rec.purchaseId) || []; upsert(arr, rec); arr.sort(byCreated); variants.set(rec.purchaseId, arr);
 }
 
-// ----- NAV -----
-function goBack() {
-  if (view === 'items') gotoLooks(curChar);
-  else if (view === 'looks') gotoChars();
-}
-function setView(v) {
-  view = v;
-  var list = document.getElementById('mainContent');
-  list.classList.toggle('list-grid', v !== 'chars');
-  if (v === 'chars') {
-    LifeShell.update({ title: 'Персонажи', back: false, actions: [ACT_FILTER, ACT_SYNC] });
-  } else if (v === 'looks') {
-    LifeShell.update({ title: curChar.name + ' / Образы', back: goBack, actions: [ACT_SYNC] });
-  } else {
-    LifeShell.update({ title: curChar.name + ' / ' + curLook.name, back: goBack, actions: [ACT_SYNC] });
-  }
-}
-
-async function gotoChars() {
-  showLoading();
-  curChar = null; curLook = null;
-  setView('chars');
-  await loadCharacters();
-  renderChars();
-}
-async function gotoLooks(char) {
-  showLoading();
-  curChar = char; curLook = null;
-  setView('looks');
-  await loadLooks(char.id);
-  renderLooks();
-}
-async function gotoItems(look) {
-  showLoading();
-  curLook = look;
-  setView('items');
-  await loadItems(look.id);
-  renderItems();
+// ───────── перенос данных первой версии (один раз, молча) ─────────
+async function migrateLegacy() {
+  let changed = false;
+  try {
+    for (const c of chars.filter(x => x.source && !x.fandomId)) {          // «источник» -> фандом
+      let f = fandoms.find(x => String(x.name).toLowerCase() === String(c.source).trim().toLowerCase());
+      if (!f) { f = await DB.create('fandoms', { name: String(c.source).trim(), emoji: '✨' }); fandoms.push(f); }
+      await DB.update('characters', c.id, { fandomId: f.id, source: null }); changed = true;
+    }
+    for (const it of items.filter(x => !x.purchaseId && x.name)) {         // предмет с вложенными вариантами -> покупка
+      const status = it.status === 'have' ? 'in_stock' : 'wish';
+      const tagIds = [...(it.tagIds || [])]; if (it.status === 'make') tagIds.push('sys:src-make');
+      const p = await DB.create('purchases', { name: it.name, status, priority: 0, tagIds, notes: it.notes || null, sourceType: 'cosplay' }, PUR);
+      let first = true;
+      for (const lv of it.variants || []) {
+        const sname = lv.shop_name || lv.shopName || lv.shop || '';
+        let s = sname && shops.find(x => String(x.name).toLowerCase() === String(sname).toLowerCase());
+        if (sname && !s) { s = await DB.create('shops', { name: sname, logo: '🛍️' }, PUR); shops.push(s); }
+        await DB.create('purchase_variants', { purchaseId: p.id, isPrimary: !!(lv.is_preferred ?? lv.isPreferred) || first, title: lv.title || null,
+          price: lv.price != null && lv.price !== '' ? +lv.price : null, shopId: s ? s.id : null, url: lv.url || null }, PUR);
+        first = false;
+      }
+      if (it.photoImageId) {                                              // фото предмета -> вариант в покупках
+        try {
+          const old = await DB.getImage(it.photoImageId); const blob = await (await fetch(old.data)).blob();
+          const data = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
+          const iid = await DB.saveImage(data, { name: 'variant-photo' }, PUR);
+          await DB.create('purchase_variants', { purchaseId: p.id, isPrimary: first, title: null, price: null, imageIds: [iid] }, PUR);
+        } catch (e) { console.warn('photo migrate', e); }
+      }
+      await DB.update('items', it.id, { purchaseId: p.id, name: null, variants: null, photoImageId: null, status: null, typeIdx: null }); changed = true;
+    }
+  } catch (e) { console.warn('[Косплей] перенос данных:', e); }
+  return changed;
 }
 
-// ----- RENDER HELPERS -----
-function showLoading() {
-  document.getElementById('loadingEl').style.display = 'flex';
-  document.getElementById('mainContent').style.display = 'none';
-  document.getElementById('emptyEl').style.display = 'none';
-}
-function showContent(html) {
-  document.getElementById('loadingEl').style.display = 'none';
-  if (!html) {
-    document.getElementById('emptyEl').style.display = 'flex';
-    document.getElementById('mainContent').style.display = 'none';
+// ───────── запуск ─────────
+(async function boot() {
+  LifeShell.mount({ module: 'cosplays', title: 'Персонажи', actions: [] });
+  $('main').innerHTML = '<div class="empty"><div class="ico">⏳</div><div>Загрузка…</div></div>';
+  try { await lifeosInit(); } catch (e) { console.warn('[Косплей] lifeosInit:', e.message); }
+  try {
+    await loadAll();
+    if (await migrateLegacy()) await loadAll();
+  } catch (e) {
+    $('main').innerHTML = `<div class="empty"><div class="ico">⚠️</div><div>Не удалось загрузить данные: ${esc(e.message)}</div><button class="cb" onclick="location.reload()">Повторить</button></div>`;
     return;
   }
-  document.getElementById('mainContent').innerHTML = html;
-  document.getElementById('mainContent').style.display = 'block';
-  document.getElementById('emptyEl').style.display = 'none';
-}
-function toast(msg, type) {
-  if (window.UI) { UI.toast(msg, type === 'err' ? 'err' : 'ok'); return; }
-  var el = document.getElementById('toastEl');
-  if (!el) return;
-  el.textContent = msg;
-  el.className = 'toast on ' + (type||'');
-  setTimeout(function(){ el.classList.remove('on'); }, 2500);
-}
-
-function renderChars() {
-  if (!characters.length) { showContent(''); return; }
-  var list = characters.filter(passes);
-  var chips = [];
-  if (cflt.status !== 'all') chips.push(['status', '', '📌 ' + STATUS_OPTS.filter(function(o){return o[0]===cflt.status;})[0][1]]);
-  Object.keys(cflt.fd).forEach(function(k) { var o = fandomOpts.filter(function(x){return x.id===k;})[0]; chips.push(['fd', k, k === '_none' ? 'Без фандома' : (o ? fIcon(o) + ' ' + o.name : 'фандом')]); });
-  if (cflt.min != null || cflt.max != null) chips.push(['bud', '', '💰 ' + [cflt.min != null ? 'от ' + fmtP(cflt.min) : '', cflt.max != null ? 'до ' + fmtP(cflt.max) : ''].filter(Boolean).join(' ')]);
-  var act = chips.length ? '<div class="f-active">' + chips.map(function(c) { return '<button class="f-act" data-x="'+c[0]+'" data-v="'+esc(c[1])+'">'+esc(c[2])+' ✕</button>'; }).join('') + '</div>' : '';
-  var html = act;
-  if (!list.length) {
-    html += '<div class="f-none">Ничего не найдено по фильтрам<br><button class="btn-rm" id="fltReset2">Сбросить фильтры</button></div>';
-  } else html += '<div class="char-grid">' + list.map(function(c, idx) {
-    var sub = c._fd ? fIcon(c._fd) + ' ' + c._fd.name : (c.source || '');
-    return '<div class="char-card" data-id="'+c.id+'" style="animation-delay:'+idx*.04+'s">'
-      + '<div class="char-cover">'
-      + (c._coverUrl ? '<img src="'+esc(c._coverUrl)+'" loading="lazy"/>' : '🎭')
-      + '<div class="char-grad"></div><button class="edit-btn" data-edit="'+c.id+'">✎</button>'
-      + '<div class="char-info"><div class="char-name">'+esc(c.name)+'</div>'
-      + (sub ? '<div class="char-sub">'+esc(sub)+'</div>' : '')
-      + (c._budget ? '<div class="char-bud">осталось ~'+fmtP(c._budget)+'</div>' : '')
-      + '</div></div>'
-      + '<div class="char-prog-bar"><div class="char-prog-fill" style="width:'+(c.progress||0)+'%"></div></div>'
-      + '</div>';
-  }).join('') + '</div>';
-  showContent(html);
-  var mc = document.getElementById('mainContent');
-  mc.querySelectorAll('.f-act').forEach(function(b) {
-    b.addEventListener('click', function() {
-      var x = b.dataset.x;
-      if (x === 'status') cflt.status = 'all'; else if (x === 'fd') delete cflt.fd[b.dataset.v]; else { cflt.min = null; cflt.max = null; }
-      renderChars();
-    });
-  });
-  var r2 = document.getElementById('fltReset2'); if (r2) r2.addEventListener('click', function() { fltReset(); renderChars(); });
-  mc.querySelectorAll('.char-card .edit-btn').forEach(function(b) {
-    b.addEventListener('click', function(e) { e.stopPropagation(); openEditChar(b.dataset.edit); });
-  });
-  mc.querySelectorAll('.char-card').forEach(function(el) {
-    el.addEventListener('click', function() {
-      gotoLooks(characters.find(function(c){return c.id===el.dataset.id;}));
-    });
-    el.addEventListener('contextmenu', function(e) {
-      e.preventDefault();
-      openEditChar(el.dataset.id);
-    });
-  });
-}
-
-// ----- ФИЛЬТРЫ (окно по схеме «Покупок») -----
-function openFilters() {
-  if (view !== 'chars') return;
-  openSheet('Фильтры');
-  buildFilterUI();
-}
-function buildFilterUI() {
-  var sCnt = { all: characters.length, planning: 0, progress: 0, ready: 0 };
-  var fCnt = {};
-  characters.forEach(function(c) { sCnt[c._status]++; var k = c._fd ? c._fd.id : '_none'; fCnt[k] = (fCnt[k] || 0) + 1; });
-  var chip = function(f, v, label, n, on) { return '<button type="button" class="f-chip'+(on?' on':'')+'" data-f="'+f+'" data-v="'+esc(v)+'">'+esc(label)+'<i>'+n+'</i></button>'; };
-  var statusH = chip('status', 'all', 'Все', sCnt.all, cflt.status === 'all') + STATUS_OPTS.map(function(o) { return chip('status', o[0], o[1], sCnt[o[0]], cflt.status === o[0]); }).join('');
-  var fdKeys = Object.keys(fCnt).filter(function(k) { return k !== '_none'; }).map(function(k) { return fandomOpts.filter(function(o){return o.id===k;})[0]; }).filter(Boolean);
-  var fdH = fdKeys.map(function(o) { return chip('fd', o.id, fIcon(o) + ' ' + o.name, fCnt[o.id], !!cflt.fd[o.id]); }).join('')
-    + (fCnt._none ? chip('fd', '_none', 'Без фандома', fCnt._none, !!cflt.fd._none) : '');
-  var body = document.getElementById('formBody');
-  body.innerHTML = '<div class="fg"><label class="fl">Статус</label><div class="f-chips">'+statusH+'</div></div>'
-    + (fdH ? '<div class="fg"><label class="fl">Фандом</label><div class="f-chips">'+fdH+'</div></div>' : '')
-    + '<div class="fg"><label class="fl">Бюджет (осталось потратить), ₽</label><div class="f-range">'
-    + '<input id="fMin" class="fi" type="number" inputmode="numeric" min="0" placeholder="от" value="'+(cflt.min != null ? cflt.min : '')+'"/><span>—</span>'
-    + '<input id="fMax" class="fi" type="number" inputmode="numeric" min="0" placeholder="до" value="'+(cflt.max != null ? cflt.max : '')+'"/></div></div>'
-    + '<button class="btn-rm" id="fReset">Сбросить</button><button class="btn-save" id="fApply">Показать ('+characters.filter(passes).length+')</button>';
-  body.onclick = function(e) {
-    var b = e.target.closest('[data-f]');
-    if (b) {
-      if (b.dataset.f === 'status') cflt.status = b.dataset.v;
-      else if (cflt.fd[b.dataset.v]) delete cflt.fd[b.dataset.v]; else cflt.fd[b.dataset.v] = true;
-      renderChars(); buildFilterUI(); return;
-    }
-    if (e.target.closest('#fReset')) { fltReset(); renderChars(); buildFilterUI(); return; }
-    if (e.target.closest('#fApply')) closeSheet();
-  };
-  var onRange = function() {
-    var a = parseFloat(document.getElementById('fMin').value), z = parseFloat(document.getElementById('fMax').value);
-    cflt.min = isNaN(a) ? null : a; cflt.max = isNaN(z) ? null : z;
-    renderChars(); document.getElementById('fApply').textContent = 'Показать (' + characters.filter(passes).length + ')';
-  };
-  document.getElementById('fMin').addEventListener('input', onRange);
-  document.getElementById('fMax').addEventListener('input', onRange);
-}
-
-function renderLooks() {
-  if (!looks.length) { showContent(''); return; }
-  var html = looks.map(function(l, idx) {
-    var scCls = l.status==='ready' ? 'sc-ready' : l.status==='progress' ? 'sc-progress' : 'sc-planning';
-    var scTxt = l.status==='ready' ? 'Готов' : l.status==='progress' ? 'В процессе' : 'Планирую';
-    var thumb = (l._refUrls && l._refUrls[0]) ? '<img src="'+esc(l._refUrls[0])+'" loading="lazy"/>' : '✨';
-    return '<div class="look-card" data-id="'+l.id+'" style="animation-delay:'+idx*.04+'s">'
-      + '<button class="edit-btn" data-edit="'+l.id+'">✎</button>'
-      + '<div class="look-thumb">'+thumb+'</div>'
-      + '<div class="look-body">'
-      + '<div class="look-name">'+esc(l.name)+'</div>'
-      + '<div class="look-meta"><span class="sc '+scCls+'">'+scTxt+'</span></div>'
-      + '<div class="look-prog"><div class="look-prog-fill" style="width:'+(l.progress||0)+'%"></div></div>'
-      + '</div></div>';
-  }).join('');
-  showContent(html);
-  document.getElementById('mainContent').querySelectorAll('.look-card .edit-btn').forEach(function(b) {
-    b.addEventListener('click', function(e) { e.stopPropagation(); openEditLook(b.dataset.edit); });
-  });
-  document.getElementById('mainContent').querySelectorAll('.look-card').forEach(function(el) {
-    el.addEventListener('click', function() {
-      gotoItems(looks.find(function(l){return l.id===el.dataset.id;}));
-    });
-    el.addEventListener('contextmenu', function(e) {
-      e.preventDefault();
-      openEditLook(el.dataset.id);
-    });
-  });
-}
-
-function renderItems() {
-  if (!items.length) { showContent(''); return; }
-  var html = items.map(function(item, idx) {
-    var typeName = TYPE_NAMES[item.typeIdx] || '📦';
-    var isCls = item.status==='have' ? 'is-have' : item.status==='make' ? 'is-make' : 'is-buy';
-    var isTxt = item.status==='have' ? 'Уже есть' : item.status==='make' ? 'Шить/делать' : 'Купить';
-    var vars = item.variants || [];
-    var varHtml = vars.length ? '<div class="vars-strip">'
-      + vars.map(function(v){
-          return '<a class="var-chip'+(v.is_preferred?' pref':'')+'" href="'+esc(v.url||'#')+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">'
-            + esc(v.shop_name||'Магазин')
-            + (v.price ? ' · <span class="var-price">'+fmtP(v.price)+'</span>' : '')
-            + (v.is_preferred ? ' ⭐' : '')
-            + '</a>';
-        }).join('')
-      + '</div>' : '';
-    var thumb = item._photoUrl ? '<img src="'+esc(item._photoUrl)+'" loading="lazy"/>' : (TYPE_EMOJIS[item.typeIdx] || '📦');
-    return '<div class="item-card" data-id="'+item.id+'" style="animation-delay:'+idx*.03+'s">'
-      + '<div class="item-inner">'
-      + '<div class="item-thumb">'+thumb+'</div>'
-      + '<div class="item-body">'
-      + '<div class="item-name">'+esc(item.name)+'</div>'
-      + '<div class="item-type">'+typeName+'</div>'
-      + '<span class="item-st '+isCls+'">'+isTxt+'</span>'
-      + (item._pu ? '<span class="pu-badge">🛒 '+(item._pu.status==='in_stock'?'куплено':item._pu.status==='ordered'?'заказано':'в Покупках')+'</span>' : '')
-      + '</div></div>'
-      + varHtml + '</div>';
-  }).join('');
-  showContent(html);
-  document.getElementById('mainContent').querySelectorAll('.item-card').forEach(function(el) {
-    el.addEventListener('click', function() { openEditItem(el.dataset.id); });
-  });
-}
-
-// ----- SHEET -----
-function openSheet(title) {
-  document.getElementById('formBody').onclick = null;   // обработчик окна фильтров не должен переходить в другие формы
-  document.getElementById('formTitle').textContent = title;
-  document.getElementById('overlay').classList.add('on');
-  document.getElementById('formSheet').classList.add('on');
-  document.body.style.overflow = 'hidden';
-}
-function closeSheet() {
-  document.getElementById('overlay').classList.remove('on');
-  document.getElementById('formSheet').classList.remove('on');
-  document.body.style.overflow = '';
-  _editId=null; _variantsDraft=[]; _refsDraft=[]; _coverData=null; _photoData=null;
-}
-
-// ----- CHAR FORM -----
-function openAddChar()   { buildCharForm(null); }
-function openEditChar(id){ buildCharForm(characters.find(function(c){return c.id===id;})||null); }
-// ----- выбор фандома в форме персонажа -----
-function fandomFields(char) {   // source дублирует название (его читает старый код); fandomId — основная связь
-  if (_fd) return { fandomId: _fd.id, source: _fd.name };
-  return { fandomId: null, source: (_fdKeepLegacy && char) ? (char.source || null) : null };
-}
-function fdSelRender() {
-  var el = document.getElementById('fdSel'); if (!el) return;
-  el.innerHTML = _fd ? '<span>'+esc(fIcon(_fd))+' <b>'+esc(_fd.name)+'</b></span><button type="button" id="fdClear" aria-label="Убрать">✕</button>'
-    : '<span style="color:var(--text3)">'+(_fdKeepLegacy ? 'Было: «'+esc(_curLegacy)+'» — выбери из списка или создай' : 'Не выбран')+'</span>';
-  var c = document.getElementById('fdClear'); if (c) c.onclick = function() { _fd = null; _fdKeepLegacy = false; fdSelRender(); fdListRender(); };
-}
-var _curLegacy = '';
-function fdListRender() {
-  var raw = document.getElementById('fdQ').value.trim(), q = nrm(raw);
-  var opts = fandomOpts.filter(function(o) { return !q || nrm(o.name).indexOf(q) >= 0; }).slice(0, 40);
-  var exact = fandomOpts.some(function(o) { return nrm(o.name) === q; });
-  var h = opts.map(function(o) { return '<button type="button" class="fd-opt'+(_fd&&_fd.id===o.id?' on':'')+'" data-fd="'+esc(o.id)+'">'+esc(fIcon(o))+' '+esc(o.name)+'</button>'; }).join('');
-  if (q && !exact) h += '<div class="fd-new"><input id="fdEmoji" class="fi" maxlength="8" placeholder="😀" aria-label="Эмодзи"/><button type="button" class="fd-opt create" id="fdCreate">＋ Создать «'+esc(raw)+'»</button></div>';
-  document.getElementById('fdList').innerHTML = h;
-}
-function initFandomPicker(char) {
-  _fd = char ? fandomOf(char) : null;
-  _curLegacy = char && !_fd ? (char.source || '') : '';
-  _fdKeepLegacy = !!_curLegacy;
-  fdSelRender(); fdListRender();
-  document.getElementById('fdQ').addEventListener('input', fdListRender);
-  document.getElementById('fdList').addEventListener('click', async function(e) {
-    var o = e.target.closest('[data-fd]');
-    if (o) { _fd = fandomOpts.filter(function(x){return x.id===o.dataset.fd;})[0] || null; _fdKeepLegacy = false; fdSelRender(); fdListRender(); return; }
-    if (!e.target.closest('#fdCreate')) return;
-    var name = document.getElementById('fdQ').value.trim(), em = document.getElementById('fdEmoji').value.trim();
-    if (!/\p{Extended_Pictographic}/u.test(em)) { toast('Выбери эмодзи для фандома', 'err'); document.getElementById('fdEmoji').focus(); return; }
-    try {
-      var rec = await DB.create('tags', { name: name, kind: 'category', group: 'Фандомы', scope: ['fandoms'], emoji: em }, 'shared');
-      rec.system = false; fandomOpts.push(rec);
-      fandomOpts.sort(function(a, b) { return String(a.name).localeCompare(String(b.name), 'ru'); });
-      _fd = rec; _fdKeepLegacy = false; document.getElementById('fdQ').value = ''; fdSelRender(); fdListRender();
-    } catch (err) { toast('Не создалось: ' + err.message, 'err'); }
-  });
-}
-function buildCharForm(char) {
-  _editId = char ? char.id : null;
-  _coverData = char ? (char._coverUrl||null) : null; _coverNew = false; _coverRemoved = false;
-  openSheet(char ? 'Редактировать персонажа' : 'Новый персонаж');
-  var delBtn = char ? '<button class="btn-del" id="fDelBtn">Удалить персонажа</button>' : '';
-  document.getElementById('formBody').innerHTML =
-    '<div class="fg"><label class="fl">Обложка</label>'
-    + '<div class="img-up" id="fImgUp">'
-    + '<span id="fImgLbl">🎭 Добавить фото</span>'
-    + (_coverData ? '<img id="fImgEl" src="'+esc(_coverData)+'"/>' : '<img id="fImgEl" style="display:none"/>')
-    + '<div class="img-mask">🔄 Заменить</div></div>'
-    + '<input type="file" id="fImgInput" accept="image/*" style="display:none"/>'
-    + (_coverData ? '<button type="button" class="btn-rm" id="fImgRm">Убрать обложку</button>' : '') + '</div>'
-    + '<div class="fg"><label class="fl">Имя *</label>'
-    + '<input id="fCharName" class="fi" placeholder="Nezuko, Zero Two..." value="'+esc(char?char.name:'')+'"/></div>'
-    + '<div class="fg"><label class="fl">Фандом</label><div class="fd-sel" id="fdSel"></div>'
-    + '<input id="fdQ" class="fi" placeholder="Найти или создать..." autocomplete="off"/><div class="fd-list" id="fdList"></div></div>'
-    + '<button class="btn-save" id="fSaveBtn">Сохранить</button>'
-    + delBtn;
-  if (_coverData) document.getElementById('fImgLbl').style.display='none';
-  initFandomPicker(char);
-  document.getElementById('fImgUp').addEventListener('click', function(){ document.getElementById('fImgInput').click(); });
-  var rmC = document.getElementById('fImgRm');
-  if (rmC) rmC.addEventListener('click', function(){
-    _coverData = null; _coverNew = false; _coverRemoved = true;
-    var img = document.getElementById('fImgEl'); img.style.display = 'none'; img.removeAttribute('src');
-    document.getElementById('fImgLbl').style.display = ''; rmC.style.display = 'none';
-  });
-  document.getElementById('fImgInput').addEventListener('change', function(e){
-    var f=e.target.files[0]; if(!f) return;
-    var r=new FileReader(); r.onload=function(ev){
-      _coverData=ev.target.result; _coverNew=true;
-      var img=document.getElementById('fImgEl'); img.src=_coverData; img.style.display='block';
-      document.getElementById('fImgLbl').style.display='none';
-    }; r.readAsDataURL(f);
-  });
-  document.getElementById('fSaveBtn').addEventListener('click', async function(){
-    var name=document.getElementById('fCharName').value.trim();
-    if(!name){toast('Введи имя','err');return;}
-    document.getElementById('fSaveBtn').disabled=true; document.getElementById('fSaveBtn').textContent='Сохранение...';
-    try {
-      var coverImageId = char ? (char.coverImageId||null) : null;
-      if (_coverRemoved && coverImageId) { await dropImages([coverImageId]); coverImageId = null; }
-      if (_coverNew && _coverData) {
-        var newCover = await DB.saveImage(_coverData);
-        if (coverImageId) await dropImages([coverImageId]);
-        coverImageId = newCover;
-      }
-      if (_editId) {
-        await DB.update('characters', _editId, Object.assign({name:name, coverImageId:coverImageId}, fandomFields(char)));
-      } else {
-        await DB.create('characters', Object.assign({name:name, coverImageId:coverImageId, progress:0}, fandomFields(null)));
-      }
-      await loadCharacters(); renderChars(); closeSheet(); toast(char?'Обновлено ✓':'Добавлено ✓','ok');
-    } catch(e){ toast('Ошибка: '+e.message,'err'); }
-    finally { var btn=document.getElementById('fSaveBtn'); if(btn){btn.disabled=false;btn.textContent='Сохранить';} }
-  });
-  if(char) document.getElementById('fDelBtn').addEventListener('click', async function(){
-    if(!confirm('Удалить персонажа вместе со всеми его образами и предметами?')) return;
-    try{ await removeCharCascade(char); await loadCharacters(); renderChars(); closeSheet(); toast('Удалено','ok'); }
-    catch(e){ toast('Ошибка: '+e.message,'err'); }
-  });
-}
-
-// ----- LOOK FORM -----
-function openAddLook()   { buildLookForm(null); }
-function openEditLook(id){ buildLookForm(looks.find(function(l){return l.id===id;})||null); }
-function buildLookForm(look) {
-  _editId = look ? look.id : null;
-  _refsDraft = look ? (look._refUrls||[]).slice() : [];
-  _refsIdBySrc = {};
-  if (look) (look._refUrls||[]).forEach(function(u,i){ _refsIdBySrc[u] = (look._refIds||[])[i]; });
-  var lookStatus = look ? look.status||'planning' : 'planning';
-  openSheet(look ? 'Редактировать образ' : 'Новый образ');
-  var delBtn = look ? '<button class="btn-del" id="fDelBtn">Удалить образ</button>' : '';
-  document.getElementById('formBody').innerHTML =
-    '<div class="fg"><label class="fl">Название *</label>'
-    + '<input id="fLookName" class="fi" placeholder="Школьная форма, боевой..." value="'+esc(look?look.name:'')+'"/></div>'
-    + '<div class="fg"><label class="fl">Статус</label>'
-    + '<div class="pill-sel" id="fLookStatus">'
-    + '<button class="pill-opt" data-v="planning">Планирую</button>'
-    + '<button class="pill-opt" data-v="progress">В процессе</button>'
-    + '<button class="pill-opt" data-v="ready">Готов</button>'
-    + '</div></div>'
-    + '<div class="fg"><label class="fl">Референс-фото</label>'
-    + '<div class="refs-wrap" id="fRefsWrap"></div>'
-    + '<input type="file" id="fRefInput" accept="image/*" multiple style="display:none"/></div>'
-    + '<div class="fg"><label class="fl">Заметки</label>'
-    + '<textarea id="fLookNotes" class="fi" placeholder="Детали, нюансы...">'+esc(look?look.notes||'':'')+'</textarea></div>'
-    + '<button class="btn-save" id="fSaveBtn">Сохранить</button>'
-    + delBtn;
-  function syncStatus(){
-    document.getElementById('fLookStatus').querySelectorAll('.pill-opt').forEach(function(b){
-      b.className='pill-opt';
-      if(b.dataset.v===lookStatus) b.classList.add('on-'+lookStatus);
-    });
-  }
-  syncStatus();
-  document.getElementById('fLookStatus').addEventListener('click', function(e){
-    var b=e.target.closest('.pill-opt'); if(!b) return;
-    lookStatus=b.dataset.v; syncStatus();
-  });
-  function renderRefs(){
-    var wrap=document.getElementById('fRefsWrap');
-    wrap.innerHTML = _refsDraft.map(function(url,i){
-      return '<div class="ref-thumb"><img src="'+esc(url)+'"/><div class="ref-del" data-i="'+i+'">×</div></div>';
-    }).join('') + '<div class="ref-add" id="fRefAddBtn">＋</div>';
-    wrap.querySelectorAll('.ref-del').forEach(function(btn){
-      btn.addEventListener('click',function(){ _refsDraft.splice(+btn.dataset.i,1); renderRefs(); });
-    });
-    document.getElementById('fRefAddBtn').addEventListener('click',function(){ document.getElementById('fRefInput').click(); });
-  }
-  renderRefs();
-  document.getElementById('fRefInput').addEventListener('change', function(e){
-    var files=Array.from(e.target.files);
-    files.forEach(function(f){
-      var rd=new FileReader(); rd.onload=function(ev){ _refsDraft.push(ev.target.result); renderRefs(); }; rd.readAsDataURL(f);
-    });
-  });
-  document.getElementById('fSaveBtn').addEventListener('click', async function(){
-    var name=document.getElementById('fLookName').value.trim();
-    if(!name){toast('Введи название','err');return;}
-    document.getElementById('fSaveBtn').disabled=true; document.getElementById('fSaveBtn').textContent='Сохранение...';
-    try{
-      var keepIds = [];
-      for (var ri = 0; ri < _refsDraft.length; ri++) {
-        var rs = _refsDraft[ri];
-        keepIds.push(_refsIdBySrc[rs] ? _refsIdBySrc[rs] : await DB.saveImage(rs));
-      }
-      if (look) await dropImages((look.refImageIds||[]).filter(function(id){ return keepIds.indexOf(id) < 0; }));
-      if (_editId) {
-        await DB.update('looks', _editId, {name:name, status:lookStatus, notes:document.getElementById('fLookNotes').value.trim()||null, refImageIds:keepIds});
-      } else {
-        await DB.create('looks', {charId:curChar.id, name:name, status:lookStatus, notes:document.getElementById('fLookNotes').value.trim()||null, refImageIds:keepIds, progress:0});
-        await recalcProgress(curChar.id);
-      }
-      await loadLooks(curChar.id); renderLooks(); closeSheet(); toast(look?'Обновлено ✓':'Добавлено ✓','ok');
-    }catch(e){toast('Ошибка: '+e.message,'err');}
-    finally{ var btn=document.getElementById('fSaveBtn'); if(btn){btn.disabled=false;btn.textContent='Сохранить';} }
-  });
-  if(look) document.getElementById('fDelBtn').addEventListener('click', async function(){
-    if(!confirm('Удалить образ вместе со всеми его предметами?')) return;
-    try{ await removeLookCascade(look); await recalcProgress(curChar.id); await loadLooks(curChar.id); renderLooks(); closeSheet(); toast('Удалено','ok'); }
-    catch(e){ toast('Ошибка: '+e.message,'err'); }
-  });
-}
-
-// ----- ITEM FORM -----
-function openAddItem()   { buildItemForm(null); }
-function openEditItem(id){ buildItemForm(items.find(function(x){return x.id===id;})||null); }
-function buildItemForm(item) {
-  _editId = item ? item.id : null;
-  _photoData = item ? (item._photoUrl||null) : null; _photoNew = false; _photoRemoved = false;
-  _variantsDraft = item ? JSON.parse(JSON.stringify(item.variants||[])) : [];
-  var itemStatus = item ? (item.status||'buy') : 'buy';
-  var itemTypeIdx = item ? (item.typeIdx||0) : 0;
-  openSheet(item ? 'Редактировать предмет' : 'Новый предмет');
-  var typeOptions = TYPE_NAMES.map(function(t,i){
-    return '<option value="'+i+'"'+(itemTypeIdx===i?' selected':'')+'>'+t+'</option>';
-  }).join('');
-  var delBtn = item ? '<button class="btn-del" id="fDelBtn">Удалить предмет</button>' : '';
-  document.getElementById('formBody').innerHTML =
-    '<div class="fg"><label class="fl">Фото</label>'
-    + '<div class="img-up" id="fPhotoUp">'
-    + '<span id="fPhotoLbl">📷 Добавить фото</span>'
-    + (_photoData ? '<img id="fPhotoEl" src="'+esc(_photoData)+'"/>' : '<img id="fPhotoEl" style="display:none"/>')
-    + '<div class="img-mask">🔄 Заменить</div></div>'
-    + '<input type="file" id="fPhotoInput" accept="image/*" style="display:none"/>'
-    + (_photoData ? '<button type="button" class="btn-rm" id="fPhotoRm">Убрать фото</button>' : '') + '</div>'
-    + '<div class="fg"><label class="fl">Название *</label>'
-    + '<input id="fItemName" class="fi" placeholder="Парик, меч, кимоно..." value="'+esc(item?item.name:'')+'"/></div>'
-    + '<div class="frow">'
-    + '<div class="fg"><label class="fl">Тип</label><select id="fItemType" class="fi">'+typeOptions+'</select></div>'
-    + '<div class="fg"><label class="fl">Статус</label>'
-    + '<div class="pill-sel" id="fItemStatus" style="flex-direction:column">'
-    + '<button class="pill-opt" data-v="buy">Купить</button>'
-    + '<button class="pill-opt" data-v="make">Шить/делать</button>'
-    + '<button class="pill-opt" data-v="have">Уже есть</button>'
-    + '</div></div></div>'
-    + '<div class="fg"><label class="fl">Заметки</label>'
-    + '<textarea id="fItemNotes" class="fi" placeholder="Размер, цвет, детали...">'+esc(item?item.notes||'':'')+'</textarea></div>'
-    + '<div class="fg"><label class="fl">Варианты покупки</label>'
-    + '<div class="vars-editor" id="fVarsEditor"></div>'
-    + '<button class="btn-add-var" id="fAddVar">+ Добавить магазин</button></div>'
-    + '<button class="btn-save" id="fSaveBtn">Сохранить</button>'
-    + delBtn;
-  if(_photoData) document.getElementById('fPhotoLbl').style.display='none';
-  document.getElementById('fPhotoUp').addEventListener('click',function(){ document.getElementById('fPhotoInput').click(); });
-  var rmP = document.getElementById('fPhotoRm');
-  if (rmP) rmP.addEventListener('click', function(){
-    _photoData = null; _photoNew = false; _photoRemoved = true;
-    var img = document.getElementById('fPhotoEl'); img.style.display = 'none'; img.removeAttribute('src');
-    document.getElementById('fPhotoLbl').style.display = ''; rmP.style.display = 'none';
-  });
-  document.getElementById('fPhotoInput').addEventListener('change',function(e){
-    var f=e.target.files[0]; if(!f) return;
-    var rd=new FileReader(); rd.onload=function(ev){
-      _photoData=ev.target.result; _photoNew=true;
-      var img=document.getElementById('fPhotoEl'); img.src=_photoData; img.style.display='block';
-      document.getElementById('fPhotoLbl').style.display='none';
-    }; rd.readAsDataURL(f);
-  });
-  function syncItemStatus(){
-    document.getElementById('fItemStatus').querySelectorAll('.pill-opt').forEach(function(b){
-      b.className='pill-opt';
-      if(b.dataset.v===itemStatus) b.classList.add('on-'+itemStatus);
-    });
-  }
-  syncItemStatus();
-  document.getElementById('fItemStatus').addEventListener('click',function(e){
-    var b=e.target.closest('.pill-opt'); if(!b) return;
-    itemStatus=b.dataset.v; syncItemStatus();
-  });
-  function renderVars(){
-    var ed=document.getElementById('fVarsEditor');
-    ed.innerHTML=_variantsDraft.map(function(v,i){
-      return '<div class="var-row'+(v.is_preferred?' pref':'')+'" data-i="'+i+'">'
-        +'<div class="var-fields">'
-        +'<input class="vs" placeholder="Название магазина" value="'+esc(v.shop_name||'')+'" data-f="shop_name" data-i="'+i+'"/>'
-        +'<input class="vu" placeholder="Ссылка https://..." value="'+esc(v.url||'')+'" data-f="url" data-i="'+i+'"/>'
-        +'<input class="vp" type="number" placeholder="Цена ₽" value="'+(v.price||'')+'" data-f="price" data-i="'+i+'"/>'
-        +'</div>'
-        +'<div class="var-right">'
-        +'<button class="star-btn'+(v.is_preferred?' on':'')+'" data-i="'+i+'">⭐</button>'
-        +'<button class="del-var" data-i="'+i+'">×</button>'
-        +'</div></div>';
-    }).join('');
-    ed.querySelectorAll('.star-btn').forEach(function(btn){
-      btn.addEventListener('click',function(){
-        var idx=+btn.dataset.i;
-        _variantsDraft.forEach(function(v,j){ v.is_preferred=(j===idx?!v.is_preferred:false); });
-        renderVars();
-      });
-    });
-    ed.querySelectorAll('.del-var').forEach(function(btn){
-      btn.addEventListener('click',function(){ _variantsDraft.splice(+btn.dataset.i,1); renderVars(); });
-    });
-    ed.querySelectorAll('input').forEach(function(inp){
-      inp.addEventListener('input',function(){
-        var i=+inp.dataset.i, f=inp.dataset.f;
-        _variantsDraft[i][f] = f==='price' ? (parseFloat(inp.value)||null) : inp.value;
-      });
-    });
-  }
-  renderVars();
-  document.getElementById('fAddVar').addEventListener('click',function(){
-    _variantsDraft.push({shop_name:'',url:'',price:null,is_preferred:false}); renderVars();
-  });
-  document.getElementById('fSaveBtn').addEventListener('click', async function(){
-    var name=document.getElementById('fItemName').value.trim(); if(!name){toast('Введи название','err');return;}
-    document.getElementById('fSaveBtn').disabled=true; document.getElementById('fSaveBtn').textContent='Сохранение...';
-    try{
-      var photoImageId = item ? (item.photoImageId||null) : null;
-      if (_photoRemoved && photoImageId) { await dropImages([photoImageId]); photoImageId = null; }
-      if (_photoNew && _photoData) {
-        var newPhoto = await DB.saveImage(_photoData);
-        if (photoImageId) await dropImages([photoImageId]);
-        photoImageId = newPhoto;
-      }
-      var typeIdx = +document.getElementById('fItemType').value;
-      var payload = {name:name, tagIds:[TYPE_TAGS[typeIdx]], status:itemStatus, notes:document.getElementById('fItemNotes').value.trim()||null, photoImageId:photoImageId, variants:_variantsDraft};
-      var saved;
-      if (_editId) {
-        await DB.update('items', _editId, payload);
-        saved = Object.assign({}, item, payload);
-      } else {
-        saved = await DB.create('items', {lookId:curLook.id, ...payload});
-      }
-      try { await syncPurchase(saved); } catch (pe) { toast('Предмет сохранён, но покупку создать не вышло', 'err'); }
-      await recalcProgress(curChar.id, curLook.id);
-      await loadItems(curLook.id); renderItems(); closeSheet(); toast(item?'Обновлено ✓':'Добавлено ✓','ok');
-    }catch(e){toast('Ошибка: '+e.message,'err');}
-    finally{ var btn=document.getElementById('fSaveBtn'); if(btn){btn.disabled=false;btn.textContent='Сохранить';} }
-  });
-  if(item) document.getElementById('fDelBtn').addEventListener('click', async function(){
-    if(!confirm('Удалить предмет?')) return;
-    try{ await removeItemCascade(item); await recalcProgress(curChar.id, curLook.id); await loadItems(curLook.id); renderItems(); closeSheet(); toast('Удалено','ok'); }
-    catch(e){ toast('Ошибка: '+e.message,'err'); }
-  });
-}
-
-// ----- BOOT -----
-document.getElementById('overlay').addEventListener('click', closeSheet);
-document.getElementById('formClose').addEventListener('click', closeSheet);
-document.getElementById('fabAdd').addEventListener('click', function(){
-  if(view==='chars') openAddChar();
-  else if(view==='looks') openAddLook();
-  else openAddItem();
-});
-async function syncNow(){
-  showLoading();
-  if(view==='chars') { await loadCharacters(); renderChars(); }
-  else if(view==='looks') { await loadLooks(curChar.id); renderLooks(); }
-  else { await loadItems(curLook.id); renderItems(); }
-  toast('Обновлено','ok');
-}
-
-(async function(){
-  await lifeosInit();
-  await gotoChars();
+  window.addEventListener('hashchange', render);
+  render();
 })();
 </script>
 </body>
