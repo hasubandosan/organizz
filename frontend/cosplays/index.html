@@ -163,7 +163,8 @@
    Название, цена, магазины, фото и статус живут в модуле «Покупки» (purchases, purchase_variants, shops),
    поэтому один и тот же предмет можно использовать у разных героев и менять в одном месте. */
 
-const PUR = 'purchases';
+const PUR = 'purchases', PRJ = 'projects';
+const PRJ_URL = 'https://organizz-projects.pages.dev/';
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const byCreated = (a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || ''));
@@ -204,19 +205,21 @@ function fdIcon(f) {
 }
 const typeOf = tag => TYPES.find(t => t.tag === tag) || TYPES[TYPES.length - 1];
 const STATUSES = [['dream', 'Мечта'], ['wish', 'Хочу'], ['ordered', 'Заказано'], ['in_stock', 'Куплено']];
-// предмет «сделать самой» (DIY): без покупки, свой статус
+// предмет «Скрафтить» (DIY): без покупки, свой статус; связан с настоящим проектом в модуле «Проекты» (it.projectId)
 const MAKE_ST = [['todo', 'Задумано'], ['doing', 'В работе'], ['done', 'Готово']];
 const MAKE_CLS = { todo: 'dream', doing: 'ordered', done: 'in_stock' };
 
 // ───────── состояние ─────────
 let fandoms = [], chars = [], looks = [], items = [];
-let purchases = new Map(), variants = new Map(), shops = [];
+let purchases = new Map(), variants = new Map(), shops = [], craftProjects = new Map();
 
 async function loadAll() {
-  const [f, c, l, i, p, v, s] = await Promise.all([
+  const [f, c, l, i, p, v, s, pr] = await Promise.all([
     DB.getAll('fandoms'), DB.getAll('characters'), DB.getAll('looks'), DB.getAll('items'),
     DB.getAll('purchases', PUR).catch(() => []), DB.getAll('purchase_variants', PUR).catch(() => []), DB.getAll('shops', PUR).catch(() => []),
+    DB.getAll('projects', PRJ).catch(() => []),
   ]);
+  craftProjects = new Map(pr.map(x => [x.id, x]));
   fandoms = f.sort(byName); chars = c.sort(byCreated); looks = l.sort(byCreated); items = i.sort(byCreated);
   purchases = new Map(p.map(x => [x.id, x]));
   variants = new Map();
@@ -274,9 +277,28 @@ function prepImage(file, aspect, maxSide = 1000, q = 0.85) {
 
 // ───────── вычисления ─────────
 const itemsOfLook = id => items.filter(i => i.lookId === id);
+// статус крафта: если есть проект — берём из него (там его двигают задачами), иначе из самого предмета
+const PRJ_TO_MAKE = { idea: 'todo', planned: 'todo', in_progress: 'doing', paused: 'doing', completed: 'done', archived: 'done' };
+const MAKE_TO_PRJ = { todo: 'planned', doing: 'in_progress', done: 'completed' };
+function craftStatus(it) { const pr = it.projectId && craftProjects.get(it.projectId); return (pr && PRJ_TO_MAKE[pr.status]) || it.makeStatus || 'todo'; }
+// создаёт проект в «Проектах» для крафт-предмета (с заготовкой задач) и привязывает его к предмету
+const CRAFT_TASKS = ['Подобрать материалы и инструменты', 'Эскиз / выкройка', 'Изготовить', 'Примерить и доработать'];
+async function createCraftProject(it) {
+  const lk = looks.find(x => x.id === it.lookId);
+  const pr = await DB.create('projects', {
+    name: it.name || 'Крафт', description: lk ? 'Крафт для образа «' + (lk.name || '') + '»' : '', status: MAKE_TO_PRJ[it.makeStatus || 'todo'],
+    priority: 'medium', budget: 0, tags: [], imageIds: [], sourceType: 'cosplay',
+    refs: [{ module: 'cosplays', type: 'items', id: it.id }],
+  }, PRJ);
+  for (const name of CRAFT_TASKS) await DB.create('tasks', { name, status: 'planned', priority: 'medium', projectId: pr.id, tags: [], selfBudget: 0 }, PRJ);
+  craftProjects.set(pr.id, pr);
+  const upd = await DB.update('items', it.id, { projectId: pr.id });
+  upsert(items, upd);
+  return pr;
+}
 function itemView(it) {
   if (it.how === 'make') {
-    return { it, p: null, vs: [], main: null, make: true, name: it.name || 'Без названия', status: MAKE_CLS[it.makeStatus || 'todo'],
+    return { it, p: null, vs: [], main: null, make: true, name: it.name || 'Без названия', status: MAKE_CLS[craftStatus(it)],
       price: null, imgId: it.photoImageId || null, imgSlug: 'cosplays', type: typeOf((it.tagIds || [])[0]) };
   }
   const p = purchases.get(it.purchaseId);
@@ -290,7 +312,7 @@ function itemView(it) {
 }
 function lookProgress(lookId) {
   const its = itemsOfLook(lookId); if (!its.length) return { n: 0, done: 0, pct: 0 };
-  const done = its.filter(i => i.how === 'make' ? i.makeStatus === 'done' : (purchases.get(i.purchaseId) || {}).status === 'in_stock').length;
+  const done = its.filter(i => i.how === 'make' ? craftStatus(i) === 'done' : (purchases.get(i.purchaseId) || {}).status === 'in_stock').length;
   return { n: its.length, done, pct: Math.round(done * 100 / its.length) };
 }
 function charProgress(charId) {
@@ -397,7 +419,7 @@ function viewLook(ch, lk, fd) {
   const p = lookProgress(lk.id);
   const slotsHtml = SLOTS.map(s => {
     const here = its.filter(v => v.type.slot === s.id);
-    const tiles = here.map(v => `<div class="tile st-${v.status}" onclick="showItem('${v.it.id}')"><div class="tw">${ph('sq', v.imgSlug, v.imgId, v.type.emoji)}${v.make ? '<span class="mk" title="Сделать самой">🛠</span>' : ''}</div>
+    const tiles = here.map(v => `<div class="tile st-${v.status}" onclick="showItem('${v.it.id}')"><div class="tw">${ph('sq', v.imgSlug, v.imgId, v.type.emoji)}${v.make ? '<span class="mk" title="Скрафтить">🛠</span>' : ''}</div>
         <div class="tile-n">${esc(v.name)}</div><div class="tile-p">${v.price != null ? money(v.price) : '&nbsp;'}</div></div>`).join('');
     const addTile = `<div class="tile add" onclick="addItemForm('${lk.id}','${(TYPES.find(t => t.slot === s.id) || TYPES[0]).tag}')" title="Добавить: ${esc(s.label)}"><div class="ph sq">＋</div></div>`;
     return `<div class="slot"><div class="slot-h">${s.emoji} ${s.label}</div><div class="slot-tiles">${tiles}${here.length ? '' : addTile}${here.length ? addTile : ''}</div></div>`;
@@ -531,7 +553,7 @@ function addItemForm(lookId, presetTag) {
     body: field('Тип', `<div class="chips" id="aiTypes">${TYPES.map(t => `<button type="button" class="chip" data-t="${t.tag}">${t.emoji} ${t.label}</button>`).join('')}</div>`) +
       field('Название', '<input class="fi" id="aiName" placeholder="Например: парик каре блонд" autocomplete="off">') +
       '<div class="fl">Уже есть в покупках — можно выбрать</div><div class="sug" id="aiSug"></div>',
-    footer: '<button class="cb" data-x2 type="button">Отмена</button><button class="cb" id="aiMake" type="button">🛠 Сделать самой</button><button class="cb pri" id="aiNew" type="button">Создать новую покупку</button>',
+    footer: '<button class="cb" data-x2 type="button">Отмена</button><button class="cb" id="aiMake" type="button">🛠 Скрафтить</button><button class="cb pri" id="aiNew" type="button">Создать новую покупку</button>',
   }, el => {
     const paintTypes = () => el.querySelectorAll('#aiTypes .chip').forEach(b => b.classList.toggle('on', b.dataset.t === tag));
     const paintSug = () => {
@@ -551,7 +573,9 @@ function addItemForm(lookId, presetTag) {
     $('aiMake').onclick = ev => lock(ev.currentTarget, async () => {
       const name = $('aiName').value.trim(); if (!name) return toast('Введите название');
       const it = await DB.create('items', { lookId, how: 'make', makeStatus: 'todo', name, tagIds: [tag] });
-      items.push(it); closeModal(); render(); showItem(it.id);
+      items.push(it);
+      try { await createCraftProject(it); } catch (e) { console.warn('craft project', e); toast('Предмет создан, но проект не получилось — создайте его в карточке'); }
+      closeModal(); render(); showItem(it.id);
     });
     $('aiNew').onclick = ev => lock(ev.currentTarget, async () => {
       const name = $('aiName').value.trim(); if (!name) return toast('Введите название');
@@ -656,15 +680,16 @@ function showItem(id, keepForm) {
     }
   });
 }
-// карточка предмета «сделать самой»: название, тип, статус работы, фото, заметка
+// карточка предмета «Скрафтить»: название, тип, статус работы, фото, заметка
 function showCraft(id) {
   const it = items.find(x => x.id === id); if (!it) return;
   let newImg = null;
   openModal({
-    title: '🛠 ' + esc(it.name || 'Сделать самой'), lg: true,
+    title: '🛠 ' + esc(it.name || 'Скрафтить'), lg: true,
     body: field('Название', `<input class="fi" id="mName" value="${esc(it.name || '')}">`) +
       field('Тип', `<div class="chips" id="mTypes">${TYPES.map(t => `<button type="button" class="chip${t.tag === (it.tagIds || [])[0] ? ' on' : ''}" data-t="${t.tag}">${t.emoji} ${t.label}</button>`).join('')}</div>`) +
-      field('Статус работы', `<div class="chips" id="mStat">${MAKE_ST.map(([k, l]) => `<button type="button" class="chip${(it.makeStatus || 'todo') === k ? ' on' : ''}" data-s="${k}">${l}</button>`).join('')}</div>`) +
+      field('Статус работы', `<div class="chips" id="mStat">${MAKE_ST.map(([k, l]) => `<button type="button" class="chip${craftStatus(it) === k ? ' on' : ''}" data-s="${k}">${l}</button>`).join('')}</div>`) +
+      field('Проект', craftProjects.get(it.projectId) ? `<a class="cb" href="${PRJ_URL}#p=${esc(it.projectId)}" target="_blank" rel="noopener">📋 Открыть проект «${esc(craftProjects.get(it.projectId).name)}»</a>` : '<button class="cb" id="mMkPrj" type="button">📋 Создать проект с задачами</button>') +
       field('Фото', `<div class="up sq" id="mUp" style="width:100px">${it.photoImageId ? `<img data-img="cosplays:${it.photoImageId}" class="ok" alt="">` : '<span>📷</span>'}</div><input type="file" id="mFile" accept="image/*" hidden>`) +
       field('Заметки (материалы, идеи, шаги)', `<textarea class="fi" id="mNotes" placeholder="Необязательно">${esc(it.notes || '')}</textarea>`),
     footer: '<button class="cb dng" id="mDel" type="button">Убрать из образа</button><button class="cb pri" data-x2 type="button">Готово</button>',
@@ -672,7 +697,16 @@ function showCraft(id) {
     const save = async patch => { upsert(items, await DB.update('items', it.id, patch)); render(); };
     $('mName').onchange = e => lock(e.target, async () => { const n = e.target.value.trim(); if (n) await save({ name: n }); });
     $('mTypes').onclick = e => { const b = e.target.closest('[data-t]'); if (b) lock(b, async () => { await save({ tagIds: [b.dataset.t] }); showCraft(id); }); };
-    $('mStat').onclick = e => { const b = e.target.closest('[data-s]'); if (b) lock(b, async () => { await save({ makeStatus: b.dataset.s }); showCraft(id); }); };
+    $('mStat').onclick = e => { const b = e.target.closest('[data-s]'); if (b) lock(b, async () => {
+      await save({ makeStatus: b.dataset.s });
+      const pr = craftProjects.get(it.projectId);
+      if (pr) { try { craftProjects.set(pr.id, await DB.update('projects', pr.id, { status: MAKE_TO_PRJ[b.dataset.s] }, PRJ)); } catch (e2) { console.warn(e2); } }
+      showCraft(id);
+    }); };
+    if ($('mMkPrj')) $('mMkPrj').onclick = ev => lock(ev.currentTarget, async () => {
+      try { await createCraftProject(it); toast('Проект создан'); } catch (e2) { console.warn(e2); toast('Не получилось создать проект'); }
+      showCraft(id); render();
+    });
     $('mNotes').onchange = e => lock(e.target, () => save({ notes: e.target.value.trim() || null }));
     $('mUp').onclick = () => $('mFile').click();
     $('mFile').onchange = e => { const f = e.target.files[0]; if (f) lock(e.target, async () => {
