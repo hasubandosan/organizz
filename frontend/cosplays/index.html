@@ -26,6 +26,8 @@
   .empty .ico{font-size:48px;opacity:.35}
 
   /* главная: фандомы -> персонажи */
+  .flt{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:4px 0 2px}
+  .chip.act{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
   .fd-h{display:flex;align-items:center;gap:8px;margin:18px 0 10px;font-size:15px;font-weight:700}
   .fd-h i{font-style:normal;font-size:12px;color:var(--text3);font-weight:500}
   .char-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
@@ -321,6 +323,48 @@ function charProgress(charId) {
   return { looks: ls.length, n, done, pct: n ? Math.round(done * 100 / n) : 0 };
 }
 
+// бюджет персонажа = сумма цен купленных/запланированных предметов во всех образах (цена основного варианта)
+function charBudget(charId) {
+  let sum = 0;
+  looks.filter(l => l.charId === charId).forEach(l => itemsOfLook(l.id).forEach(i => { if (i.how !== 'make') sum += Number(itemView(i).price) || 0; }));
+  return sum;
+}
+const CH_STATUS = [['wip', 'В процессе'], ['done', 'Готов'], ['empty', 'Без предметов']];
+const CH_BUDGET = [['none', 'Без цены', b => !b], ['s', 'до 5 000 ₽', b => b > 0 && b < 5000], ['m', '5 000–20 000 ₽', b => b >= 5000 && b <= 20000], ['l', 'от 20 000 ₽', b => b > 20000]];
+const charStatus = p => !p.n ? 'empty' : p.pct === 100 ? 'done' : 'wip';
+let flt = { status: '', fandom: '', budget: '' };            // фильтры списка персонажей (живут, пока открыта страница)
+const fltCount = () => Object.values(flt).filter(Boolean).length;
+function passFilter(c) {
+  if (flt.status && charStatus(charProgress(c.id)) !== flt.status) return false;
+  if (flt.fandom && (c.fandomId || 'none') !== flt.fandom) return false;
+  if (flt.budget) { const r = CH_BUDGET.find(x => x[0] === flt.budget); if (r && !r[2](charBudget(c.id))) return false; }
+  return true;
+}
+function openFilterModal() {
+  const used = [...new Set(chars.map(c => c.fandomId && fandomById(c.fandomId) ? c.fandomId : 'none'))];
+  const fdOpts = used.map(id => [id, id === 'none' ? 'Без фандома' : fandomById(id).name]).sort((a, b) => a[1].localeCompare(b[1], 'ru'));
+  const group = (key, opts) => `<div class="chips" data-g="${key}">${opts.map(([k, l]) => `<button type="button" class="chip${flt[key] === k ? ' on' : ''}" data-v="${esc(k)}">${esc(l)}</button>`).join('')}</div>`;
+  openModal({
+    title: 'Фильтры',
+    body: field('Статус', group('status', CH_STATUS)) + field('Фандом', group('fandom', fdOpts)) + field('Бюджет', group('budget', CH_BUDGET.map(x => [x[0], x[1]]))),
+    footer: '<button class="cb" id="fReset" type="button">Сбросить</button><button class="cb pri" data-x2 type="button">Показать</button>',
+  }, el => {
+    el.onclick = e => {
+      const b = e.target.closest('.chip[data-v]'); if (!b) return;
+      const g = b.parentElement.dataset.g, v = b.dataset.v;
+      flt[g] = flt[g] === v ? '' : v;                          // повторный клик снимает выбор
+      b.parentElement.querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x.dataset.v === flt[g]));
+      render();
+    };
+    $('fReset').onclick = () => { flt = { status: '', fandom: '', budget: '' }; closeModal(); render(); };
+  });
+}
+function fltBar() {
+  const lbl = { status: k => (CH_STATUS.find(x => x[0] === k) || [])[1], budget: k => (CH_BUDGET.find(x => x[0] === k) || [])[1], fandom: k => k === 'none' ? 'Без фандома' : (fandomById(k) || {}).name };
+  const act = Object.keys(flt).filter(k => flt[k]).map(k => `<button type="button" class="chip act" onclick="flt.${k}='';render()">${esc(lbl[k](flt[k]) || '')} ✕</button>`).join('');
+  return `<div class="flt"><button type="button" class="cb sm" onclick="openFilterModal()">⚙ Фильтры${fltCount() ? ' · ' + fltCount() : ''}</button>${act}</div>`;
+}
+
 // ───────── интерфейс: утилиты ─────────
 let toastT;
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600); }
@@ -379,19 +423,20 @@ function render() {
 function viewHome() {
   if (!chars.length) return `<div class="empty"><div class="ico">🎭</div><div>Пока нет персонажей</div><button class="cb pri" onclick="charForm()">＋ Добавить первого</button></div>`;
   const groups = new Map();
-  chars.forEach(c => { const k = c.fandomId && fandomById(c.fandomId) ? c.fandomId : ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(c); });
+  chars.filter(passFilter).forEach(c => { const k = c.fandomId && fandomById(c.fandomId) ? c.fandomId : ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(c); });
   const order = [...allFandoms().sort(byName).map(f => f.id).filter(id => groups.has(id)), ...(groups.has('') ? [''] : [])];
-  return order.map(id => {
+  const body = order.map(id => {
     const f = fandomById(id), list = groups.get(id).slice().sort(byName);
     return `<div class="fd-h"><span>${f ? fdIcon(f) : '🎭'}</span>${f ? esc(f.name) : 'Без фандома'}<i>${list.length}</i></div>
       <div class="char-grid">${list.map(c => {
-        const p = charProgress(c.id);
+        const p = charProgress(c.id), b = charBudget(c.id);
         return `<a class="char-card" href="#/c/${c.id}">${ph('p34', 'cosplays', c.coverImageId, '🎭')}
           <div class="cc-b"><div class="cc-n">${esc(c.name)}</div>
-          <div class="cc-s">${p.looks} ${p.looks === 1 ? 'образ' : 'образов'}${p.n ? ` · ${p.pct}%` : ''}</div>
+          <div class="cc-s">${p.looks} ${p.looks === 1 ? 'образ' : 'образов'}${p.n ? ` · ${p.pct}%` : ''}${b ? ` · ${money(b)}` : ''}</div>
           ${p.n ? `<div class="bar"><i style="width:${p.pct}%"></i></div>` : ''}</div></a>`;
       }).join('')}</div>`;
   }).join('');
+  return fltBar() + (body || '<div class="empty"><div>Ничего не найдено — измените фильтры</div></div>');
 }
 function viewChar(ch, fd) {
   const ls = looks.filter(l => l.charId === ch.id);
