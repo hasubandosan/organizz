@@ -20,7 +20,7 @@ const Recipes = {
     try {
       const pm = await Costing.products();
       // ингредиенты без связи с каталогом привязываем по названию («Сливочное масло» → «Масло сливочное»)
-      (row.ingredients || []).forEach(i => { if (!i.productId) { const p = Costing.find(i, pm); if (p) i.productId = p.id; } });
+      (row.ingredients || []).forEach(i => { if (!i.productId && !i.recipeId) { const p = Costing.find(i, pm); if (p) i.productId = p.id; } });
       Object.assign(row, await Costing.recipeStats(row, pm, true));
     } catch (e) { console.warn('[meals] расчёт стоимости:', e.message); }
     return r.id ? DB.update(MEAL_COL.recipes, r.id, row) : DB.create(MEAL_COL.recipes, row);
@@ -45,11 +45,12 @@ const Recipes = {
       tagIds:           Array.isArray(r.tagIds) ? r.tagIds : [],
       recommendedMeals: Array.isArray(r.recommendedMeals) ? r.recommendedMeals : [],
       collectionId:     r.collectionId || null,
+      isPrep:           !!r.isPrep,   // заготовка: можно использовать как ингредиент в других рецептах
       sourceUrl:        r.sourceUrl || '',
       notes:            String(r.notes || '').trim(),   // общие заметки к рецепту
       // ingredients: productId — необязательный, name — всегда (нужен и для ИИ-импорта)
       ingredients: (r.ingredients || []).map(i => ({
-        productId: i.productId || null, name: String(i.name || '').trim(), qty: +i.qty || 0, unit: i.unit || '',
+        productId: i.productId || null, recipeId: (i.recipeId && i.recipeId !== r.id) ? i.recipeId : null, name: String(i.name || '').trim(), qty: +i.qty || 0, unit: i.unit || '',
         note: String(i.note || '').trim(),   // уточнения/рекомендации: «от 46%», «комнатной температуры»
       })).filter(i => i.name),
       steps: (r.steps || []).map(s => typeof s === 'string' ? { text: s, timerMin: 0, tip: '' } : {

@@ -21,6 +21,7 @@ const RecipeViewScreen = {
     h += `<h2 class="rv-title">${esc(r.name)}</h2>`;
     if (r.description) h += `<p class="rv-desc">${esc(r.description)}</p>`;
     h += `<div class="rv-meta"><span>⏱ ${+r.cookTimeMin || 0} мин</span><span class="difficulty-stars">${MealComponents.stars(r.difficulty)}</span><span>👤 ${+r.portions || 4} порц.</span>`;
+    if (r.isPrep) h += '<span>🥣 Заготовка</span>';
     if (col) h += `<span>${esc(col.emoji || '📚')} ${esc(col.name)}</span>`;
     let st = null; try { st = await Costing.recipeStats(r); } catch (e) { /* каталог недоступен — без цены */ }
     if (st && st.costPerPortion) h += `<span class="rv-cost">💰 ${esc(money(st.costPerPortion))}/порц.${st.unpriced ? ' (без ' + st.unpriced + ' ингр.)' : ''}</span>`;
@@ -79,7 +80,7 @@ const RecipeViewScreen = {
     document.getElementById('rv-portions').textContent = this._n + ' порц.' + (this._n !== base ? ` (×${this._fmt(k)})` : '');
     list.innerHTML = r.ingredients.map(i => {
       const q = i.qty ? `${esc(this._fmt(i.qty * k))} ${esc(i.unit || '')}` : '';
-      return `<li><span class="ing-qty">${q}</span> <span class="ing-name">${esc(i.name)}</span>${i.note ? `<span class="ing-note-view">${esc(i.note)}</span>` : ''}</li>`;
+      return `<li><span class="ing-qty">${q}</span> <span class="ing-name">${i.recipeId ? `<a href="#" onclick="Router.go('recipe.view',{id:'${esc(i.recipeId)}'});return false">🥣 ${esc(i.name)}</a>` : esc(i.name)}</span>${i.note ? `<span class="ing-note-view">${esc(i.note)}</span>` : ''}</li>`;
     }).join('');
   },
 

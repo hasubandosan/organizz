@@ -75,12 +75,23 @@ const Costing = {
   },
 
   // { costPerPortion, unpriced, propCounts, kcalPerPortion }
-  async recipeStats(r, pmap, _forSave) {
+  async recipeStats(r, pmap, _forSave, ctx) {
     pmap = pmap || await this.products();
+    ctx = ctx || { rmap: null, stack: [] };
     const portions = Math.max(1, +r.portions || 1);
     let total = 0, kcal = 0, unpriced = 0;
     const propCounts = {}, names = [];
     for (const ing of r.ingredients || []) {
+      if (ing.recipeId) {   // ингредиент — заготовка (другой рецепт): qty = число её порций
+        if (!ctx.rmap) ctx.rmap = Object.fromEntries((await Recipes.list()).map(x => [x.id, x]));
+        const sub = ctx.rmap[ing.recipeId], q = +ing.qty || 0;
+        if (!sub || sub.id === r.id || ctx.stack.includes(sub.id) || ctx.stack.length > 4) { if (q) { unpriced++; names.push(ing.name); } continue; }
+        const ss = await this.recipeStats(sub, pmap, false, { rmap: ctx.rmap, stack: [...ctx.stack, r.id].filter(Boolean) });
+        total += ss.costPerPortion * q; kcal += ss.kcalPerPortion * q;
+        Object.entries(ss.propCounts).forEach(([id, n]) => { propCounts[id] = (propCounts[id] || 0) + n; });
+        if (ss.unpriced) { unpriced++; names.push(ing.name + ' (не все цены)'); }
+        continue;
+      }
       const p = this.find(ing, pmap);
       if (!p) { if (+ing.qty) { unpriced++; names.push(ing.name); } continue; }
       (p.props || []).forEach(id => { propCounts[id] = (propCounts[id] || 0) + 1; });
