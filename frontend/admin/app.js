@@ -89,6 +89,7 @@ async function loadProducts() {
   }
   productsPane.innerHTML = `
     <div class="row-actions" style="margin-bottom:10px;flex-wrap:wrap">
+      <button class="btn btn-approve" onclick="editProduct()">＋ Продукт</button>
       <button class="btn btn-edit" onclick="refreshPrices(true)">💰 Цены: предпросмотр</button>
       <button class="btn btn-approve" onclick="refreshPrices(false)">💰 Обновить цены (ИИ)</button>
     </div>
@@ -107,7 +108,7 @@ function renderProducts(q) {
     <div class="row" data-id="${esc(p.id)}">
       <div class="row-main">
         <div class="row-title">${esc(p.name)}</div>
-        <div class="row-meta">${esc(p.category || '—')} · ${esc(p.unit || '—')}</div>
+        <div class="row-meta">${esc(p.emoji || p.data?.emoji || '')} ${esc(p.category || '—')} · ${esc(p.unit || '—')}${p.data?.kcal ? ' · ' + (+p.data.kcal) + ' ккал' : ''}${p.data?.price ? ' · ' + (+p.data.price) + ' руб./' + (+p.data.packageSize || '?') : ' · без цены'}${p.data?.source === 'user' ? ' · ✎' : ''}</div>
       </div>
       <div class="row-actions">
         <button class="btn btn-edit" onclick="editProduct('${esc(p.id)}')">✏️</button>
@@ -159,22 +160,55 @@ async function refreshPrices(dry) {
   }
 }
 
-async function editProduct(id) {
-  const p = _allProducts.find(x => x.id === id);
+// Полная правка продукта: название, категория, единица, эмодзи, КБЖУ на 100 г/мл, упаковка и цена, вес штуки, свойства.
+// Ручная правка помечает продукт data.source = 'user' — ИИ-скрипты цен и КБЖУ его потом не перезаписывают.
+const _CATS = { meat: 'Мясо', fish: 'Рыба', dairy: 'Молочные', vegetables: 'Овощи', fruits: 'Фрукты', grains: 'Крупы', grocery: 'Бакалея', drinks: 'Напитки', sauces: 'Соусы', spices: 'Специи', other: 'Прочее' };
+const _UNITS = { g: 'г', ml: 'мл', pcs: 'шт', kg: 'кг', l: 'л' };
+const _PROPS = { gluten: 'Без глютена', lactose: 'Без лактозы', vegan: 'Веганский', raw: 'Сырой продукт', frozen: 'Замороженный', bio: 'Био/Органик', local: 'Местный', seasonal: 'Сезонный' };
+
+function editProduct(id) {
+  const p = id ? _allProducts.find(x => x.id === id) : { name: '', category: 'other', unit: 'g', data: {} };
   if (!p) return;
-  const name = prompt('Название', p.name);
-  if (name === null) return;
-  const category = prompt('Категория', p.category || '');
-  if (category === null) return;
-  const unit = prompt('Единица (г/мл/шт...)', p.unit || '');
-  if (unit === null) return;
-  try {
-    await DB.request(`/catalog/products/${encodeURIComponent(id)}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ name, category, unit }),
-    });
-    loadProducts();
-  } catch (e) { alert('Ошибка: ' + e.message); }
+  const d = p.data || {};
+  const opt = (map, cur) => Object.entries(map).map(([k, v]) => `<option value="${k}"${k === cur ? ' selected' : ''}>${v}</option>`).join('')
+    + (cur && !map[cur] ? `<option value="${esc(cur)}" selected>${esc(cur)}</option>` : '');
+  const num = (key, label, step) => `<label class="pf">${label}<input type="number" min="0" step="${step || 'any'}" id="pf-${key}" value="${d[key] ?? ''}"></label>`;
+  document.getElementById('prodModal')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'prodModal'; ov.className = 'pm-overlay';
+  ov.innerHTML = `<div class="pm">
+    <div class="pm-h"><b>${id ? 'Правка продукта' : 'Новый продукт'}</b><button class="btn btn-edit" data-x>✕</button></div>
+    <div class="pm-b">
+      <div class="pm-row"><label class="pf" style="flex:0 0 70px">Эмодзи<input id="pf-emoji" maxlength="4" value="${esc(d.emoji || '')}"></label>
+        <label class="pf">Название<input id="pf-name" value="${esc(p.name)}"></label></div>
+      <div class="pm-row"><label class="pf">Категория<select id="pf-cat">${opt(_CATS, p.category || 'other')}</select></label>
+        <label class="pf">Единица учёта<select id="pf-unit">${opt(_UNITS, p.unit || 'g')}</select></label></div>
+      <div class="pm-sec">КБЖУ на 100 г / 100 мл</div>
+      <div class="pm-row">${num('kcal', 'Ккал')}${num('protein', 'Белки, г')}${num('fat', 'Жиры, г')}${num('carbs', 'Углеводы, г')}</div>
+      <div class="pm-sec">Упаковка и цена (руб. ПМР)</div>
+      <div class="pm-row">${num('packageSize', 'Размер упаковки (в ед. учёта)')}${num('price', 'Цена упаковки')}${num('unitWeight', 'Вес 1 шт, г (для «шт»)')}</div>
+      <div class="pm-sec">Свойства</div>
+      <div class="pm-props">${Object.entries(_PROPS).map(([k, v]) => `<label><input type="checkbox" data-prop="${k}"${(d.props || []).includes(k) ? ' checked' : ''}> ${v}</label>`).join('')}</div>
+    </div>
+    <div class="pm-f"><span id="pf-err" class="row-meta" style="color:var(--red)"></span><span style="flex:1"></span><button class="btn btn-approve" id="pf-save">Сохранить</button></div></div>`;
+  document.body.appendChild(ov);
+  const $ = i => ov.querySelector('#' + i), close = () => ov.remove();
+  ov.addEventListener('click', e => { if (e.target === ov || e.target.closest('[data-x]')) close(); });
+  $('pf-save').onclick = async () => {
+    const name = $('pf-name').value.trim();
+    if (!name) { $('pf-err').textContent = 'Введите название'; return; }
+    const n = k => { const v = $('pf-' + k).value; return v === '' ? undefined : Math.max(0, +v); };
+    const data = { ...d, emoji: $('pf-emoji').value.trim() || d.emoji, source: 'user',
+      props: [...ov.querySelectorAll('[data-prop]:checked')].map(c => c.dataset.prop) };
+    ['kcal', 'protein', 'fat', 'carbs', 'packageSize', 'price', 'unitWeight'].forEach(k => { const v = n(k); if (v === undefined) delete data[k]; else data[k] = v; });
+    if (data.price !== d.price) data.priceUpdatedAt = new Date().toISOString();
+    const body = { name, category: $('pf-cat').value, unit: $('pf-unit').value, data };
+    $('pf-save').disabled = true;
+    try {
+      await DB.request(id ? `/catalog/products/${encodeURIComponent(id)}` : '/catalog/products', { method: id ? 'PATCH' : 'POST', body: JSON.stringify(body) });
+      close(); loadProducts();
+    } catch (e) { $('pf-save').disabled = false; $('pf-err').textContent = 'Ошибка: ' + e.message; }
+  };
 }
 
 async function deleteProduct(id) {
