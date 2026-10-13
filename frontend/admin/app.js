@@ -117,6 +117,19 @@ function renderProducts(q) {
 }
 
 // Актуализация цен через Gemini: порциями по 15, пока сервер не скажет next = null. Это оценка ИИ — проверяйте предпросмотром.
+// Свой запрос без авто-выхода на логин: показываем настоящий код и текст ошибки сервера
+async function adminPost(path, body) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ..._authHeaders() },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(110000),
+  }).catch(e => { throw new Error('нет связи с сервером (' + (e.name === 'TimeoutError' ? 'таймаут' : e.message) + ')'); });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(`${res.status}: ${data?.error || (res.status === 401 ? 'сессия истекла — войдите заново' : 'ошибка сервера')}`);
+  return data;
+}
+
 async function refreshPrices(dry) {
   const region = prompt('Регион и валюта для оценки цен', 'Приднестровье (Тирасполь), рубли ПМР');
   if (!region) return;
@@ -126,7 +139,7 @@ async function refreshPrices(dry) {
   try {
     while (offset !== null) {
       log.textContent = `Обновляю цены… ${offset}`;
-      const r = await DB.request('/catalog/prices/refresh', { method: 'POST', body: JSON.stringify({ offset, limit: 15, region, dry }) });
+      const r = await adminPost('/catalog/prices/refresh', { offset, limit: 10, region, dry });
       done += r.changes.length; skipped += r.skipped;
       r.changes.forEach(c => lines.push(`${esc(c.name)}: ${c.old || '—'} → <b>${c.price}</b>`));
       offset = r.next;
@@ -134,7 +147,7 @@ async function refreshPrices(dry) {
     }
     if (!dry) loadProducts();
   } catch (e) {
-    log.innerHTML = `Остановилось на ${offset}: ${esc(e.message)}. Уже записанное сохранено — можно запустить снова.<br>` + lines.slice(-40).join('<br>');
+    log.innerHTML = `Остановилось на ${offset}. Ответ сервера — ${esc(e.message)}. Уже записанное сохранено — можно запустить снова.<br>` + lines.slice(-40).join('<br>');
   }
 }
 
