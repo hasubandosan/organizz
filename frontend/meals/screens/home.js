@@ -11,13 +11,15 @@ const HomeScreen = {
 
     let h = '<div class="lo-page kt-home">';
 
-    // 1. План питания (макет — позже подключим меню недели)
-    h += '<section class="kt-sec"><div class="kt-h"><h2>План питания</h2><span class="kt-tag">макет</span></div>';
+    // 1. План питания: сегодняшний день из плана недели
+    const plan = await Plans.peek(weekStartIso(new Date())).catch(() => null);
+    const slots = plan ? plan.days[today].slots : {};
+    h += '<section class="kt-sec"><div class="kt-h"><h2>План питания</h2><span class="sp"></span><button class="kt-link" id="kt-plan">Весь план →</button></div>';
     h += '<div class="kt-days">' + this._DAYS.map((d, i) => `<span class="kt-day${i === today ? ' on' : ''}">${d}</span>`).join('') + '</div>';
     h += '<div class="kt-plan">' + MEAL_TYPES.slice(0, 3).map(m => {
-      const r = recipes.find(x => (x.recommendedMeals || []).includes(m));
+      const r = recipes.find(x => x.id === (slots[m] || [])[0]);
       const pic = r && r.imageId ? `<img data-img="${esc(r.imageId)}" alt="">` : `<span>${esc(r ? (r.emoji || '🍽️') : '＋')}</span>`;
-      return `<div class="kt-meal${r ? '' : ' empty'}"${r ? ` data-rid="${esc(r.id)}"` : ''}>
+      return `<div class="kt-meal${r ? '' : ' empty'}"${r ? ` data-rid="${esc(r.id)}"` : ' data-goplan="1"'}>
         <div class="kt-mpic">${pic}</div>
         <div class="kt-mtxt"><div class="kt-mtype">${m}</div><div class="kt-mname">${r ? esc(r.name) : 'Не запланировано'}</div></div></div>`;
     }).join('') + '</div></section>';
@@ -49,12 +51,14 @@ const HomeScreen = {
     container.innerHTML = h + '</div>';
 
     const $ = id => document.getElementById(id);
+    $('kt-plan').addEventListener('click', () => Router.go('plan'));
     $('kt-new').addEventListener('click', () => Router.go('recipe.new'));
     $('kt-all').addEventListener('click', () => { RecipesScreen._state.collectionId = ''; Router.go('recipes'); });
     $('kt-books').addEventListener('click', () => Router.go('collections'));
     $('kt-people').addEventListener('click', () => Router.go('people'));
     $('kt-addp').addEventListener('click', () => Router.go('people', { add: true }));
     container.querySelector('.kt-home').addEventListener('click', e => {
+      if (e.target.closest('[data-goplan]')) return Router.go('plan');
       const rid = e.target.closest('[data-rid]');
       if (rid) return Router.go('recipe.view', { id: rid.dataset.rid });
       const pp = e.target.closest('.kt-person[data-go]');

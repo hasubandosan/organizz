@@ -5,7 +5,8 @@
 ══════════════════════════════════════════════ */
 'use strict';
 
-const MEAL_COL = { recipes: 'meal_recipes', collections: 'meal_collections', products: 'meal_products', people: 'meal_people' };
+const MEAL_COL = { recipes: 'meal_recipes', collections: 'meal_collections', products: 'meal_products', people: 'meal_people',
+  diets: 'meal_diets', plans: 'meal_plans', shopping: 'meal_shopping' };
 const MEAL_TYPES = ['Завтрак', 'Обед', 'Ужин', 'Перекус'];
 const _byName = (a, b) => (a.name || '').localeCompare(b.name || '', 'ru');
 
@@ -15,6 +16,8 @@ const Recipes = {
 
   async save(r) {
     const row = this._toRow(r);
+    // себестоимость порции и свойства (x2, x3 — одно свойство у нескольких ингредиентов); сбой каталога не мешает сохранить
+    try { Object.assign(row, await Costing.recipeStats(row, null, true)); } catch (e) { console.warn('[meals] расчёт стоимости:', e.message); }
     return r.id ? DB.update(MEAL_COL.recipes, r.id, row) : DB.create(MEAL_COL.recipes, row);
   },
 
@@ -102,7 +105,7 @@ function normProduct(row) {
   return {
     id: row.id, name: row.name, category: catRu(row.category), unit: unitRu(row.unit),
     emoji: d.emoji || '🥕', protein: +d.protein || 0, fat: +d.fat || 0, carbs: +d.carbs || 0, kcal: +d.kcal || 0,
-    price: +d.price || 0, packageSize: +d.packageSize || 100, props: Array.isArray(d.props) ? d.props : [],
+    price: +d.price || 0, unitWeight: +d.unitWeight || 0, packageSize: +d.packageSize || 100, props: Array.isArray(d.props) ? d.props : [],
     hasNutrition: !!(+d.kcal || +d.protein || +d.fat || +d.carbs),
   };
 }

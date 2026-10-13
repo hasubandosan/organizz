@@ -22,7 +22,13 @@ const RecipeViewScreen = {
     if (r.description) h += `<p class="rv-desc">${esc(r.description)}</p>`;
     h += `<div class="rv-meta"><span>⏱ ${+r.cookTimeMin || 0} мин</span><span class="difficulty-stars">${MealComponents.stars(r.difficulty)}</span><span>👤 ${+r.portions || 4} порц.</span>`;
     if (col) h += `<span>${esc(col.emoji || '📚')} ${esc(col.name)}</span>`;
+    let st = null; try { st = await Costing.recipeStats(r); } catch (e) { /* каталог недоступен — без цены */ }
+    if (st && st.costPerPortion) h += `<span class="rv-cost">💰 ${esc(money(st.costPerPortion))}/порц.${st.unpriced ? ' (без ' + st.unpriced + ' ингр.)' : ''}</span>`;
     h += '</div>';
+    if (st) {
+      const pc = Object.entries(st.propCounts).map(([id, n]) => { const p = PRODUCT_PROPS.find(x => x.id === id); return p ? p.label + (n > 1 ? ' x' + n : '') : null; }).filter(Boolean);
+      if (pc.length) h += '<div class="rv-tags">' + pc.map(n => `<span class="rv-tag">${esc(n)}</span>`).join('') + '</div>';
+    }
 
     const names = (r.tagIds || []).map(tagName).filter(Boolean);
     if (names.length) h += '<div class="rv-tags">' + names.map(n => `<span class="rv-tag">${esc(n)}</span>`).join('') + '</div>';
