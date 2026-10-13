@@ -88,6 +88,11 @@ async function loadProducts() {
     return;
   }
   productsPane.innerHTML = `
+    <div class="row-actions" style="margin-bottom:10px;flex-wrap:wrap">
+      <button class="btn btn-edit" onclick="refreshPrices(true)">💰 Цены: предпросмотр</button>
+      <button class="btn btn-approve" onclick="refreshPrices(false)">💰 Обновить цены (ИИ)</button>
+    </div>
+    <div id="priceLog" class="row-meta" style="margin-bottom:10px"></div>
     <div class="search-bar"><input type="text" id="prodSearch" placeholder="Поиск по названию..."></div>
     <div id="prodList"></div>`;
   document.getElementById('prodSearch').addEventListener('input', (e) => renderProducts(e.target.value));
@@ -109,6 +114,28 @@ function renderProducts(q) {
         <button class="btn btn-delete" onclick="deleteProduct('${esc(p.id)}')">🗑</button>
       </div>
     </div>`).join('') : '<div class="empty">Ничего не найдено</div>';
+}
+
+// Актуализация цен через Gemini: порциями по 15, пока сервер не скажет next = null. Это оценка ИИ — проверяйте предпросмотром.
+async function refreshPrices(dry) {
+  const region = prompt('Регион и валюта для оценки цен', 'Приднестровье (Тирасполь), рубли ПМР');
+  if (!region) return;
+  if (!dry && !confirm('Записать новые цены в каталог? Продукты, правленные людьми, не затрагиваются.')) return;
+  const log = document.getElementById('priceLog');
+  let offset = 0, done = 0, skipped = 0; const lines = [];
+  try {
+    while (offset !== null) {
+      log.textContent = `Обновляю цены… ${offset}`;
+      const r = await DB.request('/catalog/prices/refresh', { method: 'POST', body: JSON.stringify({ offset, limit: 15, region, dry }) });
+      done += r.changes.length; skipped += r.skipped;
+      r.changes.forEach(c => lines.push(`${esc(c.name)}: ${c.old || '—'} → <b>${c.price}</b>`));
+      offset = r.next;
+      log.innerHTML = `${dry ? 'Предпросмотр' : 'Обновлено'}: ${done}, пропущено ${skipped}${offset !== null ? ' … продолжаю' : ''}<br>` + lines.slice(-40).join('<br>');
+    }
+    if (!dry) loadProducts();
+  } catch (e) {
+    log.innerHTML = `Остановилось на ${offset}: ${esc(e.message)}. Уже записанное сохранено — можно запустить снова.<br>` + lines.slice(-40).join('<br>');
+  }
 }
 
 async function editProduct(id) {
