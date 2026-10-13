@@ -134,7 +134,7 @@ name ингредиента — только название продукта, 
 }
 
 // 2.0 Flash закрыт Google; перебираем актуальные Flash-модели, пока одна не ответит (не 404).
-const MODELS = [process.env.GEMINI_MODEL, 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-2.5-flash-lite']
+export const MODELS = [process.env.GEMINI_MODEL, 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-2.5-flash-lite']
   .filter((m, i, arr): m is string => !!m && arr.indexOf(m) === i);
 export async function askGemini(text: string, tags: string[], prompt?: string, models: string[] = MODELS): Promise<any> {
   const key = process.env.GEMINI_API_KEY;
