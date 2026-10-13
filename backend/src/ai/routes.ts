@@ -43,7 +43,7 @@ async function assertPublicUrl(raw: string): Promise<URL> {
   return u;
 }
 
-class HttpError extends Error {
+export class HttpError extends Error {
   constructor(public status: number, message: string, public upstream?: number) { super(message); }
 }
 
@@ -136,7 +136,7 @@ name ингредиента — только название продукта, 
 // 2.0 Flash закрыт Google; перебираем актуальные Flash-модели, пока одна не ответит (не 404).
 const MODELS = [process.env.GEMINI_MODEL, 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-2.5-flash-lite']
   .filter((m, i, arr): m is string => !!m && arr.indexOf(m) === i);
-async function askGemini(text: string, tags: string[], prompt?: string, models: string[] = MODELS): Promise<any> {
+export async function askGemini(text: string, tags: string[], prompt?: string, models: string[] = MODELS): Promise<any> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new HttpError(503, 'ИИ-разбор не настроен на сервере');
   const tried: string[] = [];
