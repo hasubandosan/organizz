@@ -113,7 +113,7 @@ const Plans = {
           const r = rmap[rid];
           const st = cache[rid] || (cache[rid] = await Costing.recipeStats(r, pmap));
           count++; cost += st.costPerPortion * n; kcal += st.kcalPerPortion; if (st.unpriced) unpriced++;
-          this._collect(agg, r, n, pmap);
+          this._collect(agg, r, n, pmap, rmap);
         }
       }
       days.push({ people: n, cost: _r2(cost), kcal, unpriced, count });
@@ -125,9 +125,13 @@ const Plans = {
     plan._items = Object.values(agg).map(e => this._finishItem(e)).sort((a, b) => (a.category + a.name).localeCompare(b.category + b.name, 'ru'));
   },
 
-  _collect(agg, r, n, pmap) {
+  _collect(agg, r, n, pmap, rmap, depth = 0, stack = []) {
     const scale = n / Math.max(1, +r.portions || 1);
     for (const ing of r.ingredients || []) {
+      if (ing.recipeId && rmap) {   // заготовка: разворачиваем в её продукты (qty = порции заготовки)
+        const sub = rmap[ing.recipeId];
+        if (sub && depth < 4 && sub.id !== r.id && !stack.includes(sub.id)) { this._collect(agg, sub, (+ing.qty || 0) * scale, pmap, rmap, depth + 1, [...stack, r.id]); continue; }
+      }
       const p = Costing.find(ing, pmap);
       const amt = p ? Costing.toBase(ing, p) : null;
       if (p && amt != null) {
@@ -191,7 +195,7 @@ const Plans = {
       const day = plan.days[i], n = this._peopleOf(day, helpers);
       let left = budget, kcalDay = 0;
       GEN_TYPES.forEach((t, k) => {
-        const allowed = recipes.filter(okRecipe);
+        const allowed = recipes.filter(r => !r.isPrep && okRecipe(r));   // заготовки сами по себе не блюда
         let pool = allowed.filter(r => !(r.recommendedMeals || []).length || r.recommendedMeals.includes(t));
         if (!pool.length) pool = allowed;
         day.slots[t] = [];

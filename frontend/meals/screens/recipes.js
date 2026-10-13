@@ -3,7 +3,7 @@
 
 const RecipesScreen = {
   _all: [], _cols: [], _tags: [], _tagName: {}, _diets: [], _stats: {},
-  _state: { search: '', collectionId: '', tagIds: [], meals: [], diff: [], maxTime: 0, ingredient: '', noPhoto: false, noTags: false, dietId: '', sort: 'name' },
+  _state: { search: '', collectionId: '', tagIds: [], meals: [], diff: [], maxTime: 0, ingredient: '', noPhoto: false, noTags: false, dietId: '', prepOnly: false, sort: 'name' },
   _TIMES: [[0, 'Любое'], [15, 'до 15 мин'], [30, 'до 30 мин'], [60, 'до 60 мин']],
   _DIFF: { 1: '★ Легко', 2: '★★ Средне', 3: '★★★ Сложно' },
   _SORTS: [['name', 'по названию'], ['time', 'быстрее'], ['diff', 'проще'], ['new', 'сначала новые']],
@@ -78,6 +78,7 @@ const RecipesScreen = {
       const d = this._diets.find(x => x.id === st.dietId), pc = (this._stats[r.id] || {}).propCounts || {};
       if (d && (d.denyProps || []).some(id => pc[id])) return false;
     }
+    if (st.prepOnly && !r.isPrep) return false;
     if (st.noPhoto && r.imageId) return false;
     if (st.noTags && (r.tagIds || []).length) return false;
     return true;
@@ -91,11 +92,11 @@ const RecipesScreen = {
   },
   _filterCount() {
     const st = this._state;
-    return st.tagIds.length + st.meals.length + st.diff.length + (st.maxTime ? 1 : 0) + (st.ingredient.trim() ? 1 : 0) + (st.noPhoto ? 1 : 0) + (st.noTags ? 1 : 0) + (st.dietId ? 1 : 0);
+    return st.tagIds.length + st.meals.length + st.diff.length + (st.maxTime ? 1 : 0) + (st.ingredient.trim() ? 1 : 0) + (st.noPhoto ? 1 : 0) + (st.noTags ? 1 : 0) + (st.dietId ? 1 : 0) + (st.prepOnly ? 1 : 0);
   },
   _reset(withCollection) {
     const st = this._state;
-    st.tagIds = []; st.meals = []; st.diff = []; st.maxTime = 0; st.ingredient = ''; st.noPhoto = false; st.noTags = false; st.dietId = '';
+    st.tagIds = []; st.meals = []; st.diff = []; st.maxTime = 0; st.ingredient = ''; st.noPhoto = false; st.noTags = false; st.dietId = ''; st.prepOnly = false;
     if (withCollection) st.collectionId = '';
   },
   _drop(k, v) {
@@ -108,6 +109,7 @@ const RecipesScreen = {
     else if (k === 'noPhoto') st.noPhoto = false;
     else if (k === 'noTags') st.noTags = false;
     else if (k === 'diet') st.dietId = '';
+    else if (k === 'prep') st.prepOnly = false;
   },
   _plural(n) {
     const a = n % 10, b = n % 100;
@@ -144,6 +146,7 @@ const RecipesScreen = {
     st.diff.slice().sort().forEach(d => chips.push(['diff', d, this._DIFF[d]]));
     if (st.ingredient.trim()) chips.push(['ing', '', '🥕 ' + st.ingredient.trim()]);
     if (st.dietId) { const d = this._diets.find(x => x.id === st.dietId); if (d) chips.push(['diet', '', '🥗 ' + d.name]); }
+    if (st.prepOnly) chips.push(['prep', '', '🥣 Заготовки']);
     if (st.noPhoto) chips.push(['noPhoto', '', 'Без фото']);
     if (st.noTags) chips.push(['noTags', '', 'Без тегов']);
     const act = document.getElementById('rc-active');
@@ -188,6 +191,7 @@ const RecipesScreen = {
         ${sec('Время готовки', this._TIMES.map(([v, l]) => chip('time', v, l)).join(''))}
         ${sec('Сложность', [1, 2, 3].map(d => chip('diff', d, this._DIFF[d])).join(''))}
         <div class="f-sec"><div class="f-lbl">Есть ингредиент</div><input id="rc-f-ing" class="f-input" type="text" placeholder="например, молоко" value="${esc(st.ingredient)}"></div>
+        ${sec('Тип', chip('prep', '', '🥣 Только заготовки'))}
         ${sec('Навести порядок', chip('noPhoto', '', 'Без фото') + chip('noTags', '', 'Без тегов'))}
       </div>
       <div class="modal-footer"><button class="btn btn-ghost" data-reset>Сбросить</button><button class="btn btn-primary" data-apply>Показать</button></div>
@@ -203,6 +207,7 @@ const RecipesScreen = {
       else if (f === 'diff') tog(st.diff, +v);
       else if (f === 'time') st.maxTime = +v;
       else if (f === 'diet') st.dietId = st.dietId === v ? '' : v;
+      else if (f === 'prep') st.prepOnly = !st.prepOnly;
       else if (f === 'noPhoto') st.noPhoto = !st.noPhoto;
       else if (f === 'noTags') st.noTags = !st.noTags;
       this._refresh(); this._syncFilters();
@@ -220,7 +225,7 @@ const RecipesScreen = {
     m.querySelectorAll('[data-f]').forEach(c => {
       const f = c.dataset.f, v = c.dataset.v;
       const on = f === 'tag' ? st.tagIds.includes(v) : f === 'meal' ? st.meals.includes(v) : f === 'diff' ? st.diff.includes(+v)
-        : f === 'time' ? st.maxTime === +v : f === 'diet' ? st.dietId === v : f === 'noPhoto' ? st.noPhoto : st.noTags;
+        : f === 'time' ? st.maxTime === +v : f === 'diet' ? st.dietId === v : f === 'prep' ? st.prepOnly : f === 'noPhoto' ? st.noPhoto : st.noTags;
       c.classList.toggle('on', on);
     });
     m.querySelector('[data-apply]').textContent = 'Показать: ' + this._all.filter(r => this._match(r)).length;

@@ -10,7 +10,7 @@ const RecipeEditScreen = {
     const isNew = !r;
     this._r = r || { name: '', emoji: '🍽️', description: '', portions: 4, cookTimeMin: 30, difficulty: 1, tagIds: [], recommendedMeals: ['Обед'], ingredients: [], steps: [], collectionId: (window.RecipesScreen && RecipesScreen._state.collectionId) || null, imageId: null };
     this._newImage = null; this._removeImage = false; this._saving = false;
-    const [products, collections, tags] = await Promise.all([Products.list(), Collections.list(), mealTagOptions()]);
+    const [products, collections, tags, allRecipes] = await Promise.all([Products.list(), Collections.list(), mealTagOptions(), Recipes.list()]);
     this._tags = tags;
     const x = this._r;
 
@@ -24,6 +24,7 @@ const RecipeEditScreen = {
 
     h += `<details class="re-more" id="re-more"${isNew ? '' : ' open'}><summary>Подробнее</summary><div class="re-form">`;
     h += `<div class="re-row"><label>Эмодзи (если нет фото)</label><input type="text" id="re-emoji" value="${esc(x.emoji)}" maxlength="4" style="font-size:24px;width:80px;text-align:center"></div>`;
+    h += `<div class="re-row"><label class="re-checkbox${x.isPrep ? ' checked' : ''}"><input type="checkbox" id="re-prep"${x.isPrep ? ' checked' : ''} onchange="this.parentElement.classList.toggle('checked')"> 🥣 Заготовка (можно использовать как ингредиент в других рецептах)</label></div>`;
     h += `<div class="re-row"><label>Описание</label><textarea id="re-desc" rows="2" placeholder="Краткое описание">${esc(x.description)}</textarea></div>`;
     h += '<div class="re-row re-row-group">';
     h += `<div><label>Время (мин)</label><input type="number" id="re-time" value="${+x.cookTimeMin || 0}" min="0"></div>`;
@@ -39,7 +40,7 @@ const RecipeEditScreen = {
     }
     h += '</div></div>';
 
-    h += '<datalist id="re-products">' + products.map(p => `<option value="${esc(p.name)}">`).join('') + '</datalist>';
+    h += '<datalist id="re-products">' + products.map(p => `<option value="${esc(p.name)}">`).join('') + allRecipes.filter(q => q.isPrep && q.id !== x.id).map(q => `<option value="${esc(q.name)}" label="🥣 заготовка">`).join('') + '</datalist>';
     h += '<div class="re-section"><h3>🧂 Ингредиенты</h3><div id="re-ingredients">';
     for (const i of x.ingredients || []) h += this._ingRow(i);
     h += '</div><button class="re-add-btn" onclick="RecipeEditScreen._addIng()">+ Ингредиент</button></div>';
@@ -101,7 +102,7 @@ const RecipeEditScreen = {
 
   /* ── ингредиенты и шаги ── */
   _ingRow(i = {}) {
-    return `<div class="ing-row"><input type="text" class="ing-name" list="re-products" value="${esc(i.name || '')}" placeholder="Продукт">
+    return `<div class="ing-row"><input type="text" class="ing-name" list="re-products" value="${esc(i.name || '')}" placeholder="Продукт или заготовка">
       <input type="number" class="ing-qty" value="${i.qty || ''}" min="0" step="any" placeholder="кол-во">
       <input type="text" class="ing-unit" value="${esc(i.unit || 'г')}" placeholder="ед.">
       <span class="ing-remove" onclick="this.parentElement.remove()">✕</span>
@@ -120,12 +121,14 @@ const RecipeEditScreen = {
 
   /* ── сохранение ── */
   async _collect() {
-    const products = await Products.list();
+    const [products, recs] = await Promise.all([Products.list(), Recipes.list()]);
+    const prepByName = new Map(recs.filter(q => q.isPrep && q.id !== this._r.id).map(q => [(q.name || '').toLowerCase(), q.id]));
     const byName = new Map(products.map(p => [(p.name || '').toLowerCase(), p.id]));
     const val = id => document.getElementById(id).value;
     const ingredients = [...document.querySelectorAll('#re-ingredients .ing-row')].map(row => {
       const name = row.querySelector('.ing-name').value.trim();
-      return { name, qty: parseFloat(row.querySelector('.ing-qty').value) || 0, unit: row.querySelector('.ing-unit').value.trim(), note: row.querySelector('.ing-note').value.trim(), productId: byName.get(name.toLowerCase()) || null };
+      const rid = prepByName.get(name.toLowerCase()) || null;   // название совпало с заготовкой — это вложенный рецепт, количество в порциях
+      return { name, qty: parseFloat(row.querySelector('.ing-qty').value) || 0, unit: rid ? 'порц.' : row.querySelector('.ing-unit').value.trim(), note: row.querySelector('.ing-note').value.trim(), productId: rid ? null : (byName.get(name.toLowerCase()) || null), recipeId: rid };
     }).filter(i => i.name);
     const steps = [...document.querySelectorAll('#re-steps .step-row')].map(row => ({
       text: row.querySelector('.step-text').value.trim(), timerMin: parseInt(row.querySelector('.step-timer').value) || 0, tip: row.querySelector('.step-tip').value.trim(),
@@ -133,6 +136,7 @@ const RecipeEditScreen = {
     return {
       id: this._r.id || null, name: val('re-name').trim(), emoji: val('re-emoji') || '🍽️', description: val('re-desc').trim(),
       cookTimeMin: parseInt(val('re-time')) || 0, portions: parseInt(val('re-portions')) || 4, difficulty: parseInt(val('re-difficulty')) || 1,
+      isPrep: document.getElementById('re-prep').checked,
       collectionId: val('re-collection') || null, tagIds: this._r.tagIds || [],
       recommendedMeals: [...document.querySelectorAll('.re-checkbox input:checked')].map(c => c.value),
       sourceUrl: this._r.sourceUrl || '', notes: val('re-notes').trim(), ingredients, steps,
