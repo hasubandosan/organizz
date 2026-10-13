@@ -139,7 +139,15 @@ async function refreshPrices(dry) {
   try {
     while (offset !== null) {
       log.textContent = `Обновляю цены… ${offset}`;
-      const r = await adminPost('/catalog/prices/refresh', { offset, limit: 10, region, dry });
+      let r;
+      for (let attempt = 0; ; attempt++) {   // Render может «проснуться» или перегрузиться — пробуем тот же кусок ещё до 3 раз
+        try { r = await adminPost('/catalog/prices/refresh', { offset, limit: 10, region, dry }); break; }
+        catch (e) {
+          if (attempt >= 3 || /^40\d:/.test(e.message)) throw e;
+          log.textContent = `Сервер не ответил (${e.message}), повтор ${attempt + 1}/3…`;
+          await new Promise(res => setTimeout(res, 6000 * (attempt + 1)));
+        }
+      }
       done += r.changes.length; skipped += r.skipped;
       r.changes.forEach(c => lines.push(`${esc(c.name)}: ${c.old || '—'} → <b>${c.price}</b>`));
       offset = r.next;

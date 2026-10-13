@@ -136,11 +136,13 @@ name ингредиента — только название продукта, 
 // 2.0 Flash закрыт Google; перебираем актуальные Flash-модели, пока одна не ответит (не 404).
 export const MODELS = [process.env.GEMINI_MODEL, 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-2.5-flash-lite']
   .filter((m, i, arr): m is string => !!m && arr.indexOf(m) === i);
-export async function askGemini(text: string, tags: string[], prompt?: string, models: string[] = MODELS): Promise<any> {
+// модели, которых нет (404), помним до перезапуска сервера — чтобы не тратить на них время при каждом запросе
+const DEAD_MODELS = new Set<string>();
+export async function askGemini(text: string, tags: string[], prompt?: string, models: string[] = MODELS, timeoutMs = 45_000): Promise<any> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new HttpError(503, 'ИИ-разбор не настроен на сервере');
   const tried: string[] = [];
-  const dead = new Set<string>();          // модели, которых нет (404) — второй раз не трогаем
+  const dead = DEAD_MODELS;
   let overloaded = false, limited = false, badOutput = false; // 5xx «высокий спрос» / 429 «лимит модели»
   for (let pass = 0; pass < 2; pass++) {
     if (pass === 1) {
@@ -151,7 +153,7 @@ export async function askGemini(text: string, tags: string[], prompt?: string, m
       if (dead.has(model)) continue;
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
         method: 'POST',
-        signal: AbortSignal.timeout(45_000),
+        signal: AbortSignal.timeout(timeoutMs),
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: prompt ?? buildPrompt(tags) }] },
