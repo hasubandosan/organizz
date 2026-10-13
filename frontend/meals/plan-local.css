@@ -56,3 +56,5 @@
 .dt-p.s1 { border-color: var(--accent); color: var(--text); }
 .dt-p.s2 { border-color: var(--red, #f05060); color: var(--red, #f05060); }
 .rv-cost { color: var(--accent2); }
+.recipe-card-meta { flex-wrap: wrap; }
+.rc-cost { color: var(--accent2); }

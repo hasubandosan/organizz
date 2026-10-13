@@ -7,7 +7,10 @@ MealComponents.stars = function (n, on = 'on') {
   return [1, 2, 3].map(i => `<span class="${i <= (n || 1) ? on : ''}">★</span>`).join('');
 };
 
-MealComponents.recipeCard = function (r) {
+// st — { costPerPortion, unpriced } (свежий расчёт); без него берём сохранённое в рецепте при последнем сохранении
+MealComponents.recipeCard = function (r, st) {
+  const cost = st ? +st.costPerPortion || 0 : +r.costPerPortion || 0;
+  const partial = st ? st.unpriced : r.unpricedCount;
   const pic = r.imageId
     ? `<img data-img="${esc(r.imageId)}" alt="">`
     : `<span>${esc(r.emoji || '🍽️')}</span>`;
@@ -19,6 +22,7 @@ MealComponents.recipeCard = function (r) {
         <span>⏱ ${+r.cookTimeMin || 0} мин</span>
         <span class="difficulty-stars">${MealComponents.stars(r.difficulty)}</span>
         <span>👤 ${+r.portions || 4}</span>
+        ${cost ? `<span class="rc-cost" title="Себестоимость порции${partial ? ' (не у всех ингредиентов есть цена)' : ''}">💰 ${partial ? '≈' : ''}${esc(money(cost))}</span>` : ''}
       </div>
     </div>
   </div>`;
