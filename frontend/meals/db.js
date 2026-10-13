@@ -17,7 +17,12 @@ const Recipes = {
   async save(r) {
     const row = this._toRow(r);
     // себестоимость порции и свойства (x2, x3 — одно свойство у нескольких ингредиентов); сбой каталога не мешает сохранить
-    try { Object.assign(row, await Costing.recipeStats(row, null, true)); } catch (e) { console.warn('[meals] расчёт стоимости:', e.message); }
+    try {
+      const pm = await Costing.products();
+      // ингредиенты без связи с каталогом привязываем по названию («Сливочное масло» → «Масло сливочное»)
+      (row.ingredients || []).forEach(i => { if (!i.productId) { const p = Costing.find(i, pm); if (p) i.productId = p.id; } });
+      Object.assign(row, await Costing.recipeStats(row, pm, true));
+    } catch (e) { console.warn('[meals] расчёт стоимости:', e.message); }
     return r.id ? DB.update(MEAL_COL.recipes, r.id, row) : DB.create(MEAL_COL.recipes, row);
   },
 
