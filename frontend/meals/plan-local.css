@@ -1,0 +1,58 @@
+/* План питания и режимы (токены core, акцент модуля — var(--accent)) */
+.pl-page { padding-top: 8px; }
+.pl-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.pl-seg { display: flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.pl-seg button { background: var(--bg2); color: var(--text2); border: 0; padding: 0 14px; min-height: 36px; font: inherit; font-weight: 600; cursor: pointer; }
+.pl-seg button.on { background: var(--accent); color: var(--on-accent, #fff); }
+.pl-nav { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text2); }
+.pl-nav button { min-width: 36px; min-height: 36px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); font-size: 18px; cursor: pointer; }
+#pl-diet { margin-left: auto; min-height: 36px; max-width: 100%; background: var(--bg2); color: var(--text); border: 1px solid var(--border); border-radius: 10px; padding: 0 8px; font: inherit; }
+.pl-sum { padding: 10px 12px; margin-bottom: 8px; font-size: 14px; }
+.pl-meter { height: 6px; border-radius: 3px; background: var(--bg3); margin-top: 8px; overflow: hidden; }
+.pl-meter i { display: block; height: 100%; background: var(--accent); }
+.pl-meter i.over { background: var(--red, #f05060); }
+.pl-warn { color: var(--red, #f05060); font-size: 12px; margin-top: 4px; }
+.pl-hint { font-size: 12px; color: var(--text3); margin-top: 4px; }
+.pl-hint a { color: var(--accent2); }
+.pl-gen { margin: 0 0 12px; max-width: none; }
+.pl-tabs .kt-day { cursor: pointer; font: inherit; font-size: 12px; font-weight: 600; min-height: 36px; }
+.pl-day { padding: 10px; }
+.pl-day.today { border-color: var(--accent); }
+.pl-dh { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.pl-dh .sp { flex: 1; }
+.pl-date { font-size: 12px; color: var(--text3); }
+.pl-ppl { display: flex; align-items: center; gap: 4px; font-size: 13px; }
+.pl-ppl i { font-size: 10px; color: var(--text3); font-style: normal; }
+.pl-ppl button { min-width: 32px; min-height: 32px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg3); color: var(--text); cursor: pointer; }
+.pl-slot { padding: 6px 0; border-top: 1px solid var(--border); }
+.pl-st { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+.pl-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pl-chip { display: inline-flex; align-items: center; background: var(--bg3); border-radius: 999px; padding: 0 4px 0 10px; min-height: 34px; font-size: 13px; cursor: pointer; max-width: 100%; }
+.pl-chip > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-chip button, .pl-add { border: 0; background: none; color: var(--text3); min-width: 34px; min-height: 34px; cursor: pointer; font-size: 14px; }
+.pl-add { border: 1px dashed var(--border2); border-radius: 999px; color: var(--accent2); }
+.pl-df { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--text2); border-top: 1px solid var(--border); padding-top: 6px; }
+.pl-cat { font-size: 12px; font-weight: 700; color: var(--text2); margin: 10px 0 4px; }
+.pl-item { display: flex; align-items: center; gap: 8px; padding: 8px 4px; min-height: 40px; border-bottom: 1px solid var(--border); cursor: pointer; font-size: 14px; }
+.pl-item.done { opacity: .5; text-decoration: line-through; }
+.pl-box { width: 20px; height: 20px; border: 1.5px solid var(--border2); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+.pl-item.done .pl-box { background: var(--accent); border-color: var(--accent); color: var(--on-accent, #fff); }
+.pl-iname { flex: 1; min-width: 0; }
+.pl-iqty, .pl-icost { font-size: 12px; color: var(--text2); white-space: nowrap; }
+.pl-total { display: flex; justify-content: space-between; padding: 10px 4px; font-size: 15px; }
+.pl-search { width: 100%; margin-bottom: 8px; }
+.pl-pick { display: flex; justify-content: space-between; gap: 8px; padding: 10px 4px; min-height: 40px; border-bottom: 1px solid var(--border); cursor: pointer; font-size: 14px; }
+.pl-pick i { font-style: normal; font-size: 12px; color: var(--text3); white-space: nowrap; }
+.dt-card { display: flex; gap: 10px; align-items: center; padding: 10px; cursor: pointer; }
+.dt-e { font-size: 26px; }
+.dt-n { font-weight: 700; font-size: 14px; }
+.dt-n i { font-size: 10px; color: var(--text3); font-style: normal; border: 1px dashed var(--border2); border-radius: 999px; padding: 1px 6px; }
+.dt-s { font-size: 12px; color: var(--text2); }
+.dt-more { margin-top: 10px; font-size: 13px; }
+.dt-more summary { cursor: pointer; min-height: 36px; display: flex; align-items: center; }
+.dt-more summary i { color: var(--text3); font-style: normal; margin-left: 4px; font-size: 11px; }
+.dt-props { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.dt-p { min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg2); color: var(--text2); font: inherit; font-size: 12px; cursor: pointer; }
+.dt-p.s1 { border-color: var(--accent); color: var(--text); }
+.dt-p.s2 { border-color: var(--red, #f05060); color: var(--red, #f05060); }
+.rv-cost { color: var(--accent2); }

@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="https://organizz-core.pages.dev/styles.css">
 <link rel="stylesheet" href="menuplan-local.css">
 <link rel="stylesheet" href="recipes-local.css">
+<link rel="stylesheet" href="plan-local.css">
 </head>
 <body>
 <div id="app">
@@ -21,6 +22,7 @@
   </main>
   <nav id="bottom-nav" class="hidden">
     <button class="nav-item" data-route="home"><span class="nav-icon">🏠</span><span class="nav-label">Кухня</span></button>
+    <button class="nav-item" data-route="plan"><span class="nav-icon">🗓</span><span class="nav-label">План</span></button>
     <button class="nav-item" data-route="recipes"><span class="nav-icon">📖</span><span class="nav-label">Рецепты</span></button>
     <button class="nav-item" data-route="collections"><span class="nav-icon">📚</span><span class="nav-label">Книги</span></button>
   </nav>
@@ -35,9 +37,13 @@
 <script src="https://organizz-core.pages.dev/ui.js"></script>
 <script src="db.js"></script>
 <script src="utils.js"></script>
+<script src="costing.js"></script>
+<script src="plans.js"></script>
 <script src="router.js"></script>
 <script src="components.js"></script>
 <script src="screens/home.js"></script>
+<script src="screens/plan.js"></script>
+<script src="screens/diets.js"></script>
 <script src="screens/recipes.js"></script>
 <script src="screens/recipe-view.js"></script>
 <script src="screens/recipe-edit.js"></script>

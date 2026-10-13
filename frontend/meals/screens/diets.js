@@ -1,196 +1,64 @@
-// МенюПлан — screens/diets.js (режимы питания и генерация)
+// Кухня — screens/diets.js: режимы питания (системные от админов + один личный). Сейчас работает только бюджет.
 'use strict';
 
 const DietsScreen = {
   async render(container) {
-    const settings = await Settings.getAll();
-    const diets = settings.diets || [];
-    const activeDietId = settings.activeDietId || 'none';
-
-    let html = '<div class="screen">';
-    html += '<div class="re-header"><button class="icon-btn" onclick="Router.back()">←</button><h2>Режимы питания</h2></div>';
-
-    // ── Готовые режимы ──
-    html += '<div class="ds-section"><h3>📋 Готовые режимы</h3>';
-    const presetDiets = [
-      { id: 'none', name: 'Без режима', desc: 'Любые блюда, без ограничений', emoji: '🍽️' },
-      { id: 'balanced', name: 'Сбалансированное', desc: 'Б:Ж:У = 30:25:45, ~2000 ккал', emoji: '⚖️' },
-      { id: 'high_protein', name: 'Высокобелковое', desc: 'Б:Ж:У = 40:25:35, ~1800 ккал', emoji: '💪' },
-      { id: 'low_carb', name: 'Низкоуглеводное', desc: 'Б:Ж:У = 35:45:20, ~1600 ккал', emoji: '🥩' },
-      { id: 'vegetarian', name: 'Вегетарианское', desc: 'Без мяса, Б:Ж:У = 25:30:45', emoji: '🥦' },
-      { id: 'vegan', name: 'Веганское', desc: 'Без продуктов животного происхождения', emoji: '🌱' },
-      { id: 'mediterranean', name: 'Средиземноморское', desc: 'Рыба, овощи, оливковое масло', emoji: '🫒' },
-    ];
-
-    for (const d of presetDiets) {
-      const active = activeDietId === d.id ? ' style="border-color:var(--accent);background:rgba(240,192,64,.08)"' : '';
-      const check = activeDietId === d.id ? ' ✓' : '';
-      html += `<div class="ds-card"${active} onclick="DietsScreen._selectPreset('${d.id}')">
-        <div class="ds-emoji">${d.emoji}</div>
-        <div class="ds-body">
-          <div class="ds-name">${d.name}${check}</div>
-          <div class="ds-desc">${d.desc}</div>
-        </div>
-      </div>`;
+    const diets = await Diets.list();
+    const mine = diets.filter(d => !d.system);
+    let h = '<div class="lo-page dt-page"><div class="lo-grid" style="--col:240px">';
+    for (const d of diets) {
+      h += `<div class="card dt-card" data-id="${esc(d.id)}"><div class="dt-e">${esc(d.emoji || '🎯')}</div><div class="dt-b"><div class="dt-n">${esc(d.name)}${d.system ? ' <i>системный</i>' : ''}</div>
+        <div class="dt-s">${d.budgetDay ? `${esc(money(d.budgetDay))}/день · ≈ ${esc(money(d.budgetDay * 30))}/мес` : 'без бюджета'}</div></div></div>`;
     }
-    html += '</div>';
-
-    // ── Кастомные режимы ──
-    html += '<div class="ds-section"><h3>🎯 Кастомные режимы</h3>';
-    if (diets.length === 0) {
-      html += '<div class="empty" style="padding:16px"><div class="empty-icon">📝</div><div class="empty-title">Нет кастомных режимов</div></div>';
-    } else {
-      for (const d of diets) {
-        const active = activeDietId === d.id ? ' style="border-color:var(--accent);background:rgba(240,192,64,.08)"' : '';
-        html += `<div class="ds-card"${active} onclick="DietsScreen._selectCustom('${d.id}')">
-          <div class="ds-emoji">${d.emoji || '🎯'}</div>
-          <div class="ds-body">
-            <div class="ds-name">${d.name}</div>
-            <div class="ds-desc">Б:${d.protein || 0}% Ж:${d.fat || 0}% У:${d.carbs || 0}% · ${d.kcal || 0} ккал</div>
-          </div>
-        </div>`;
-      }
-    }
-    html += `<button class="menu-action-btn" style="margin:12px 16px" onclick="DietsScreen._createCustom()">➕ Создать кастомный режим</button>`;
-    html += '</div>';
-
-    // ── Личные предпочтения ──
-    html += '<div class="ds-section"><h3>👤 Личные предпочтения</h3>';
-    html += '<div class="ds-form">';
-    html += '<div class="ds-row"><label>Ккал в день</label><input type="number" id="ds-kcal" value="' + (settings.genFilters?.kcal || 2000) + '" min="500" max="5000"></div>';
-    html += '<div class="ds-row"><label>Белки (%)</label><input type="number" id="ds-protein" value="' + (settings.genFilters?.protein || 30) + '" min="5" max="60"></div>';
-    html += '<div class="ds-row"><label>Жиры (%)</label><input type="number" id="ds-fat" value="' + (settings.genFilters?.fat || 25) + '" min="5" max="60"></div>';
-    html += '<div class="ds-row"><label>Углеводы (%)</label><input type="number" id="ds-carbs" value="' + (settings.genFilters?.carbs || 45) + '" min="5" max="60"></div>';
-    html += '<div class="ds-row"><label>Исключить продукты</label><input type="text" id="ds-exclude" value="' + ((settings.genFilters?.exclude || []).join(', ')) + '" placeholder="через запятую"></div>';
-    html += `<button class="menu-action-btn" onclick="DietsScreen._savePrefs()">💾 Сохранить предпочтения</button>`;
-    html += '</div></div>';
-
-    // ── Кнопка генерации ──
-    html += '<div style="padding:16px">';
-    html += `<button class="menu-action-btn" style="width:100%;padding:16px;font-size:16px" onclick="DietsScreen._generate()">✨ Сгенерировать план на неделю</button>`;
-    html += '</div>';
-
-    html += '</div>';
-    container.innerHTML = html;
+    h += '</div>';
+    h += mine.length >= MAX_USER_DIETS
+      ? '<div class="kt-empty" style="margin-top:12px">Личный режим уже создан (больше — по подписке, позже). Нажмите на него, чтобы изменить.</div>'
+      : '<button class="kt-main" id="dt-new">＋ Свой режим</button>';
+    container.innerHTML = h + '</div>';
+    container.querySelectorAll('.dt-card').forEach(c => { c.onclick = () => this._form(c.dataset.id); });
+    const nb = document.getElementById('dt-new'); if (nb) nb.onclick = () => this._form();
     LifeShell.update({ title: 'Режимы питания' });
   },
 
-  async _selectPreset(id) {
-    await Settings.set('activeDietId', id);
-    if (typeof toast === 'function') toast('✅ Режим выбран');
-    await this.render(document.getElementById('app-content'));
-  },
-
-  async _selectCustom(id) {
-    await Settings.set('activeDietId', id);
-    if (typeof toast === 'function') toast('✅ Кастомный режим выбран');
-    await this.render(document.getElementById('app-content'));
-  },
-
-  _createCustom() {
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay';
-    overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
-
-    let html = '<div class="modal" style="max-width:380px">';
-    html += '<div class="modal-header"><span>🎯 Новый режим</span><button class="icon-btn" onclick="this.closest(\'.modal-overlay\').remove()">✕</button></div>';
-    html += '<div class="modal-body">';
-    html += '<div class="ds-form">';
-    html += '<div class="ds-row"><label>Название</label><input type="text" id="cd-name" placeholder="Мой режим"></div>';
-    html += '<div class="ds-row"><label>Эмодзи</label><input type="text" id="cd-emoji" value="🎯" maxlength="2" style="width:60px;text-align:center;font-size:20px"></div>';
-    html += '<div class="ds-row"><label>Ккал</label><input type="number" id="cd-kcal" value="2000" min="500" max="5000"></div>';
-    html += '<div class="ds-row"><label>Белки %</label><input type="number" id="cd-protein" value="30" min="5" max="60"></div>';
-    html += '<div class="ds-row"><label>Жиры %</label><input type="number" id="cd-fat" value="25" min="5" max="60"></div>';
-    html += '<div class="ds-row"><label>Углеводы %</label><input type="number" id="cd-carbs" value="45" min="5" max="60"></div>';
-    html += '</div>';
-    html += `<button class="menu-action-btn" style="margin-top:12px;width:100%" onclick="DietsScreen._saveCustom()">💾 Сохранить</button>`;
-    html += '</div></div>';
-    overlay.innerHTML = html;
-    document.getElementById('modal-root').appendChild(overlay);
-  },
-
-  async _saveCustom() {
-    const name = document.getElementById('cd-name').value.trim();
-    if (!name) { alert('Введи название'); return; }
-    const diet = {
-      id: 'custom-' + Date.now(),
-      name,
-      emoji: document.getElementById('cd-emoji').value || '🎯',
-      kcal: parseInt(document.getElementById('cd-kcal').value) || 2000,
-      protein: parseInt(document.getElementById('cd-protein').value) || 30,
-      fat: parseInt(document.getElementById('cd-fat').value) || 25,
-      carbs: parseInt(document.getElementById('cd-carbs').value) || 45,
+  async _form(id) {
+    const d = id ? await Diets.get(id) : { name: '', emoji: '🎯', budgetDay: 0, minKcal: 0, allowProps: [], denyProps: [] };
+    if (d.system) { toast('Системный режим меняют только админы', 'info'); return; }
+    const state = {};
+    PRODUCT_PROPS.forEach(p => { state[p.id] = (d.allowProps || []).includes(p.id) ? 1 : (d.denyProps || []).includes(p.id) ? 2 : 0; });
+    document.getElementById('dt-modal')?.remove();
+    const ov = document.createElement('div'); ov.className = 'modal-overlay'; ov.id = 'dt-modal';
+    ov.innerHTML = `<div class="modal"><div class="modal-header"><span class="modal-title">${id ? 'Режим питания' : 'Новый режим'}</span><button class="modal-close" aria-label="Закрыть">×</button></div>
+      <div class="modal-body"><div class="re-row re-row-group"><div style="flex:0 0 76px"><label>Эмодзи</label><input id="dt-emoji" maxlength="4" value="${esc(d.emoji || '🎯')}"></div>
+        <div><label>Название</label><input id="dt-name" value="${esc(d.name)}" placeholder="Например, Экономный"></div></div>
+        <div class="re-row"><label>Бюджет на день, руб. ПМР (в среднем, на всех)</label><input id="dt-budget" type="number" min="0" inputmode="decimal" value="${+d.budgetDay || ''}"><div class="pl-hint" id="dt-month"></div></div>
+        <details class="dt-more"><summary>Свойства и калорийность <i>(пока не влияют на подбор)</i></summary>
+          <div class="re-row"><label>Минимум ккал в день</label><input id="dt-kcal" type="number" min="0" value="${+d.minKcal || ''}"></div>
+          <div class="pl-hint">Нажмите на свойство: разрешено → запрещено → не важно</div>
+          <div class="dt-props">${PRODUCT_PROPS.map(p => `<button type="button" class="dt-p" data-id="${p.id}"></button>`).join('')}</div></details></div>
+      <div class="modal-footer">${id ? '<button class="re-add-btn" id="dt-del" style="color:var(--red)">🗑</button>' : ''}<span style="flex:1"></span><button class="kt-main" id="dt-save" style="margin:0;max-width:200px">Сохранить</button></div></div>`;
+    document.body.appendChild(ov);
+    requestAnimationFrame(() => ov.classList.add('open'));
+    const $ = i => ov.querySelector('#' + i), close = () => ov.remove();
+    const paintProps = () => ov.querySelectorAll('.dt-p').forEach(b => {
+      const s = state[b.dataset.id], p = PRODUCT_PROPS.find(x => x.id === b.dataset.id);
+      b.textContent = (s === 1 ? '✓ ' : s === 2 ? '✕ ' : '') + p.label; b.className = 'dt-p s' + s;
+    });
+    paintProps();
+    ov.querySelectorAll('.dt-p').forEach(b => { b.onclick = () => { state[b.dataset.id] = (state[b.dataset.id] + 1) % 3; paintProps(); }; });
+    const month = () => { const v = +$('dt-budget').value || 0; $('dt-month').textContent = v ? `≈ ${money(v * 30)} в месяц` : ''; };
+    $('dt-budget').oninput = month; month();
+    ov.addEventListener('click', e => { if (e.target === ov || e.target.closest('.modal-close')) close(); });
+    if ($('dt-del')) $('dt-del').onclick = async () => {
+      if (!confirm('Удалить режим?')) return;
+      try { await Diets.del(id); close(); Router.go('diets', null, { replace: true }); } catch (e) { toast('Ошибка: ' + e.message, 'err'); }
     };
-    const settings = await Settings.getAll();
-    const diets = [...(settings.diets || []), diet];
-    await Settings.set('diets', diets);
-    await Settings.set('activeDietId', diet.id);
-    document.querySelectorAll('.modal-overlay').forEach(el => el.remove());
-    if (typeof toast === 'function') toast('✅ Режим "' + name + '" создан');
-    await this.render(document.getElementById('app-content'));
-  },
-
-  async _savePrefs() {
-    const filters = {
-      kcal: parseInt(document.getElementById('ds-kcal').value) || 2000,
-      protein: parseInt(document.getElementById('ds-protein').value) || 30,
-      fat: parseInt(document.getElementById('ds-fat').value) || 25,
-      carbs: parseInt(document.getElementById('ds-carbs').value) || 45,
-      exclude: document.getElementById('ds-exclude').value.split(',').map(s => s.trim()).filter(Boolean),
+    $('dt-save').onclick = async () => {
+      const btn = $('dt-save'); btn.disabled = true;
+      try {
+        await Diets.save({ id: id || null, name: $('dt-name').value, emoji: $('dt-emoji').value.trim() || '🎯', budgetDay: $('dt-budget').value, minKcal: $('dt-kcal').value,
+          allowProps: PRODUCT_PROPS.filter(p => state[p.id] === 1).map(p => p.id), denyProps: PRODUCT_PROPS.filter(p => state[p.id] === 2).map(p => p.id) });
+        close(); Router.go('diets', null, { replace: true });
+      } catch (e) { btn.disabled = false; toast('Ошибка: ' + e.message, 'err'); }
     };
-    await Settings.set('genFilters', filters);
-    if (typeof toast === 'function') toast('✅ Предпочтения сохранены');
-  },
-
-  async _generate() {
-    const settings = await Settings.getAll();
-    const filters = settings.genFilters || {};
-    const activeDietId = settings.activeDietId || 'none';
-    const allRecipes = await Recipes.list();
-    const mts = await Settings.get('mealTypes', DEFAULT_MEAL_TYPES);
-
-    // Фильтруем рецепты по режиму
-    let candidates = [...allRecipes];
-    if (activeDietId === 'vegetarian') {
-      // Исключаем рецепты с мясом/рыбой
-      const meatProducts = ['Куриная грудка', 'Лосось'];
-      candidates = candidates.filter(r => !(r.ingredients || []).some(ing => meatProducts.includes(ing.name)));
-    }
-    if (activeDietId === 'vegan') {
-      const animalProducts = ['Куриная грудка', 'Лосось', 'Яйца', 'Молоко', 'Сметана', 'Творог'];
-      candidates = candidates.filter(r => !(r.ingredients || []).some(ing => animalProducts.includes(ing.name)));
-    }
-
-    if (candidates.length === 0) {
-      if (typeof toast === 'function') toast('❌ Нет подходящих рецептов для этого режима', 4000);
-      return;
-    }
-
-    // Генерируем план: случайные рецепты на каждый слот
-    const weekKey = WeekDB.currentKey();
-    const week = await WeekDB.get(weekKey);
-    week.days = {};
-
-    for (const day of DAYS) {
-      week.days[day] = {};
-      for (const mt of mts) {
-        const suitable = candidates.filter(r =>
-          !r.recommendedMeals || r.recommendedMeals.length === 0 || r.recommendedMeals.includes(mt)
-        );
-        const pool = suitable.length > 0 ? suitable : candidates;
-        const picks = [];
-        const count = mt === 'Завтрак' ? 1 : (mt === 'Обед' ? 2 : 1);
-        for (let i = 0; i < count && pool.length > 0; i++) {
-          const idx = Math.floor(Math.random() * pool.length);
-          picks.push(pool[idx].id);
-          pool.splice(idx, 1);
-        }
-        week.days[day][mt] = picks;
-      }
-    }
-
-    await WeekDB.save(week);
-    if (typeof toast === 'function') toast('✨ План сгенерирован!');
-    Router.go('menu');
   },
 };

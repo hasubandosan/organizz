@@ -13,6 +13,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   LifeShell.mount({ module: 'meals', title: 'Кухня', replace: '#app-header' });
 
   Router.register('home',         HomeScreen);
+  Router.register('plan',         PlanScreen);
+  Router.register('diets',        DietsScreen);
   Router.register('recipes',      RecipesScreen);
   Router.register('people',       PeopleScreen);
   Router.register('recipe.view',  RecipeViewScreen);
