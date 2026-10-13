@@ -159,7 +159,7 @@ const RecipesScreen = {
 
     const narrowed = fc > 0 || !!st.search.trim() || !!st.collectionId;
     box.innerHTML = n
-      ? '<div class="recipe-grid">' + items.map(MealComponents.recipeCard).join('') + '</div>'
+      ? '<div class="recipe-grid">' + items.map(r => MealComponents.recipeCard(r, this._stats[r.id])).join('') + '</div>'
       : '<div class="empty"><div class="empty-icon">📖</div><div class="empty-title">' + (total ? 'Ничего не найдено' : 'Пока нет рецептов') + '</div>'
         + (total && narrowed ? '<button class="rc-clear" id="rc-clear">Сбросить фильтры</button>' : '') + '</div>';
     const clr = document.getElementById('rc-clear');
