@@ -128,7 +128,7 @@ const Plans = {
   _collect(agg, r, n, pmap) {
     const scale = n / Math.max(1, +r.portions || 1);
     for (const ing of r.ingredients || []) {
-      const p = ing.productId ? pmap[ing.productId] : null;
+      const p = Costing.find(ing, pmap);
       const amt = p ? Costing.toBase(ing, p) : null;
       if (p && amt != null) {
         const e = agg[p.id] || (agg[p.id] = { key: p.id, productId: p.id, name: p.name, emoji: p.emoji, category: p.category || 'Прочее', amt: 0, p });
