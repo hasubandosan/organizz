@@ -122,8 +122,13 @@ const PlanScreen = {
       try {
         const res = await Plans.generate(plan, day ? 'day' : 'week', this._day);
         if (res.error) toast(res.error, 'err');
-        else if (res.over) toast(`Уложиться в бюджет не удалось: ${res.over} дн.`, 'info');
-        else toast('План составлен');
+        else {
+          const w = [];
+          if (res.over) w.push(`бюджет превышен: ${res.over} дн.`);
+          if (res.noMatch) w.push(`нет подходящих рецептов для ${res.noMatch} приём(ов) пищи`);
+          if (res.lowKcal) w.push(`меньше минимума ккал: ${res.lowKcal} дн.`);
+          toast(w.length ? 'План составлен, но: ' + w.join('; ') : 'План составлен', w.length ? 'info' : 'ok', w.length ? 6000 : 3000);
+        }
       } catch (err) { toast('Ошибка: ' + err.message, 'err'); }
       return rerender();
     }

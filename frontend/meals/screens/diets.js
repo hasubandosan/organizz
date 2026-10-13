@@ -22,7 +22,7 @@ const DietsScreen = {
 
   async _form(id) {
     const d = id ? await Diets.get(id) : { name: '', emoji: '🎯', budgetDay: 0, minKcal: 0, allowProps: [], denyProps: [] };
-    if (d.system) { toast('Системный режим меняют только админы', 'info'); return; }
+    if (d.system) { toast('Системный режим меняют только админы (Админка → Режимы питания)', 'info'); return; }
     const state = {};
     PRODUCT_PROPS.forEach(p => { state[p.id] = (d.allowProps || []).includes(p.id) ? 1 : (d.denyProps || []).includes(p.id) ? 2 : 0; });
     document.getElementById('dt-modal')?.remove();
@@ -31,9 +31,9 @@ const DietsScreen = {
       <div class="modal-body"><div class="re-row re-row-group"><div style="flex:0 0 76px"><label>Эмодзи</label><input id="dt-emoji" maxlength="4" value="${esc(d.emoji || '🎯')}"></div>
         <div><label>Название</label><input id="dt-name" value="${esc(d.name)}" placeholder="Например, Экономный"></div></div>
         <div class="re-row"><label>Бюджет на день, руб. ПМР (в среднем, на всех)</label><input id="dt-budget" type="number" min="0" inputmode="decimal" value="${+d.budgetDay || ''}"><div class="pl-hint" id="dt-month"></div></div>
-        <details class="dt-more"><summary>Свойства и калорийность <i>(пока не влияют на подбор)</i></summary>
+        <details class="dt-more"><summary>Свойства и калорийность</summary>
           <div class="re-row"><label>Минимум ккал в день</label><input id="dt-kcal" type="number" min="0" value="${+d.minKcal || ''}"></div>
-          <div class="pl-hint">Нажмите на свойство: разрешено → запрещено → не важно</div>
+          <div class="pl-hint">Свойство продукта: ✓ предпочитать, ✕ исключать рецепты с ним. Минимум ккал — предупреждение при составлении.</div>
           <div class="dt-props">${PRODUCT_PROPS.map(p => `<button type="button" class="dt-p" data-id="${p.id}"></button>`).join('')}</div></details></div>
       <div class="modal-footer">${id ? '<button class="re-add-btn" id="dt-del" style="color:var(--red)">🗑</button>' : ''}<span style="flex:1"></span><button class="kt-main" id="dt-save" style="margin:0;max-width:200px">Сохранить</button></div></div>`;
     document.body.appendChild(ov);

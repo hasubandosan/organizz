@@ -95,7 +95,7 @@ PRIMARY KEY (owner_id, entity_type, id)   -- id уникален только в
 entity-таблицы здесь не подходит, поэтому у `catalog` свой роутер
 (`backend/src/catalog/routes.ts`), не через `createEntityRouter`.
 
-Таблицы: `catalog.products` (сам каталог), `catalog.suggestions` (заявки на
+Таблицы: `catalog.diets` (системные режимы питания, создают админы: `GET /catalog/diets` — любой user, `POST/PATCH/DELETE` — admin; `data`: emoji, budgetDay, minKcal, allowProps, denyProps), `catalog.products` (сам каталог), `catalog.suggestions` (заявки на
 новый продукт или правку — `type: 'new_product' | 'edit_product'`, статус
 `pending/approved/rejected`), `catalog.votes` (один голос на заявку от
 пользователя, `PRIMARY KEY (suggestion_id, user_id)`).
@@ -160,3 +160,9 @@ entityType. `path` — полный путь начиная с `/<appSlug>/...`.
 (как в легаси, без регионов); `unitWeight` — г в одной штуке (только для `шт`); `props` — id свойств (`gluten`, `lactose`, `vegan`, `raw`, …);
 `source` — `'ai'` (заполнено скриптом `backend/scripts/fill-catalog-data.ts`, приблизительно) или `'user'` (правка человеком).
 Нормализация на клиенте — `normProduct()` в `frontend/meals/db.js`.
+
+## Питание: план, режимы, список продуктов (meals)
+Личные сущности модуля (`meals.entities`, owner-scoped): `meal_plans` (id `plan-<понедельник YYYY-MM-DD>`: `dietId`, `days[7]` с `people` (null = число «помощников») и `slots` по приёмам пищи, `totals`),
+`meal_shopping` (id `shop-<planId>`, список продуктов плана, пересчитывается вместе с планом), `meal_diets` (личный режим; сервер пускает ровно один — `backend/src/apps/mealsGuards.ts`, `MAX_USER_DIETS`).
+Системные режимы — `catalog.diets` (id на фронте `sys:<uuid>`, плюс встроенный `sys:none`). Бюджет — руб. ПМР на день в среднем на весь план (число людей его не меняет), на месяц = ×30.
+Себестоимость порции и свойства (x2, x3) считает `frontend/meals/costing.js` по каталогу (`price`/`packageSize`/`unitWeight`); план и подбор — `plans.js`. Рецепты без цены ингредиентов считаются неполными (помечаются).

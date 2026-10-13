@@ -5,8 +5,8 @@ function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-function toast(msg, type = 'ok') {
-  if (window.UI && UI.toast) UI.toast(msg, type); else console.log('[toast]', msg);
+function toast(msg, type = 'ok', ms = 3000) {
+  if (window.UI && UI.toast) UI.toast(msg, type, ms); else console.log('[toast]', msg);
 }
 
 // Подставляет картинки: <img data-img="ID"> -> src из DB.getImage (ссылка временная, обновляется ядром)

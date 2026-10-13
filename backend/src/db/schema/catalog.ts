@@ -38,3 +38,13 @@ export const votes = catalogSchema.table('votes', {
 }, (t) => ({
   pk: primaryKey({ columns: [t.suggestionId, t.userId] }), // один голос на заявку от пользователя
 }));
+
+// Системные режимы питания (создают админы каталога; видны всем). Личный режим юзера — в meals.entities ('meal_diets').
+// data: { emoji, budgetDay (руб. ПМР/день в среднем), minKcal, allowProps[], denyProps[] }
+export const diets = catalogSchema.table('diets', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  data: jsonb('data').notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});

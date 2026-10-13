@@ -12,6 +12,7 @@ import { catalogRouter } from './catalog/routes.js';
 import { mealsEntities } from './db/schema/meals.js';
 import { purchasesEntities } from './db/schema/purchases.js';
 import { cosplaysEntities } from './db/schema/cosplays.js';
+import { mealsGuards } from './apps/mealsGuards.js';
 import { aiRouter } from './ai/routes.js';
 
 const app = express();
@@ -31,7 +32,7 @@ app.use('/auth', authRouter);       // /auth/register, /auth/login
 app.use('/app_1', app1Router);      // пример реальных данных: /app_1/items
 app.use('/storage', storageRouter);   // файлы: подписанные ссылки на S3-совместимое хранилище
 app.use('/projects', createEntityRouter('projects', projectsEntities)); // LifeOS: areas/projects/tasks/tags...
-app.use('/meals', createEntityRouter('meals', mealsEntities));
+app.use('/meals', ...mealsGuards, createEntityRouter('meals', mealsEntities));
 app.use('/shared/system-tags', systemTagsRouter);   // системные теги/зоны (только чтение)
 app.use('/shared', createEntityRouter('shared', sharedEntities));   // личные теги/зоны пользователя
 app.use('/purchases', createEntityRouter('purchases', purchasesEntities));
