@@ -20,7 +20,18 @@ const SYSTEM_DIETS = [
 ];
 
 const Diets = {
-  async list() { return [...SYSTEM_DIETS, ...(await DB.getAll(MEAL_COL.diets)).sort(_byName)]; },
+  // системные (создают админы, общая схема catalog) + личный. Сбой сети не мешает: остаётся «Без режима».
+  async list() {
+    let sys = [];
+    try {
+      sys = (await DB.request('/catalog/diets')).map(r => ({
+        id: 'sys:' + r.id, name: r.name, system: true, emoji: (r.data || {}).emoji || '🎯',
+        budgetDay: +(r.data || {}).budgetDay || 0, minKcal: +(r.data || {}).minKcal || 0,
+        allowProps: (r.data || {}).allowProps || [], denyProps: (r.data || {}).denyProps || [],
+      }));
+    } catch (e) { console.warn('[meals] системные режимы недоступны:', e.message); }
+    return [...SYSTEM_DIETS, ...sys, ...(await DB.getAll(MEAL_COL.diets)).sort(_byName)];
+  },
   async get(id) { return (await this.list()).find(d => d.id === id) || SYSTEM_DIETS[0]; },
   async save(d) {
     const row = {
@@ -172,13 +183,23 @@ const Plans = {
     const used = new Set();
     plan.days.forEach((d, i) => { if (!idxs.includes(i)) Object.values(d.slots).flat().forEach(id => used.add(id)); });
     const pick = a => a[Math.floor(Math.random() * a.length)];
-    let over = 0;
+    // свойства режима: запрещённые исключают рецепт, разрешённые — предпочтение, ккал — предупреждение
+    const deny = diet.denyProps || [], allow = diet.allowProps || [];
+    const okRecipe = r => !deny.some(id => (stats[r.id].propCounts || {})[id]);
+    let over = 0, noMatch = 0, lowKcal = 0;
     for (const i of idxs) {
       const day = plan.days[i], n = this._peopleOf(day, helpers);
-      let left = budget;
+      let left = budget, kcalDay = 0;
       GEN_TYPES.forEach((t, k) => {
-        let pool = recipes.filter(r => !(r.recommendedMeals || []).length || r.recommendedMeals.includes(t));
-        if (!pool.length) pool = recipes;
+        const allowed = recipes.filter(okRecipe);
+        let pool = allowed.filter(r => !(r.recommendedMeals || []).length || r.recommendedMeals.includes(t));
+        if (!pool.length) pool = allowed;
+        day.slots[t] = [];
+        if (!pool.length) { noMatch++; return; }
+        if (allow.length) {
+          const liked = pool.filter(r => allow.some(id => (stats[r.id].propCounts || {})[id]));
+          if (liked.length) pool = liked;
+        }
         let choices = pool;
         if (budget) {
           const priced = pool.filter(r => stats[r.id].costPerPortion > 0);
@@ -190,12 +211,13 @@ const Plans = {
         const fresh = choices.filter(r => !used.has(r.id));
         const r = pick(fresh.length ? fresh : choices);
         day.slots[t] = [r.id]; used.add(r.id);
-        left -= stats[r.id].costPerPortion * n;
+        left -= stats[r.id].costPerPortion * n; kcalDay += stats[r.id].kcalPerPortion;
       });
       if (budget && left < 0) over++;
+      if (diet.minKcal && kcalDay < diet.minKcal) lowKcal++;
     }
     await this.save(plan);
-    return { over, budget };
+    return { over, budget, noMatch, lowKcal };
   },
 };
 window.Plans = Plans; window.Diets = Diets;

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { and, eq, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
-import { products, suggestions, votes } from '../db/schema/catalog.js';
+import { products, suggestions, votes, diets } from '../db/schema/catalog.js';
 import { requireAuth, requireRole, type AuthedRequest } from '../middleware/auth.js';
 import { getUserRole } from '../db/roleCheck.js';
 
@@ -154,4 +154,42 @@ catalogRouter.post('/suggestions/:id/reject', ...asAdmin, async (req, res) => {
     .returning();
   if (!updated) return res.status(404).json({ error: 'Заявка не найдена' });
   res.json(updated);
+});
+
+
+// ───────── Системные режимы питания (чтение — всем, запись — только admin) ─────────
+
+const dietSchema = z.object({
+  name: z.string().min(1).max(80),
+  data: z.object({
+    emoji: z.string().max(8).optional(),
+    budgetDay: z.number().min(0).optional(),
+    minKcal: z.number().min(0).optional(),
+    allowProps: z.array(z.string()).optional(),
+    denyProps: z.array(z.string()).optional(),
+  }).optional(),
+});
+
+catalogRouter.get('/diets', ...asUser, async (_req, res) => {
+  res.json(await db.select().from(diets).orderBy(diets.name));
+});
+
+catalogRouter.post('/diets', ...asAdmin, async (req, res) => {
+  const parsed = dietSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  const [row] = await db.insert(diets).values(parsed.data).returning();
+  res.status(201).json(row);
+});
+
+catalogRouter.patch('/diets/:id', ...asAdmin, async (req, res) => {
+  const parsed = dietSchema.partial().safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  const [row] = await db.update(diets).set({ ...parsed.data, updatedAt: new Date() }).where(eq(diets.id, req.params.id)).returning();
+  if (!row) return res.status(404).json({ error: 'Режим не найден' });
+  res.json(row);
+});
+
+catalogRouter.delete('/diets/:id', ...asAdmin, async (req, res) => {
+  await db.delete(diets).where(eq(diets.id, req.params.id));
+  res.status(204).send();
 });
