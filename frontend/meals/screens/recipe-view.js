@@ -25,6 +25,7 @@ const RecipeViewScreen = {
     let st = null; try { st = await Costing.recipeStats(r); } catch (e) { /* каталог недоступен — без цены */ }
     if (st && st.costPerPortion) h += `<span class="rv-cost">💰 ${esc(money(st.costPerPortion))}/порц.${st.unpriced ? ' (без ' + st.unpriced + ' ингр.)' : ''}</span>`;
     h += '</div>';
+    if (st && st.unpricedNames.length) h += `<div class="rv-hint" style="font-size:12px;color:var(--text3);margin:4px 0">Нет цены: ${esc(st.unpricedNames.join(', '))}. Добавьте продукт в «Энциклопедию» или укажите цену.</div>`;
     if (st) {
       const pc = Object.entries(st.propCounts).map(([id, n]) => { const p = PRODUCT_PROPS.find(x => x.id === id); return p ? p.label + (n > 1 ? ' x' + n : '') : null; }).filter(Boolean);
       if (pc.length) h += '<div class="rv-tags">' + pc.map(n => `<span class="rv-tag">${esc(n)}</span>`).join('') + '</div>';

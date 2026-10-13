@@ -17,6 +17,31 @@ const Costing = {
   },
   reset() { this._cache = null; },
 
+  // Продукт ингредиента: по связи productId, а если её нет (импорт через ИИ, ручной ввод) — по названию:
+  // точное совпадение → те же слова в другом порядке → слова ингредиента входят в название продукта (берём самое короткое)
+  _norm(n) { return String(n || '').toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim(); },
+  _idx: new WeakMap(),
+  find(ing, pmap) {
+    if (ing.productId && pmap[ing.productId]) return pmap[ing.productId];
+    let ix = this._idx.get(pmap);
+    if (!ix) {
+      ix = { exact: {}, sorted: {}, list: [] };
+      Object.values(pmap).forEach(p => {
+        const n = this._norm(p.name), w = n.split(' ');
+        ix.exact[n] = ix.exact[n] || p; ix.sorted[w.slice().sort().join(' ')] = ix.sorted[w.slice().sort().join(' ')] || p;
+        ix.list.push({ p, w, len: n.length });
+      });
+      this._idx.set(pmap, ix);
+    }
+    const n = this._norm(ing.name); if (!n) return null;
+    if (ix.exact[n]) return ix.exact[n];
+    const w = n.split(' ');
+    if (ix.sorted[w.slice().sort().join(' ')]) return ix.sorted[w.slice().sort().join(' ')];
+    let best = null;
+    for (const c of ix.list) if (w.every(x => c.w.includes(x)) && (!best || c.len < best.len)) best = c;
+    return best ? best.p : null;
+  },
+
   // единица -> { k: 'g'|'ml'|'pcs', f: множитель к г/мл/шт } или null (непонятная единица)
   unitKind(u) {
     const s = String(u || '').toLowerCase().replace(/[.\s]/g, '');
@@ -54,20 +79,20 @@ const Costing = {
     pmap = pmap || await this.products();
     const portions = Math.max(1, +r.portions || 1);
     let total = 0, kcal = 0, unpriced = 0;
-    const propCounts = {};
+    const propCounts = {}, names = [];
     for (const ing of r.ingredients || []) {
-      const p = ing.productId ? pmap[ing.productId] : null;
-      if (!p) { if (+ing.qty) unpriced++; continue; }
+      const p = this.find(ing, pmap);
+      if (!p) { if (+ing.qty) { unpriced++; names.push(ing.name); } continue; }
       (p.props || []).forEach(id => { propCounts[id] = (propCounts[id] || 0) + 1; });
       if (!(+ing.qty)) continue;
       const amt = this.toBase(ing, p), price = this.unitPrice(p);
-      if (amt == null || !price) unpriced++; else total += amt * price;
+      if (amt == null || !price) { unpriced++; names.push(ing.name); } else total += amt * price;
       if (amt != null && p.kcal) {
         const g = (this.unitKind(p.unit) || {}).k === 'pcs' ? amt * (p.unitWeight || 0) : amt;
         kcal += p.kcal * g / 100;
       }
     }
-    const out = { costPerPortion: _r2(total / portions), unpriced, propCounts, kcalPerPortion: Math.round(kcal / portions) };
+    const out = { costPerPortion: _r2(total / portions), unpriced, unpricedNames: names, propCounts, kcalPerPortion: Math.round(kcal / portions) };
     return _forSave ? { costPerPortion: out.costPerPortion, unpricedCount: unpriced, propCounts, kcalPerPortion: out.kcalPerPortion } : out;
   },
 };
