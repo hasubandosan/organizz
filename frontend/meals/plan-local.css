@@ -58,3 +58,42 @@
 .rv-cost { color: var(--accent2); }
 .recipe-card-meta { flex-wrap: wrap; }
 .rc-cost { color: var(--accent2); }
+
+/* таблица плана: строки — дни, столбцы — приёмы пищи */
+.pl-page { padding-top: 0; }
+.pl-nav .pl-cal { min-width: 0; padding: 0 10px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.pl-gear { min-width: 36px; min-height: 36px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg2); cursor: pointer; }
+.pl-kbzhu { font-size: 12px; color: var(--text2); margin-top: 4px; }
+.pl-table { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 14px; background: var(--bg2); }
+.pl-tr { display: grid; grid-template-columns: 76px repeat(3, minmax(0, 1fr)); }
+.pl-tr + .pl-tr { border-top: 1px solid var(--border); }
+.pl-th { font-size: 11px; font-weight: 700; color: var(--text3); background: var(--bg3); }
+.pl-th .pl-td { padding: 6px 4px; text-align: center; }
+.pl-td { padding: 6px 4px; min-width: 0; }
+.pl-d0 { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; font-size: 12px; border-right: 1px solid var(--border); }
+.pl-dayrow.today .pl-d0 { box-shadow: inset 3px 0 0 var(--accent); }
+.pl-d0 .pl-ppl { font-size: 11px; gap: 2px; }
+.pl-d0 .pl-ppl button { min-width: 22px; min-height: 22px; font-size: 12px; padding: 0; }
+.pl-d0 .pl-ppl i { display: block; font-size: 9px; }
+.pl-dsum { font-weight: 700; font-size: 12px; } .pl-dsum.over { color: var(--red, #f05060); }
+.pl-dsum2 { font-size: 10px; color: var(--text3); }
+.pl-cell { display: flex; flex-direction: column; gap: 4px; align-items: stretch; border-right: 1px solid var(--border); }
+.pl-cell:last-child { border-right: 0; }
+.pl-cell .pl-chip { border-radius: 8px; min-height: 30px; padding: 2px 0 2px 6px; font-size: 12px; }
+.pl-cell .pl-chip > span:first-child { white-space: normal; line-height: 1.2; flex: 1; }
+.pl-cell .pl-chip button { min-width: 26px; min-height: 26px; }
+.pl-cell .pl-add { border-radius: 8px; min-height: 28px; width: 100%; }
+/* календарь */
+.pl-cm { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.pl-cm button { min-width: 40px; min-height: 40px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg2); color: var(--text); font-size: 18px; cursor: pointer; }
+.pl-cwd, .pl-cw { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.pl-cwd { font-size: 11px; color: var(--text3); text-align: center; margin-bottom: 4px; }
+.pl-cw { padding: 2px; border-radius: 10px; margin-bottom: 2px; }
+.pl-cw.sel { background: var(--bg4, var(--bg3)); box-shadow: 0 0 0 1.5px var(--accent) inset; }
+.pl-cw button { min-height: 38px; border: 0; background: none; color: var(--text); border-radius: 8px; font: inherit; font-size: 14px; cursor: pointer; position: relative; }
+.pl-cw button.out { color: var(--text3); opacity: .6; }
+.pl-cw button.td { font-weight: 800; color: var(--accent2); }
+.pl-cw button.has::after { content: ''; position: absolute; top: 4px; left: 4px; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+/* настройки */
+.st-row { display: flex; align-items: center; gap: 12px; padding: 12px; margin-bottom: 8px; cursor: pointer; }
+.st-i { font-size: 24px; } .st-b { flex: 1; min-width: 0; } .st-t { font-weight: 700; } .st-d { font-size: 12px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .st-a { color: var(--text3); font-size: 20px; }

@@ -79,7 +79,7 @@ const Costing = {
     pmap = pmap || await this.products();
     ctx = ctx || { rmap: null, stack: [] };
     const portions = Math.max(1, +r.portions || 1);
-    let total = 0, kcal = 0, unpriced = 0;
+    let total = 0, kcal = 0, unpriced = 0, prot = 0, fat = 0, carb = 0;
     const propCounts = {}, names = [];
     for (const ing of r.ingredients || []) {
       if (ing.recipeId) {   // ингредиент — заготовка (другой рецепт): qty = число её порций
@@ -88,6 +88,7 @@ const Costing = {
         if (!sub || sub.id === r.id || ctx.stack.includes(sub.id) || ctx.stack.length > 4) { if (q) { unpriced++; names.push(ing.name); } continue; }
         const ss = await this.recipeStats(sub, pmap, false, { rmap: ctx.rmap, stack: [...ctx.stack, r.id].filter(Boolean) });
         total += ss.costPerPortion * q; kcal += ss.kcalPerPortion * q;
+        prot += (ss.proteinPerPortion || 0) * q; fat += (ss.fatPerPortion || 0) * q; carb += (ss.carbsPerPortion || 0) * q;
         Object.entries(ss.propCounts).forEach(([id, n]) => { propCounts[id] = (propCounts[id] || 0) + n; });
         if (ss.unpriced) { unpriced++; names.push(ing.name + ' (не все цены)'); }
         continue;
@@ -100,10 +101,11 @@ const Costing = {
       if (amt == null || !price) { unpriced++; names.push(ing.name); } else total += amt * price;
       if (amt != null && p.kcal) {
         const g = (this.unitKind(p.unit) || {}).k === 'pcs' ? amt * (p.unitWeight || 0) : amt;
-        kcal += p.kcal * g / 100;
+        kcal += p.kcal * g / 100; prot += (p.protein || 0) * g / 100; fat += (p.fat || 0) * g / 100; carb += (p.carbs || 0) * g / 100;
       }
     }
-    const out = { costPerPortion: _r2(total / portions), unpriced, unpricedNames: names, propCounts, kcalPerPortion: Math.round(kcal / portions) };
+    const out = { costPerPortion: _r2(total / portions), unpriced, unpricedNames: names, propCounts, kcalPerPortion: Math.round(kcal / portions),
+      proteinPerPortion: Math.round(prot / portions), fatPerPortion: Math.round(fat / portions), carbsPerPortion: Math.round(carb / portions) };
     return _forSave ? { costPerPortion: out.costPerPortion, unpricedCount: unpriced, propCounts, kcalPerPortion: out.kcalPerPortion } : out;
   },
 };

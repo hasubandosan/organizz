@@ -10,10 +10,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   document.getElementById('bottom-nav').classList.remove('hidden');
-  LifeShell.mount({ module: 'meals', title: 'Кухня', replace: '#app-header' });
+  LifeShell.mount({ module: 'meals', title: 'Кухня', replace: '#app-header', onSettings: () => Router.go('settings') });
 
   Router.register('home',         HomeScreen);
-  Router.register('plan',         PlanScreen);
+  Router.register('plan',         HomeScreen);   // план теперь сверху главной
+  Router.register('settings',     SettingsScreen);
   Router.register('diets',        DietsScreen);
   Router.register('recipes',      RecipesScreen);
   Router.register('people',       PeopleScreen);
