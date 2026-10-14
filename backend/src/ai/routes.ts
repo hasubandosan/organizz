@@ -134,7 +134,7 @@ name ингредиента — только название продукта, 
 }
 
 // 2.0 Flash закрыт Google; перебираем актуальные Flash-модели, пока одна не ответит (не 404).
-export const MODELS = [process.env.GEMINI_MODEL, 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-2.5-flash-lite']
+export const MODELS = [process.env.GEMINI_MODEL, 'gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.6-flash']
   .filter((m, i, arr): m is string => !!m && arr.indexOf(m) === i);
 // модели, которых нет (404), помним до перезапуска сервера — чтобы не тратить на них время при каждом запросе
 const DEAD_MODELS = new Set<string>();
