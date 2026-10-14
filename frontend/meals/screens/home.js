@@ -1,40 +1,15 @@
-// Кухня — screens/home.js: план питания (макет), рецепты, полка с книгами, помощники
+// Кухня — screens/home.js: сверху план питания (таблица недели/дня), ниже полка с книгами и превью рецептов
 'use strict';
 
 const HomeScreen = {
-  _DAYS: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
-
   async render(container) {
-    const [recipes, cols, people] = await Promise.all([Recipes.list(), Collections.list(), People.list().catch(() => [])]);
+    const [recipes, cols] = await Promise.all([Recipes.list(), Collections.list()]);
     const byNew = [...recipes].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
-    const today = (new Date().getDay() + 6) % 7;   // Пн=0
 
-    let h = '<div class="lo-page kt-home">';
+    let h = '<div class="lo-page kt-home"><section class="kt-sec" id="kt-planbox"></section>';
 
-    // 1. План питания: сегодняшний день из плана недели
-    const plan = await Plans.peek(weekStartIso(new Date())).catch(() => null);
-    const slots = plan ? plan.days[today].slots : {};
-    h += '<section class="kt-sec"><div class="kt-h"><h2>План питания</h2><span class="sp"></span><button class="kt-link" id="kt-plan">Весь план →</button></div>';
-    h += '<div class="kt-days">' + this._DAYS.map((d, i) => `<span class="kt-day${i === today ? ' on' : ''}">${d}</span>`).join('') + '</div>';
-    h += '<div class="kt-plan">' + MEAL_TYPES.slice(0, 3).map(m => {
-      const r = recipes.find(x => x.id === (slots[m] || [])[0]);
-      const pic = r && r.imageId ? `<img data-img="${esc(r.imageId)}" alt="">` : `<span>${esc(r ? (r.emoji || '🍽️') : '＋')}</span>`;
-      return `<div class="kt-meal${r ? '' : ' empty'}"${r ? ` data-rid="${esc(r.id)}"` : ' data-goplan="1"'}>
-        <div class="kt-mpic">${pic}</div>
-        <div class="kt-mtxt"><div class="kt-mtype">${m}</div><div class="kt-mname">${r ? esc(r.name) : 'Не запланировано'}</div></div></div>`;
-    }).join('') + '</div></section>';
-
-    // 2. Рецепты
-    h += `<section class="kt-sec"><div class="kt-h"><h2>Рецепты</h2><span class="kt-n">${recipes.length}</span><span class="sp"></span><button class="kt-link" id="kt-all">Все →</button></div>`;
-    if (recipes.length) {
-      h += '<div class="kt-hscroll">' + byNew.slice(0, 12).map(r => `<div class="kt-rc">${MealComponents.recipeCard(r)}</div>`).join('') + '</div>';
-    } else {
-      h += '<div class="kt-empty">Пока нет рецептов — добавьте первый кнопкой ниже</div>';
-    }
-    h += '<button class="kt-main" id="kt-new">＋ Рецепт</button></section>';
-
-    // 3. Полка с книгами (энциклопедия продуктов — первой на полке)
-    h += '<section class="kt-sec"><div class="kt-h"><h2>Полка</h2><span class="sp"></span><button class="kt-link" id="kt-books">Все книги →</button></div><div class="kt-shelf">';
+    // 2. Полка с книгами (энциклопедия продуктов — первой на полке)
+    h += '<section class="kt-sec"><div class="kt-h"><h2>Библиотека</h2><span class="sp"></span><button class="kt-link" id="kt-books">Все книги →</button></div><div class="kt-shelf">';
     h += '<div class="kt-book enc" data-go="products"><div class="kt-bc">🥕</div><div class="kt-bt">Энциклопедия продуктов</div></div>';
     for (const c of cols) {
       const n = recipes.filter(r => r.collectionId === c.id).length;
@@ -43,26 +18,23 @@ const HomeScreen = {
     }
     h += '</div></section>';
 
-    // 4. Помощники (люди)
-    h += '<section class="kt-sec"><div class="kt-h"><h2>Помощники</h2><span class="sp"></span><button class="kt-link" id="kt-people">Все →</button></div><div class="kt-people">';
-    for (const p of people.slice(0, 10)) h += `<div class="kt-person" data-go="people"><span class="kt-pe">${esc(p.emoji || '🙂')}</span><span>${esc(p.name)}</span></div>`;
-    h += '<div class="kt-person add" id="kt-addp"><span class="kt-pe">＋</span><span>Добавить</span></div></div></section>';
+    // 3. Рецепты — превью (полный список в отдельном окне)
+    h += `<section class="kt-sec"><div class="kt-h"><h2>Рецепты</h2><span class="kt-n">${recipes.length}</span><span class="sp"></span><button class="kt-link" id="kt-all">Все ${recipes.length} →</button></div>`;
+    if (recipes.length) {
+      h += '<div class="kt-hscroll">' + byNew.slice(0, 8).map(r => `<div class="kt-rc">${MealComponents.recipeCard(r)}</div>`).join('') + '</div>';
+    } else {
+      h += '<div class="kt-empty">Пока нет рецептов — добавьте первый кнопкой ниже</div>';
+    }
+    h += '<button class="kt-main" id="kt-new">＋ Рецепт</button></section>';
 
     container.innerHTML = h + '</div>';
+    await PlanScreen.render(document.getElementById('kt-planbox'));
 
     const $ = id => document.getElementById(id);
-    $('kt-plan').addEventListener('click', () => Router.go('plan'));
     $('kt-new').addEventListener('click', () => Router.go('recipe.new'));
     $('kt-all').addEventListener('click', () => { RecipesScreen._state.collectionId = ''; Router.go('recipes'); });
     $('kt-books').addEventListener('click', () => Router.go('collections'));
-    $('kt-people').addEventListener('click', () => Router.go('people'));
-    $('kt-addp').addEventListener('click', () => Router.go('people', { add: true }));
     container.querySelector('.kt-home').addEventListener('click', e => {
-      if (e.target.closest('[data-goplan]')) return Router.go('plan');
-      const rid = e.target.closest('[data-rid]');
-      if (rid) return Router.go('recipe.view', { id: rid.dataset.rid });
-      const pp = e.target.closest('.kt-person[data-go]');
-      if (pp) return Router.go('people');
       const b = e.target.closest('.kt-book');
       if (!b) return;
       if (b.dataset.go) Router.go(b.dataset.go);

@@ -106,17 +106,18 @@ const Plans = {
     const days = [];
     for (const day of plan.days) {
       const n = this._peopleOf(day, helpers);
-      let cost = 0, kcal = 0, unpriced = 0, count = 0;
+      let cost = 0, kcal = 0, unpriced = 0, count = 0, prot = 0, fat = 0, carb = 0;
       for (const t of Object.keys(day.slots)) {
         day.slots[t] = day.slots[t].filter(id => rmap[id]);   // удалённые рецепты убираем
         for (const rid of day.slots[t]) {
           const r = rmap[rid];
           const st = cache[rid] || (cache[rid] = await Costing.recipeStats(r, pmap));
-          count++; cost += st.costPerPortion * n; kcal += st.kcalPerPortion; if (st.unpriced) unpriced++;
+          count++; cost += st.costPerPortion * n; kcal += st.kcalPerPortion; prot += st.proteinPerPortion || 0; fat += st.fatPerPortion || 0; carb += st.carbsPerPortion || 0;
+          if (st.unpriced) unpriced++;
           this._collect(agg, r, n, pmap, rmap);
         }
       }
-      days.push({ people: n, cost: _r2(cost), kcal, unpriced, count });
+      days.push({ people: n, cost: _r2(cost), kcal, protein: prot, fat, carbs: carb, unpriced, count });
     }
     plan.totals = {
       days, cost: _r2(days.reduce((s, d) => s + d.cost, 0)), unpriced: days.reduce((s, d) => s + d.unpriced, 0),
