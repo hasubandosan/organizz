@@ -36,3 +36,14 @@ export const emailCodes = auth.table('email_codes', {
 }, (t) => ({
   pk: primaryKey({ columns: [t.email, t.purpose] }),
 }));
+
+// Подписки: пока без оплаты — тариф выдаёт админ (по почте), опционально до даты. Нет строки / срок вышел = тариф 'free'.
+// Список тарифов и их лимиты — в src/subscription.ts (PLANS).
+export const subscriptions = auth.table('subscriptions', {
+  userId: uuid('user_id').primaryKey().references(() => users.id),
+  plan: text('plan').notNull().default('premium'),
+  expiresAt: timestamp('expires_at', { withTimezone: true }),
+  grantedBy: uuid('granted_by').references(() => users.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});

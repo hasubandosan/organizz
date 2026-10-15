@@ -5,7 +5,7 @@
 
 const GEN_TYPES = ['Завтрак', 'Обед', 'Ужин'];
 const DAYS_RU = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-const MAX_USER_DIETS = 1;
+const MAX_USER_DIETS = 1;   // запасной лимит, если тариф не удалось узнать (бесплатный)
 
 function isoDate(d) { const z = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; }
 function parseIso(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
@@ -43,10 +43,16 @@ const Diets = {
     };
     if (!row.name) throw new Error('Введите название');
     if (d.id) return DB.update(MEAL_COL.diets, d.id, row);
-    if ((await DB.getAll(MEAL_COL.diets)).length >= MAX_USER_DIETS) throw new Error('Личный режим можно создать только один');
+    const lim = (await this.plan()).limits.personalDiets;
+    if ((await DB.getAll(MEAL_COL.diets)).length >= lim) throw new Error(lim === 1 ? 'Личный режим можно создать только один' : `Лимит личных режимов: ${lim}`);
     return DB.create(MEAL_COL.diets, row);
   },
   async del(id) { return DB.delete(MEAL_COL.diets, id); },
+  // тариф пользователя (выдаёт админ): { plan, name, expiresAt, limits: { personalDiets } }; при ошибке — бесплатный
+  async plan() {
+    try { return await DB.request('/subscription/me'); }
+    catch (e) { return { plan: 'free', name: 'Бесплатный', expiresAt: null, limits: { personalDiets: MAX_USER_DIETS } }; }
+  },
 };
 
 const Plans = {
