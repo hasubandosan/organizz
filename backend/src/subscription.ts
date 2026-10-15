@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db } from './db/client.js';
 import { users, subscriptions } from './db/schema/auth.js';
 import { requireAuth, requireRole, type AuthedRequest } from './middleware/auth.js';
+import { logAdmin } from './adminLog.js';
 
 /**
  * Тарифы и лимиты. Оплаты нет: тариф выдаёт админ (Админка → «Подписки»).
@@ -59,14 +60,16 @@ subscriptionRouter.put('/', ...asAdmin, async (req: AuthedRequest, res) => {
   if (!u) return res.status(404).json({ error: 'Пользователь с такой почтой не найден' });
   const vals = { plan, expiresAt, grantedBy: req.userId!, updatedAt: new Date() };
   await db.insert(subscriptions).values({ userId: u.id, ...vals }).onConflictDoUpdate({ target: subscriptions.userId, set: vals });
+  await logAdmin(req, 'subscription.grant', email, { plan, expiresAt });
   res.json({ ok: true });
 });
 
 // DELETE /subscription/:email — забрать подписку (вернётся тариф free)
-subscriptionRouter.delete('/:email', ...asAdmin, async (req, res) => {
+subscriptionRouter.delete('/:email', ...asAdmin, async (req: AuthedRequest, res) => {
   const email = decodeURIComponent(req.params.email).trim().toLowerCase();
   const [u] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
   if (!u) return res.status(404).json({ error: 'Пользователь не найден' });
   await db.delete(subscriptions).where(eq(subscriptions.userId, u.id));
+  await logAdmin(req, 'subscription.revoke', email);
   res.json({ ok: true });
 });

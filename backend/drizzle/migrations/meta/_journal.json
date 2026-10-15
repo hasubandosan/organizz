@@ -64,6 +64,13 @@
       "when": 1792040542886,
       "tag": "0008_auth_subscriptions",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792041424111,
+      "tag": "0009_catalog_admin_log",
+      "breakpoints": true
     }
   ]
 }
