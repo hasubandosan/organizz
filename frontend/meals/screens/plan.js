@@ -192,7 +192,8 @@ const PlanScreen = {
           if (res.over) w.push(`бюджет превышен: ${res.over} дн.`);
           if (res.noMatch) w.push(`нет подходящих рецептов для ${res.noMatch} приём(ов) пищи`);
           if (res.lowKcal) w.push(`меньше минимума ккал: ${res.lowKcal} дн.`);
-          toast(w.length ? 'План составлен, но: ' + w.join('; ') : 'План составлен', w.length ? 'info' : 'ok', w.length ? 6000 : 3000);
+          const sp = res.limit ? ` (${money(res.spent)} из ${money(res.limit)})` : '';
+          toast(w.length ? 'План составлен' + sp + ', но: ' + w.join('; ') : 'План составлен' + sp, w.length ? 'info' : 'ok', w.length ? 6000 : 3500);
         }
       } catch (err) { toast('Ошибка: ' + err.message, 'err'); }
       return rerender();

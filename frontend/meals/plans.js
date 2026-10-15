@@ -176,7 +176,7 @@ const Plans = {
     } else if (data.items.length) await DB.create(MEAL_COL.shopping, { id: sid, ...data });
   },
 
-  // авто-составление: только по бюджету (режим: budgetDay). scope 'day' (di — индекс дня) | 'week'
+  // авто-составление по бюджету, свойствам и минимуму ккал режима. Бюджет недели делится по дням с переносом остатка, дня — по приёмам пищи (25/40/35%). scope 'day' (di — индекс дня) | 'week'
   async generate(plan, scope, di) {
     const [pmap, recipes, people, diet] = await Promise.all([
       Costing.products(), Recipes.list(), People.list().catch(() => []), Diets.get(plan.dietId)]);
@@ -187,14 +187,16 @@ const Plans = {
     const idxs = scope === 'day' ? [di] : plan.days.map((_, i) => i);
     const used = new Set();
     plan.days.forEach((d, i) => { if (!idxs.includes(i)) Object.values(d.slots).flat().forEach(id => used.add(id)); });
-    const pick = a => a[Math.floor(Math.random() * a.length)];
-    // свойства режима: запрещённые исключают рецепт, разрешённые — предпочтение, ккал — предупреждение
+    // свойства режима: запрещённые исключают рецепт, разрешённые — предпочтение
     const deny = diet.denyProps || [], allow = diet.allowProps || [];
     const okRecipe = r => !deny.some(id => (stats[r.id].propCounts || {})[id]);
-    let over = 0, noMatch = 0, lowKcal = 0;
-    for (const i of idxs) {
-      const day = plan.days[i], n = this._peopleOf(day, helpers);
-      let left = budget, kcalDay = 0;
+    const WEIGHT = { 'Завтрак': 0.25, 'Обед': 0.4, 'Ужин': 0.35 };   // доля дневного бюджета на приём пищи
+    // бюджет недели = бюджет дня × число дней; недотрата/перерасход прошлых дней переносится на оставшиеся
+    let weekLeft = budget * idxs.length, over = 0, noMatch = 0, lowKcal = 0;
+    for (let ix = 0; ix < idxs.length; ix++) {
+      const day = plan.days[idxs[ix]], n = this._peopleOf(day, helpers);
+      let left = weekLeft / (idxs.length - ix), kcalDay = 0;
+      const dayBudget = left;
       GEN_TYPES.forEach((t, k) => {
         const allowed = recipes.filter(r => !r.isPrep && okRecipe(r));   // заготовки сами по себе не блюда
         let pool = allowed.filter(r => !(r.recommendedMeals || []).length || r.recommendedMeals.includes(t));
@@ -205,24 +207,33 @@ const Plans = {
           const liked = pool.filter(r => allow.some(id => (stats[r.id].propCounts || {})[id]));
           if (liked.length) pool = liked;
         }
+        const restW = GEN_TYPES.slice(k).reduce((s, x) => s + WEIGHT[x], 0);
+        const slotBudget = left * WEIGHT[t] / restW;                          // сколько можно потратить на этот приём
+        const kcalNeed = diet.minKcal ? Math.max(0, diet.minKcal - kcalDay) / (GEN_TYPES.length - k) : 0;   // ккал на человека
         let choices = pool;
         if (budget) {
           const priced = pool.filter(r => stats[r.id].costPerPortion > 0);
-          const allow = left / (GEN_TYPES.length - k);
-          const fit = priced.filter(r => stats[r.id].costPerPortion * n <= allow);
+          const fit = priced.filter(r => stats[r.id].costPerPortion * n <= slotBudget);
           if (fit.length) choices = fit;
           else if (priced.length) choices = [priced.reduce((a, b) => stats[a.id].costPerPortion <= stats[b.id].costPerPortion ? a : b)];
         }
         const fresh = choices.filter(r => !used.has(r.id));
-        const r = pick(fresh.length ? fresh : choices);
+        const cand = fresh.length ? fresh : choices;
+        // оценка: чем ближе к бюджету приёма (но не выше) — тем лучше, плюс калории по минимуму и случайность для разнообразия
+        const score = r => {
+          const st = stats[r.id], ratio = budget && slotBudget > 0 ? Math.min(1, st.costPerPortion * n / slotBudget) : 0.5;
+          return ratio * 0.5 + (kcalNeed && st.kcalPerPortion >= kcalNeed ? 0.4 : 0) + Math.random() * 0.6;
+        };
+        const r = cand.map(x => [score(x), x]).sort((a, b) => b[0] - a[0])[0][1];
         day.slots[t] = [r.id]; used.add(r.id);
         left -= stats[r.id].costPerPortion * n; kcalDay += stats[r.id].kcalPerPortion;
       });
+      weekLeft -= dayBudget - left;
       if (budget && left < 0) over++;
       if (diet.minKcal && kcalDay < diet.minKcal) lowKcal++;
     }
     await this.save(plan);
-    return { over, budget, noMatch, lowKcal };
+    return { over, budget, noMatch, lowKcal, spent: scope === 'day' ? plan.totals.days[di].cost : plan.totals.cost, limit: budget * idxs.length };
   },
 };
 window.Plans = Plans; window.Diets = Diets;
