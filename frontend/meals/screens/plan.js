@@ -22,30 +22,39 @@ const PlanScreen = {
       <select id="pl-diet" aria-label="Режим питания">${diets.map(d => `<option value="${esc(d.id)}"${d.id === plan.dietId ? ' selected' : ''}>${esc(d.emoji || '🎯')} ${esc(d.name)}</option>`).join('')}</select>
       <button class="pl-gear" data-act="diets" aria-label="Режимы питания" title="Режимы питания">⚙️</button></div>`;
 
-    // сводка: стоимость и КБЖУ (на человека) — за день или за неделю в среднем на день
-    const dT = T.days[di];
-    const cur = day ? dT.cost : T.cost, lim = b * (day ? 1 : 7);
-    const kb = day ? dT : this._avgDay(T.days);
+    h += `<button class="kt-main pl-gen" data-act="gen">✨ Составить на ${day ? 'день' : 'неделю'}</button>`;
+
+    // таблица: строки — приёмы пищи, столбцы — дни недели; снизу итоги по дням (стоимость, КБЖУ на человека)
+    const cols = day ? [di] : plan.days.map((_, i) => i);
+    const grid = `grid-template-columns: 74px repeat(${cols.length}, minmax(${day ? 160 : 104}px, 1fr))`;
+    h += `<div class="pl-scroll"><div class="pl-table" style="min-width:${74 + cols.length * (day ? 160 : 104)}px">`;
+    h += `<div class="pl-tr pl-th" style="${grid}"><div class="pl-td pl-d0"></div>${cols.map(i => this._head(plan, i, todayIso)).join('')}</div>`;
+    for (const type of GEN_TYPES) {
+      h += `<div class="pl-tr" style="${grid}"><div class="pl-td pl-d0 pl-mt">${esc(type)}</div>${cols.map(i => this._cell(plan, i, type, todayIso)).join('')}</div>`;
+    }
+    h += `<div class="pl-tr pl-sumrow" style="${grid}"><div class="pl-td pl-d0 pl-mt">💰 Стоимость</div>${cols.map(i => {
+      const t = T.days[i]; return `<div class="pl-td pl-sc${t.cost && b && t.cost > b ? ' over' : ''}">${t.cost ? money(t.cost) : '—'}</div>`; }).join('')}</div>`;
+    h += `<div class="pl-tr pl-sumrow" style="${grid}"><div class="pl-td pl-d0 pl-mt">🔥 КБЖУ<small>на чел.</small></div>${cols.map(i => {
+      const t = T.days[i]; return `<div class="pl-td pl-sc2">${t.kcal ? `<b>${t.kcal}</b> ккал<br>Б${t.protein} Ж${t.fat} У${t.carbs}` : '—'}</div>`; }).join('')}</div>`;
+    h += '</div></div>';
+
+    // общая сводка под таблицей: за день или за неделю (КБЖУ — в среднем за день на человека)
+    const cur = day ? T.days[di].cost : T.cost, lim = b * (day ? 1 : 7);
+    const kb = day ? T.days[di] : this._avgDay(T.days);
     h += `<div class="card pl-sum"><div class="pl-sum1"><b>${day ? esc(DAYS_RU[di]) : 'Неделя'}:</b> ${money(cur)}${lim ? ` из ${money(lim)}` : ''}${!day && b ? ` · ≈ ${money(b * 30)}/мес по бюджету` : ''}</div>
-      <div class="pl-kbzhu">${day ? 'На человека за день' : 'На человека, в среднем за день'}: <b>${kb.kcal}</b> ккал · Б <b>${kb.protein}</b> · Ж <b>${kb.fat}</b> · У <b>${kb.carbs}</b></div>`;
+      <div class="pl-kbzhu">${day ? 'За день' : 'В среднем за день'}, на человека: <b>${kb.kcal}</b> ккал · Б <b>${kb.protein}</b> · Ж <b>${kb.fat}</b> · У <b>${kb.carbs}</b></div>`;
     if (lim) h += `<div class="pl-meter"><i class="${cur > lim ? 'over' : ''}" style="width:${Math.min(100, Math.round(cur / lim * 100))}%"></i></div>${cur > lim ? `<div class="pl-warn">Перерасход ${money(cur - lim)}</div>` : ''}`;
     else h += '<div class="pl-hint">Бюджет не задан — <a href="#" data-act="diets">задать в режиме питания</a></div>';
     if (diet.minKcal && kb.kcal && kb.kcal < diet.minKcal) h += `<div class="pl-warn">Меньше минимума ${diet.minKcal} ккал</div>`;
     if (T.unpriced) h += `<div class="pl-hint">У ${T.unpriced} блюд(а) не у всех ингредиентов есть цена — сумма неполная</div>`;
     h += '</div>';
 
-    h += `<button class="kt-main pl-gen" data-act="gen">✨ Составить на ${day ? 'день' : 'неделю'}</button>`;
-
-    // таблица: строки — дни, столбцы — приёмы пищи
-    const rows = day ? [di] : plan.days.map((_, i) => i);
-    h += `<div class="pl-table"><div class="pl-tr pl-th"><div class="pl-td pl-d0"></div>${GEN_TYPES.map(t => `<div class="pl-td">${t}</div>`).join('')}</div>`;
-    for (const i of rows) h += this._row(plan, i, todayIso);
-    h += '</div>';
-
-    // список продуктов плана
-    h += `<section class="kt-sec pl-shop"><div class="kt-h"><h2>🛒 Продукты на неделю</h2><span class="sp"></span><span class="kt-n">${plan.shop.length} поз.</span>${plan.shop.some(i => !i.checked) ? '<button class="kt-link" data-act="topurch">→ В покупки</button>' : ''}</div>`;
+    // сворачиваемый список продуктов плана (по умолчанию свёрнут; состояние помним между перерисовками)
+    const left = plan.shop.filter(i => !i.checked).length;
+    h += `<details class="card pl-shop" id="pl-shop"${this._shopOpen ? ' open' : ''}><summary>🛒 Список продуктов <span class="kt-n">${left}/${plan.shop.length}</span><span class="sp"></span><b>${plan.shop.length ? money(plan.shopTotal) : ''}</b></summary>`;
     if (!plan.shop.length) h += '<div class="kt-empty">Добавьте блюда в план — список соберётся сам</div>';
     else {
+      h += `<div class="pl-shophint">Отметьте то, что уже есть дома или куплено — эти позиции не попадут в «Покупки».${left ? ' <button class="kt-link" data-act="topurch">→ В покупки</button>' : ''}</div>`;
       const groups = {};
       plan.shop.forEach(i => (groups[i.category] = groups[i.category] || []).push(i));
       for (const [cat, items] of Object.entries(groups)) {
@@ -59,13 +68,14 @@ const PlanScreen = {
       h += `<div class="pl-total"><span>Итого</span><b>${money(plan.shopTotal)}</b></div>`;
       if (plan.shopUnpriced) h += `<div class="pl-hint">${plan.shopUnpriced} поз. без цены — не входят в сумму</div>`;
     }
-    h += '</section></div>';
+    h += '</details></div>';
 
     container.innerHTML = h;
     loadImages(container);
     const page = container.querySelector('.pl-page');
     page.onclick = e => this._click(e);
     this._swipe(page);
+    document.getElementById('pl-shop').addEventListener('toggle', e => { this._shopOpen = e.target.open; });
     document.getElementById('pl-diet').onchange = async e => {
       plan.dietId = e.target.value; await Plans.save(plan); this.render(container);
     };
@@ -76,21 +86,21 @@ const PlanScreen = {
     return { kcal: f('kcal'), protein: f('protein'), fat: f('fat'), carbs: f('carbs') };
   },
 
-  // строка дня: слева день, дата, люди, итог; справа три приёма пищи с блюдами
-  _row(plan, i, todayIso) {
-    const d = plan.days[i], t = plan.totals.days[i], b = plan.totals.budgetDay;
-    let h = `<div class="pl-tr pl-dayrow${d.date === todayIso ? ' today' : ''}"><div class="pl-td pl-d0"><b>${DAYS_RU[i]}</b><span class="pl-date">${shortDate(d.date)}</span>
-      <span class="pl-ppl"><button data-act="ppl" data-i="${i}" data-v="-1" aria-label="Меньше">−</button><span>👤${t.people}${d.people == null ? '<i>авто</i>' : ''}</span><button data-act="ppl" data-i="${i}" data-v="1" aria-label="Больше">+</button>${d.people != null ? `<button data-act="pauto" data-i="${i}" title="Как число помощников">↺</button>` : ''}</span>
-      <span class="pl-dsum${b && t.cost > b ? ' over' : ''}">${money(t.cost)}</span>${t.kcal ? `<span class="pl-dsum2">${t.kcal} ккал</span>` : ''}</div>`;
-    for (const type of GEN_TYPES) {
-      h += '<div class="pl-td pl-cell">';
-      d.slots[type].forEach((rid, k) => {
-        const r = this._recipeById(rid);
-        h += `<span class="pl-chip"><span data-act="view" data-rid="${esc(rid)}">${esc(r ? (r.emoji || '🍽️') + ' ' + r.name : '…')}</span><button data-act="rm" data-i="${i}" data-t="${type}" data-k="${k}" aria-label="Убрать">✕</button></span>`;
-      });
-      h += `<button class="pl-add" data-act="add" data-i="${i}" data-t="${type}" aria-label="Добавить">＋</button></div>`;
-    }
-    return h + '</div>';
+  // шапка столбца: день, дата, число людей
+  _head(plan, i, todayIso) {
+    const d = plan.days[i], t = plan.totals.days[i];
+    return `<div class="pl-td pl-hd${d.date === todayIso ? ' today' : ''}"><b>${DAYS_RU[i]}</b> <span class="pl-date">${shortDate(d.date)}</span>
+      <span class="pl-ppl"><button data-act="ppl" data-i="${i}" data-v="-1" aria-label="Меньше">−</button><span>👤${t.people}${d.people == null ? '<i>авто</i>' : ''}</span><button data-act="ppl" data-i="${i}" data-v="1" aria-label="Больше">+</button>${d.people != null ? `<button data-act="pauto" data-i="${i}" title="Как число помощников">↺</button>` : ''}</span></div>`;
+  },
+
+  // ячейка: блюда дня в приёме пищи + кнопка добавить
+  _cell(plan, i, type, todayIso) {
+    let h = `<div class="pl-td pl-cell${plan.days[i].date === todayIso ? ' today' : ''}">`;
+    plan.days[i].slots[type].forEach((rid, k) => {
+      const r = this._recipeById(rid);
+      h += `<span class="pl-chip"><span data-act="view" data-rid="${esc(rid)}">${esc(r ? (r.emoji || '🍽️') + ' ' + r.name : '…')}</span><button data-act="rm" data-i="${i}" data-t="${type}" data-k="${k}" aria-label="Убрать">✕</button></span>`;
+    });
+    return h + `<button class="pl-add" data-act="add" data-i="${i}" data-t="${type}" aria-label="Добавить">＋</button></div>`;
   },
 
   // перелистывание: в режиме недели ±неделя, в режиме дня ±день (через границу недели)
@@ -110,6 +120,7 @@ const PlanScreen = {
       const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
       if (Math.abs(dx) < 70 || Math.abs(dy) > 45 || Math.abs(dx) < Math.abs(dy) * 2 || Date.now() - t0 > 700) return;
       if (e.target.closest('input,select,textarea,.modal-overlay')) return;
+      const sc = e.target.closest('.pl-scroll'); if (sc && sc.scrollWidth > sc.clientWidth + 4) return;   // таблица прокручивается сама
       this._shift(dx < 0 ? 1 : -1); this.render(this._box);
     }, { passive: true });
   },

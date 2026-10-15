@@ -97,3 +97,33 @@
 /* настройки */
 .st-row { display: flex; align-items: center; gap: 12px; padding: 12px; margin-bottom: 8px; cursor: pointer; }
 .st-i { font-size: 24px; } .st-b { flex: 1; min-width: 0; } .st-t { font-weight: 700; } .st-d { font-size: 12px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .st-a { color: var(--text3); font-size: 20px; }
+
+/* v2: строки — приёмы пищи, столбцы — дни; итоги внизу таблицы */
+.pl-scroll { overflow-x: auto; margin-bottom: 12px; border: 1px solid var(--border); border-radius: 12px; -webkit-overflow-scrolling: touch; }
+.pl-scroll .pl-table { border: 0; border-radius: 0; margin: 0; }
+.pl-tr { display: grid; }
+.pl-d0 { position: sticky; left: 0; z-index: 1; background: var(--bg3); justify-content: center; font-weight: 700; }
+.pl-tr:not(.pl-th) .pl-d0 { background: var(--bg3); }
+.pl-mt small { display: block; font-weight: 400; font-size: 10px; color: var(--text3); }
+.pl-hd { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; border-right: 1px solid var(--border); }
+.pl-hd:last-child { border-right: 0; }
+.pl-hd.today, .pl-cell.today { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.pl-hd .pl-ppl { display: inline-flex; align-items: center; gap: 2px; font-size: 11px; font-weight: 400; }
+.pl-hd .pl-ppl button { min-width: 22px; min-height: 22px; padding: 0; font-size: 12px; }
+.pl-hd .pl-ppl i { display: block; font-size: 9px; }
+.pl-sumrow { background: var(--bg3); border-top: 2px solid var(--border); }
+.pl-sumrow + .pl-sumrow { border-top: 1px solid var(--border); }
+.pl-sc, .pl-sc2 { text-align: center; font-size: 12px; border-right: 1px solid var(--border); }
+.pl-sc { font-weight: 700; } .pl-sc.over { color: var(--red, #f05060); }
+.pl-sc2 { font-size: 11px; color: var(--text2); line-height: 1.35; }
+.pl-sc:last-child, .pl-sc2:last-child { border-right: 0; }
+/* сворачиваемый список продуктов */
+.pl-shop { padding: 0; margin-bottom: 14px; }
+.pl-shop > summary { display: flex; align-items: center; gap: 8px; padding: 12px; font-weight: 700; cursor: pointer; list-style: none; }
+.pl-shop > summary::-webkit-details-marker { display: none; }
+.pl-shop > summary::after { content: '▾'; color: var(--text3); transition: transform .15s; }
+.pl-shop[open] > summary::after { transform: rotate(180deg); }
+.pl-shop > summary .sp { flex: 1; }
+.pl-shop > :not(summary) { margin-left: 12px; margin-right: 12px; }
+.pl-shop > :last-child { margin-bottom: 12px; }
+.pl-shophint { font-size: 12px; color: var(--text2); margin-bottom: 6px; }
