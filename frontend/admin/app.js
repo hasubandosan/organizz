@@ -337,13 +337,21 @@ async function loadLog(more) {
 }
 
 // ───────── Старт ─────────
-(async () => {
-  try {
-    await lifeosInit();
-  } catch (e) {
-    console.warn('[Admin] lifeosInit:', e.message);
-    if (!localStorage.getItem('token')) return; // идёт редирект на логин
+// Render (Free) засыпает: пока сервер просыпается, он отвечает 502 без CORS-заголовков — ждём /health, потом грузим данные
+async function wakeServer() {
+  const box = document.getElementById('queuePane');
+  for (let i = 0; i < 30; i++) {
+    try { const r = await fetch(`${API_BASE}/health`, { cache: 'no-store' }); if (r.ok) return true; } catch (e) { /* ещё спит */ }
+    if (box) box.innerHTML = `<div class="empty">Сервер просыпается… (${i * 3} с, обычно до минуты)</div>`;
+    await new Promise(r => setTimeout(r, 3000));
   }
+  return false;
+}
+
+(async () => {
+  // lifeosInit() тут не нужен: у админки slug «catalog», его миграции локального хранилища давали 404 /catalog/_meta и /catalog/tags
+  if (!localStorage.getItem('token')) { try { await DB.request('/catalog/me'); } catch (e) { /* ядро отправит на вход */ } return; }
+  if (!(await wakeServer())) { const b = document.getElementById('queuePane'); if (b) b.innerHTML = '<div class="empty">Сервер не отвечает. Обновите страницу через минуту.</div>'; return; }
   loadQueue();
 })();
 
