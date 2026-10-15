@@ -182,6 +182,32 @@ const Plans = {
     try { await DB.update('purchases', item.purchaseId, { status: item.checked ? 'in_stock' : 'wish' }, 'purchases'); } catch (e) { /* нет доступа к Покупкам — не мешаем */ }
   },
 
+  // запрос к ИИ: { dayIndex: { 'Завтрак': [recipeId], ... } }; бросает ошибку с понятным текстом
+  async _askAI(plan, idxs, recipes, stats, diet, helpers, okRecipe, wish) {
+    const list = recipes.filter(r => !r.isPrep && okRecipe(r)).slice(0, 150);
+    if (!list.length) return null;
+    const body = {
+      recipes: list.map((r, n) => { const st = stats[r.id]; return { n, name: r.name, meals: r.recommendedMeals || [], cost: st.costPerPortion, kcal: st.kcalPerPortion, p: st.proteinPerPortion || 0, f: st.fatPerPortion || 0, c: st.carbsPerPortion || 0 }; }),
+      days: idxs.map(i => ({ d: i, people: this._peopleOf(plan.days[i], helpers) })),
+      meals: GEN_TYPES, budgetDay: diet.budgetDay || 0, minKcal: diet.minKcal || 0,
+      preferNames: (diet.allowProps || []).map(id => (PRODUCT_PROPS.find(p => p.id === id) || {}).label).filter(Boolean),
+      wish: wish || '',
+    };
+    let r;
+    try { r = await DB.api('/ai/meal-plan', body); }
+    catch (e) {
+      if (e.status === 503) throw new Error('ИИ ещё не включён на сервере.');
+      if (e.status === 429) throw new Error('Слишком много запросов к ИИ, попробуйте через час.');
+      throw e;
+    }
+    const out = {};
+    for (const x of r.plan || []) {
+      const ids = (x.r || []).map(n => list[n] && list[n].id).filter(Boolean);
+      if (ids.length) (out[x.d] = out[x.d] || {})[x.m] = ids;
+    }
+    return out;
+  },
+
   // «План → Покупки»: непомеченные «куплено» позиции уходят в модуль Покупки (статус «хочу»).
   // Повторная отправка не дублирует: позиция, уже созданная из этого плана, обновляется; такая же в списке покупок — пропускается.
   async sendToPurchases(plan) {
@@ -216,7 +242,7 @@ const Plans = {
   },
 
   // авто-составление по бюджету, свойствам и минимуму ккал режима. Бюджет недели делится по дням с переносом остатка, дня — по приёмам пищи (25/40/35%). scope 'day' (di — индекс дня) | 'week'
-  async generate(plan, scope, di) {
+  async generate(plan, scope, di, opts = {}) {
     const [pmap, recipes, people, diet] = await Promise.all([
       Costing.products(), Recipes.list(), People.list().catch(() => []), Diets.get(plan.dietId)]);
     if (!recipes.length) return { error: 'Нет рецептов — сначала добавьте' };
@@ -231,12 +257,22 @@ const Plans = {
     const okRecipe = r => !deny.some(id => (stats[r.id].propCounts || {})[id]);
     const WEIGHT = { 'Завтрак': 0.25, 'Обед': 0.4, 'Ужин': 0.35 };   // доля дневного бюджета на приём пищи
     // бюджет недели = бюджет дня × число дней; недотрата/перерасход прошлых дней переносится на оставшиеся
+    // ИИ-вариант: сначала просим нейросеть, потом применяем её выбор там, где он корректен; остальное добирает обычный подбор
+    const aiSlots = opts.ai ? await this._askAI(plan, idxs, recipes, stats, diet, helpers, okRecipe, opts.wish) : null;
+    let aiUsed = 0, aiMissed = 0;
     let weekLeft = budget * idxs.length, over = 0, noMatch = 0, lowKcal = 0;
     for (let ix = 0; ix < idxs.length; ix++) {
       const day = plan.days[idxs[ix]], n = this._peopleOf(day, helpers);
       let left = weekLeft / (idxs.length - ix), kcalDay = 0;
       const dayBudget = left;
       GEN_TYPES.forEach((t, k) => {
+        const pre = aiSlots && aiSlots[idxs[ix]] && aiSlots[idxs[ix]][t];
+        if (pre && pre.length) {
+          day.slots[t] = pre.slice(); aiUsed++;
+          pre.forEach(id => { used.add(id); left -= stats[id].costPerPortion * n; kcalDay += stats[id].kcalPerPortion; });
+          return;
+        }
+        if (aiSlots) aiMissed++;
         const allowed = recipes.filter(r => !r.isPrep && okRecipe(r));   // заготовки сами по себе не блюда
         let pool = allowed.filter(r => !(r.recommendedMeals || []).length || r.recommendedMeals.includes(t));
         if (!pool.length) pool = allowed;
@@ -272,7 +308,7 @@ const Plans = {
       if (diet.minKcal && kcalDay < diet.minKcal) lowKcal++;
     }
     await this.save(plan);
-    return { over, budget, noMatch, lowKcal, spent: scope === 'day' ? plan.totals.days[di].cost : plan.totals.cost, limit: budget * idxs.length };
+    return { ai: !!aiSlots, aiUsed, aiMissed, over, budget, noMatch, lowKcal, spent: scope === 'day' ? plan.totals.days[di].cost : plan.totals.cost, limit: budget * idxs.length };
   },
 };
 window.Plans = Plans; window.Diets = Diets;
