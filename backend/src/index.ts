@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import './asyncSafe.js';
 import cors from 'cors';
 import { authRouter } from './auth/routes.js';
 import { app1Router } from './apps/app1Routes.js';
@@ -15,6 +16,7 @@ import { cosplaysEntities } from './db/schema/cosplays.js';
 import { mealsGuards } from './apps/mealsGuards.js';
 import { aiRouter } from './ai/routes.js';
 import { subscriptionRouter } from './subscription.js';
+import { errorHandler } from './asyncSafe.js';
 
 const app = express();
 
@@ -43,6 +45,7 @@ app.use('/ai', aiRouter);           // ИИ-разбор рецептов (Gemin
 app.use('/catalog', catalogRouter); // общий каталог продуктов: чтение всем, модерация — admin
 
 const port = Number(process.env.PORT ?? 3000);
+app.use(errorHandler);
 app.listen(port, () => {
   console.log(`DB Manager слушает на http://localhost:${port}`);
 });
