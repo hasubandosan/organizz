@@ -176,12 +176,19 @@ const Plans = {
     } else if (data.items.length) await DB.create(MEAL_COL.shopping, { id: sid, ...data });
   },
 
+  // отметка «куплено» в плане → статус позиции в Покупках (куплено = in_stock, иначе wish); ошибки не критичны
+  async mirrorChecked(item) {
+    if (!item.purchaseId) return;
+    try { await DB.update('purchases', item.purchaseId, { status: item.checked ? 'in_stock' : 'wish' }, 'purchases'); } catch (e) { /* нет доступа к Покупкам — не мешаем */ }
+  },
+
   // «План → Покупки»: непомеченные «куплено» позиции уходят в модуль Покупки (статус «хочу»).
   // Повторная отправка не дублирует: позиция, уже созданная из этого плана, обновляется; такая же в списке покупок — пропускается.
   async sendToPurchases(plan) {
     const items = plan.shop.filter(i => !i.checked);
     if (!items.length) return { empty: true };
     const existing = await DB.getAll('purchases', 'purchases');
+    const variants = await DB.getAll('purchase_variants', 'purchases');
     const byId = Object.fromEntries(existing.map(p => [p.id, p]));
     const byName = {};
     existing.filter(p => p.status !== 'in_stock').forEach(p => { byName[String(p.name || '').trim().toLowerCase()] = p; });
@@ -191,9 +198,17 @@ const Plans = {
       const notes = `${it.qty} ${it.unit}${it.cost != null ? ' · ≈' + it.cost + ' ₽' : ''} · из плана питания ${range}`;
       const ref = `meals:${plan.id}:${it.key}`;
       const mine = (it.purchaseId && byId[it.purchaseId]) || existing.find(p => p.sourceRef === ref);
-      if (mine) { await DB.update('purchases', mine.id, { notes }, 'purchases'); it.purchaseId = mine.id; updated++; continue; }
+      if (mine) {
+        await DB.update('purchases', mine.id, { notes }, 'purchases');
+        const v = variants.find(x => x.purchaseId === mine.id && x.isPrimary);
+        if (v && it.cost != null && v.price !== it.cost) await DB.update('purchase_variants', v.id, { price: it.cost, notes: `${it.qty} ${it.unit}` }, 'purchases');
+        it.purchaseId = mine.id; updated++; continue;
+      }
       if (byName[String(it.name).trim().toLowerCase()]) { already++; continue; }
-      const rec = await DB.create('purchases', { name: it.name, status: 'wish', notes, sourceType: 'meals_plan', sourceRef: ref }, 'purchases');
+      // та же конвенция, что в core/shopping-bridge.js: sourceType 'meal_plan' + основной вариант с ценой
+      const rec = await DB.create('purchases', { name: it.name, category: 'Питание', status: 'wish', priority: 0, tags: [], notes,
+        sourceType: 'meal_plan', sourceId: plan.id, sourceRef: ref, metadata: { productId: it.productId, qty: it.qty, unit: it.unit, fromMenuPlan: true } }, 'purchases');
+      if (it.cost != null) await DB.create('purchase_variants', { purchaseId: rec.id, title: null, price: it.cost, shopId: null, url: null, notes: `${it.qty} ${it.unit}`, isPrimary: true }, 'purchases');
       it.purchaseId = rec.id; added++;
     }
     await this.saveShop(plan);

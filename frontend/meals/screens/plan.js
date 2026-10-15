@@ -192,7 +192,7 @@ const PlanScreen = {
     }
     if (a === 'chk') {
       const it = plan.shop.find(x => x.key === el.dataset.k); if (!it) return;
-      it.checked = !it.checked; await Plans.saveShop(plan); return rerender();
+      it.checked = !it.checked; await Plans.saveShop(plan); Plans.mirrorChecked(it); return rerender();
     }
     if (a === 'gen') {
       const day = this._mode === 'day';
