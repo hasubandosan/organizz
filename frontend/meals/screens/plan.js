@@ -22,7 +22,7 @@ const PlanScreen = {
       <select id="pl-diet" aria-label="Режим питания">${diets.map(d => `<option value="${esc(d.id)}"${d.id === plan.dietId ? ' selected' : ''}>${esc(d.emoji || '🎯')} ${esc(d.name)}</option>`).join('')}</select>
       <button class="pl-gear" data-act="diets" aria-label="Режимы питания" title="Режимы питания">⚙️</button></div>`;
 
-    h += `<button class="kt-main pl-gen" data-act="gen">✨ Составить на ${day ? 'день' : 'неделю'}</button>`;
+    h += `<div class="pl-genrow"><button class="kt-main pl-gen" data-act="gen">✨ Составить на ${day ? 'день' : 'неделю'}</button><button class="kt-main pl-gen pl-ai" data-act="genai">🤖 С ИИ</button></div>`;
 
     // таблица: строки — приёмы пищи, столбцы — дни недели; снизу итоги по дням (стоимость, КБЖУ на человека)
     const cols = day ? [di] : plan.days.map((_, i) => i);
@@ -205,23 +205,27 @@ const PlanScreen = {
       const it = plan.shop.find(x => x.key === el.dataset.k); if (!it) return;
       it.checked = !it.checked; await Plans.saveShop(plan); Plans.mirrorChecked(it); return rerender();
     }
-    if (a === 'gen') {
-      const day = this._mode === 'day';
+    if (a === 'gen' || a === 'genai') {
+      const ai = a === 'genai', day = this._mode === 'day';
       const has = day ? Object.values(plan.days[this._day].slots).flat().length : plan.days.some(d => Object.values(d.slots).flat().length);
       if (has && !confirm(day ? 'Заменить блюда этого дня?' : 'Заменить блюда всей недели?')) return;
+      let wish = '';
+      if (ai) { wish = prompt('Пожелания к плану (необязательно), например: больше рыбы, меньше макарон', '') ; if (wish === null) return; }
       el.disabled = true;
+      if (ai) el.textContent = '🤖 Думаю…';
       try {
-        const res = await Plans.generate(plan, day ? 'day' : 'week', this._day);
+        const res = await Plans.generate(plan, day ? 'day' : 'week', this._day, { ai, wish: (wish || '').trim() });
         if (res.error) toast(res.error, 'err');
         else {
           const w = [];
           if (res.over) w.push(`бюджет превышен: ${res.over} дн.`);
           if (res.noMatch) w.push(`нет подходящих рецептов для ${res.noMatch} приём(ов) пищи`);
           if (res.lowKcal) w.push(`меньше минимума ккал: ${res.lowKcal} дн.`);
+          if (res.ai && res.aiMissed) w.push(`ИИ не заполнил ${res.aiMissed} приём(ов) — добраны обычным подбором`);
           const sp = res.limit ? ` (${money(res.spent)} из ${money(res.limit)})` : '';
-          toast(w.length ? 'План составлен' + sp + ', но: ' + w.join('; ') : 'План составлен' + sp, w.length ? 'info' : 'ok', w.length ? 6000 : 3500);
+          toast(w.length ? (ai ? 'План с ИИ' : 'План составлен') + sp + ', но: ' + w.join('; ') : (ai ? 'План с ИИ составлен' : 'План составлен') + sp, w.length ? 'info' : 'ok', w.length ? 6000 : 3500);
         }
-      } catch (err) { toast('Ошибка: ' + err.message, 'err'); }
+      } catch (err) { toast((ai ? 'ИИ не справился: ' : 'Ошибка: ') + err.message + (ai ? ' План не изменён.' : ''), 'err', 6000); }
       return rerender();
     }
   },
