@@ -213,16 +213,23 @@ const Plans = {
   async sendToPurchases(plan) {
     const items = plan.shop.filter(i => !i.checked);
     if (!items.length) return { empty: true };
+    const range = `${shortDate(plan.weekStart)} — ${shortDate(addDays(plan.weekStart, 6))}`;
+    const res = await this._sendItems(items, { sourceId: plan.id, refBase: `meals:${plan.id}`, label: `плана питания ${range}` });
+    await this.saveShop(plan);
+    return res;
+  },
+
+  // общая отправка позиций в Покупки (из плана и из рецепта): обновляет свои, пропускает уже существующие по названию, остальное создаёт
+  async _sendItems(items, ctx) {
     const existing = await DB.getAll('purchases', 'purchases');
     const variants = await DB.getAll('purchase_variants', 'purchases');
     const byId = Object.fromEntries(existing.map(p => [p.id, p]));
     const byName = {};
     existing.filter(p => p.status !== 'in_stock').forEach(p => { byName[String(p.name || '').trim().toLowerCase()] = p; });
-    const range = `${shortDate(plan.weekStart)} — ${shortDate(addDays(plan.weekStart, 6))}`;
     let added = 0, updated = 0, already = 0;
     for (const it of items) {
-      const notes = `${it.qty} ${it.unit}${it.cost != null ? ' · ≈' + it.cost + ' ₽' : ''} · из плана питания ${range}`;
-      const ref = `meals:${plan.id}:${it.key}`;
+      const notes = `${it.qty} ${it.unit}${it.cost != null ? ' · ≈' + it.cost + ' ₽' : ''} · из ${ctx.label}`;
+      const ref = `${ctx.refBase}:${it.key}`;
       const mine = (it.purchaseId && byId[it.purchaseId]) || existing.find(p => p.sourceRef === ref);
       if (mine) {
         await DB.update('purchases', mine.id, { notes }, 'purchases');
@@ -233,12 +240,20 @@ const Plans = {
       if (byName[String(it.name).trim().toLowerCase()]) { already++; continue; }
       // та же конвенция, что в core/shopping-bridge.js: sourceType 'meal_plan' + основной вариант с ценой
       const rec = await DB.create('purchases', { name: it.name, category: 'Питание', status: 'wish', priority: 0, tags: [], notes,
-        sourceType: 'meal_plan', sourceId: plan.id, sourceRef: ref, metadata: { productId: it.productId, qty: it.qty, unit: it.unit, fromMenuPlan: true } }, 'purchases');
+        sourceType: 'meal_plan', sourceId: ctx.sourceId, sourceRef: ref, metadata: { productId: it.productId, qty: it.qty, unit: it.unit, fromMenuPlan: true } }, 'purchases');
       if (it.cost != null) await DB.create('purchase_variants', { purchaseId: rec.id, title: null, price: it.cost, shopId: null, url: null, notes: `${it.qty} ${it.unit}`, isPrimary: true }, 'purchases');
       it.purchaseId = rec.id; added++;
     }
-    await this.saveShop(plan);
     return { added, updated, already };
+  },
+
+  // «собери всё для X»: продукты одного рецепта на нужное число порций (заготовки разворачиваются в продукты)
+  async recipeItems(recipe, portions) {
+    const [pmap, recipes] = await Promise.all([Costing.products(), Recipes.list()]);
+    const rmap = Object.fromEntries(recipes.map(r => [r.id, r]));
+    const agg = {};
+    this._collect(agg, recipe, portions, pmap, rmap);
+    return Object.values(agg).map(e => this._finishItem(e)).sort((a, b) => (a.category + a.name).localeCompare(b.category + b.name, 'ru'));
   },
 
   // авто-составление по бюджету, свойствам и минимуму ккал режима. Бюджет недели делится по дням с переносом остатка, дня — по приёмам пищи (25/40/35%). scope 'day' (di — индекс дня) | 'week'
