@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, lt, sql } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { products, suggestions, votes, diets } from '../db/schema/catalog.js';
 import { requireAuth, requireRole, type AuthedRequest } from '../middleware/auth.js';
 import { getUserRole } from '../db/roleCheck.js';
 import { askGemini, HttpError, MODELS } from '../ai/routes.js';
+import { logAdmin, diffRecord } from '../adminLog.js';
+import { adminLog } from '../db/schema/catalog.js';
 
 export const catalogRouter = Router();
 
@@ -35,27 +37,33 @@ const productSchema = z.object({
 });
 
 // Прямое создание продукта админом — в обход модерации (для сидирования/быстрых правок)
-catalogRouter.post('/products', ...asAdmin, async (req, res) => {
+catalogRouter.post('/products', ...asAdmin, async (req: AuthedRequest, res) => {
   const parsed = productSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
   const [row] = await db.insert(products).values(parsed.data).returning();
+  await logAdmin(req, 'product.create', row.name);
   res.status(201).json(row);
 });
 
-catalogRouter.patch('/products/:id', ...asAdmin, async (req, res) => {
+catalogRouter.patch('/products/:id', ...asAdmin, async (req: AuthedRequest, res) => {
   const parsed = productSchema.partial().safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  const [before] = await db.select().from(products).where(eq(products.id, req.params.id)).limit(1);
   const [row] = await db
     .update(products)
     .set({ ...parsed.data, updatedAt: new Date() })
     .where(eq(products.id, req.params.id))
     .returning();
   if (!row) return res.status(404).json({ error: 'Продукт не найден' });
+  const changes = diffRecord(before, row);
+  if (changes.length) await logAdmin(req, 'product.update', row.name, { changes });
   res.json(row);
 });
 
-catalogRouter.delete('/products/:id', ...asAdmin, async (req, res) => {
+catalogRouter.delete('/products/:id', ...asAdmin, async (req: AuthedRequest, res) => {
+  const [gone] = await db.select().from(products).where(eq(products.id, req.params.id)).limit(1);
   await db.delete(products).where(eq(products.id, req.params.id));
+  if (gone) await logAdmin(req, 'product.delete', gone.name, { was: { category: gone.category, unit: gone.unit, data: gone.data } });
   res.status(204).send();
 });
 
@@ -125,7 +133,7 @@ catalogRouter.delete('/suggestions/:id/vote', ...asUser, async (req: AuthedReque
 
 // ───────── Модерация (только admin) ─────────
 
-catalogRouter.post('/suggestions/:id/approve', ...asAdmin, async (req, res) => {
+catalogRouter.post('/suggestions/:id/approve', ...asAdmin, async (req: AuthedRequest, res) => {
   const [sug] = await db.select().from(suggestions).where(eq(suggestions.id, req.params.id)).limit(1);
   if (!sug) return res.status(404).json({ error: 'Заявка не найдена' });
   if (sug.status !== 'pending') return res.status(409).json({ error: 'Заявка уже обработана' });
@@ -144,16 +152,18 @@ catalogRouter.post('/suggestions/:id/approve', ...asAdmin, async (req, res) => {
     .set({ status: 'approved', updatedAt: new Date() })
     .where(eq(suggestions.id, req.params.id))
     .returning();
+  await logAdmin(req, 'suggestion.approve', payload?.name, { type: sug.type, payload });
   res.json(updated);
 });
 
-catalogRouter.post('/suggestions/:id/reject', ...asAdmin, async (req, res) => {
+catalogRouter.post('/suggestions/:id/reject', ...asAdmin, async (req: AuthedRequest, res) => {
   const [updated] = await db
     .update(suggestions)
     .set({ status: 'rejected', updatedAt: new Date() })
     .where(eq(suggestions.id, req.params.id))
     .returning();
   if (!updated) return res.status(404).json({ error: 'Заявка не найдена' });
+  await logAdmin(req, 'suggestion.reject', (updated.payload as any)?.name, { type: updated.type });
   res.json(updated);
 });
 
@@ -175,23 +185,29 @@ catalogRouter.get('/diets', ...asUser, async (_req, res) => {
   res.json(await db.select().from(diets).orderBy(diets.name));
 });
 
-catalogRouter.post('/diets', ...asAdmin, async (req, res) => {
+catalogRouter.post('/diets', ...asAdmin, async (req: AuthedRequest, res) => {
   const parsed = dietSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
   const [row] = await db.insert(diets).values(parsed.data).returning();
+  await logAdmin(req, 'diet.create', row.name);
   res.status(201).json(row);
 });
 
-catalogRouter.patch('/diets/:id', ...asAdmin, async (req, res) => {
+catalogRouter.patch('/diets/:id', ...asAdmin, async (req: AuthedRequest, res) => {
   const parsed = dietSchema.partial().safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+  const [before] = await db.select().from(diets).where(eq(diets.id, req.params.id)).limit(1);
   const [row] = await db.update(diets).set({ ...parsed.data, updatedAt: new Date() }).where(eq(diets.id, req.params.id)).returning();
   if (!row) return res.status(404).json({ error: 'Режим не найден' });
+  const changes = diffRecord(before, row);
+  if (changes.length) await logAdmin(req, 'diet.update', row.name, { changes });
   res.json(row);
 });
 
-catalogRouter.delete('/diets/:id', ...asAdmin, async (req, res) => {
+catalogRouter.delete('/diets/:id', ...asAdmin, async (req: AuthedRequest, res) => {
+  const [gone] = await db.select().from(diets).where(eq(diets.id, req.params.id)).limit(1);
   await db.delete(diets).where(eq(diets.id, req.params.id));
+  if (gone) await logAdmin(req, 'diet.delete', gone.name, { was: gone.data });
   res.status(204).send();
 });
 
@@ -211,7 +227,7 @@ const priceSchema = z.object({
 
 const priceUnit = (u: string | null | undefined) => ({ g: 'г', kg: 'кг', ml: 'мл', l: 'л', pcs: 'шт' } as Record<string, string>)[String(u ?? '').toLowerCase()] ?? (u || 'г');
 
-catalogRouter.post('/prices/refresh', ...asAdmin, async (req, res) => {
+catalogRouter.post('/prices/refresh', ...asAdmin, async (req: AuthedRequest, res) => {
   const parsed = priceSchema.safeParse(req.body ?? {});
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
   const { offset, limit, region, dry, force } = parsed.data;
@@ -249,10 +265,21 @@ catalogRouter.post('/prices/refresh', ...asAdmin, async (req, res) => {
           .where(eq(products.id, row.id));
       }
     }
+    if (!dry && changes.length) await logAdmin(req, 'prices.refresh', `${changes.length} продуктов`, { region, changes: changes.map((c) => ({ name: c.name, old: c.old, new: c.price })) });
     res.json({ total: rows.length, next: end < rows.length ? end : null, changes, skipped, dry });
   } catch (e) {
     if (e instanceof HttpError) return res.status(e.status).json({ error: e.message });
     console.error('prices refresh error', e);
     res.status(500).json({ error: 'Ошибка обновления цен: ' + String((e as Error)?.message ?? e).slice(0, 200) });
   }
+});
+
+
+// ───────── Журнал действий админов (только admin): последние записи, постранично по before (ISO-время) ─────────
+catalogRouter.get('/admin-log', ...asAdmin, async (req, res) => {
+  const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 50));
+  const before = typeof req.query.before === 'string' ? new Date(req.query.before) : null;
+  const q = db.select().from(adminLog);
+  const rows = await (before && !Number.isNaN(before.getTime()) ? q.where(lt(adminLog.createdAt, before)) : q).orderBy(desc(adminLog.createdAt)).limit(limit);
+  res.json(rows);
 });

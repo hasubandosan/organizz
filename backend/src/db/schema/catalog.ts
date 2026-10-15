@@ -48,3 +48,17 @@ export const diets = catalogSchema.table('diets', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Журнал действий админов: кто, что и когда поменял в каталоге/подписках (для разбора «кто это сделал» и откатов вручную).
+// details: { changes: [{ field, old, new }], ... }. Пишется через src/adminLog.ts, ошибки журнала запросы не ломают.
+export const adminLog = catalogSchema.table('admin_log', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id),
+  email: text('email'),
+  action: text('action').notNull(),   // 'product.update' | 'suggestion.approve' | 'prices.refresh' | 'subscription.grant' ...
+  target: text('target'),             // название продукта / режима / почта
+  details: jsonb('details'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  createdIdx: index('catalog_admin_log_created_idx').on(t.createdAt),
+}));

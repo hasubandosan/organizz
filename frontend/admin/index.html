@@ -10,18 +10,21 @@
 </head>
 <body>
 
-<div class="admin-wrap">
-  <div class="tabs">
-    <button id="tabQueue" class="tab active">Заявки на модерацию</button>
-    <button id="tabProducts" class="tab">Все продукты</button>
-    <button id="tabDiets" class="tab">Режимы питания</button>
-    <button id="tabSubs" class="tab">Подписки</button>
-  </div>
-
-  <div id="queuePane"></div>
-  <div id="productsPane" class="hidden"></div>
-  <div id="dietsPane" class="hidden"></div>
-  <div id="subsPane" class="hidden"></div>
+<div class="adm">
+  <nav class="side" id="side" aria-label="Разделы админки">
+    <button class="side-i active" data-tab="queue"><span class="si">📥</span><span class="sl">Заявки</span><span class="badge hidden" id="qBadge"></span></button>
+    <button class="side-i" data-tab="products"><span class="si">🥕</span><span class="sl">Продукты</span></button>
+    <button class="side-i" data-tab="diets"><span class="si">🎯</span><span class="sl">Режимы питания</span></button>
+    <button class="side-i" data-tab="subs"><span class="si">⭐</span><span class="sl">Подписки</span></button>
+    <button class="side-i" data-tab="log"><span class="si">📜</span><span class="sl">Журнал</span></button>
+  </nav>
+  <main class="adm-main">
+    <div id="queuePane"></div>
+    <div id="productsPane" class="hidden"></div>
+    <div id="dietsPane" class="hidden"></div>
+    <div id="subsPane" class="hidden"></div>
+    <div id="logPane" class="hidden"></div>
+  </main>
 </div>
 
 <script>window.LIFEOS_APP_SLUG = 'catalog';</script>
