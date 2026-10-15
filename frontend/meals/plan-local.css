@@ -131,3 +131,6 @@
 .pl-genrow { display: flex; gap: 8px; margin-bottom: 10px; }
 .pl-genrow .pl-gen { flex: 1; margin: 0; }
 .pl-genrow .pl-ai { flex: 0 0 auto; background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
+
+.rv-shopbtn { width: 100%; margin-top: 10px; }
+#rv-shop .modal-body { max-height: 70vh; overflow-y: auto; }

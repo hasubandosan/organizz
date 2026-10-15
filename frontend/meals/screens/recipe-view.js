@@ -41,7 +41,8 @@ const RecipeViewScreen = {
       h += '<div class="rv-section"><div class="rv-ing-head"><h3>🧂 Ингредиенты</h3>';
       h += '<div class="portion-stepper"><button class="icon-btn" onclick="RecipeViewScreen._step(-1)">−</button>';
       h += '<span id="rv-portions"></span><button class="icon-btn" onclick="RecipeViewScreen._step(1)">+</button></div></div>';
-      h += '<ul class="rv-ingredients" id="rv-ing-list"></ul></div>';
+      h += '<ul class="rv-ingredients" id="rv-ing-list"></ul>';
+      h += '<button class="kt-main rv-shopbtn" onclick="RecipeViewScreen._shop()">🛒 Собрать продукты</button></div>';
     }
     if ((r.steps || []).length) {
       h += '<div class="rv-section"><h3>📝 Приготовление</h3><ol class="rv-steps">';
@@ -91,6 +92,47 @@ const RecipeViewScreen = {
     const el = document.getElementById('rv-cost'), st = this._st;
     if (!el || !st) return;
     el.textContent = `💰 ${st.unpriced ? '≈' : ''}${money(st.costPerPortion)}/порц. · ${money(st.costPerPortion * this._n)} на ${this._n} порц.` + (st.unpriced ? ` (без ${st.unpriced} ингр.)` : '');
+  },
+
+  // ── «собери всё для X»: список продуктов на выбранное число порций; отметьте, что уже есть дома → остальное в «Покупки» ──
+  async _shop() {
+    const r = this._r, n = this._n;
+    let items;
+    try { items = await Plans.recipeItems(r, n); }
+    catch (e) { return toast('Не удалось собрать продукты: ' + (e.message || e), 'err'); }
+    if (!items.length) return toast('В рецепте нет ингредиентов', 'info');
+    items.forEach(i => { i.checked = false; });
+    document.getElementById('rv-shop')?.remove();
+    const ov = document.createElement('div'); ov.className = 'modal-overlay'; ov.id = 'rv-shop';
+    const draw = () => {
+      const need = items.filter(i => !i.checked), total = Math.round(need.reduce((s, i) => s + (i.cost || 0), 0) * 100) / 100;
+      const noPrice = need.filter(i => i.cost == null).length;
+      ov.innerHTML = `<div class="modal"><div class="modal-header"><span class="modal-title">🛒 ${esc(r.name)} · ${n} порц.</span><button class="modal-close" aria-label="Закрыть">×</button></div>
+        <div class="modal-body"><div class="pl-shophint">Отметьте то, что уже есть дома — это не попадёт в «Покупки».</div>
+        ${items.map((i, k) => `<div class="pl-item${i.checked ? ' done' : ''}" data-k="${k}"><span class="pl-box">${i.checked ? '✓' : ''}</span>
+          <span class="pl-iname">${esc((i.emoji ? i.emoji + ' ' : '') + i.name)}${i.purchaseId ? ' 🛍' : ''}</span><span class="pl-iqty">${esc(i.qty)} ${esc(i.unit)}</span><span class="pl-icost">${i.cost == null ? '—' : esc(money(i.cost))}</span></div>`).join('')}
+        <div class="pl-total"><span>Нужно купить: ${need.length}</span><b>${money(total)}</b></div>${noPrice ? `<div class="pl-hint">${noPrice} поз. без цены — не входят в сумму</div>` : ''}
+        <button class="kt-main" id="rv-shop-go"${need.length ? '' : ' disabled'}>→ В покупки</button></div></div>`;
+    };
+    ov.addEventListener('click', async e => {
+      if (e.target === ov || e.target.closest('.modal-close')) return ov.remove();
+      const row = e.target.closest('.pl-item');
+      if (row) { const it = items[+row.dataset.k]; it.checked = !it.checked; return draw(); }
+      if (e.target.closest('#rv-shop-go')) {
+        const btn = e.target.closest('#rv-shop-go'); btn.disabled = true;
+        try {
+          const res = await Plans._sendItems(items.filter(i => !i.checked), { sourceId: r.id, refBase: `meals:recipe:${r.id}`, label: `рецепта «${r.name}»` });
+          const parts = [];
+          if (res.added) parts.push(`добавлено ${res.added}`);
+          if (res.updated) parts.push(`обновлено ${res.updated}`);
+          if (res.already) parts.push(`уже в списке ${res.already}`);
+          toast('Покупки: ' + (parts.join(', ') || 'без изменений'), 'ok', 4000);
+          ov.remove();
+        } catch (err) { toast('Не удалось отправить в Покупки: ' + (err.message || err), 'err'); btn.disabled = false; }
+      }
+    });
+    draw(); document.body.appendChild(ov);
+    requestAnimationFrame(() => ov.classList.add('open'));
   },
 
   async _del(id) {
