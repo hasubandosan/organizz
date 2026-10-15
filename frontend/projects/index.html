@@ -215,6 +215,27 @@
   .modal-body { padding: 18px 20px; }
 }
 
+/* ── Gallery: обложка проекта, секции по статусу ── */
+.proj-card { padding: 0; gap: 0; }
+.proj-cover { position: relative; aspect-ratio: 16 / 9; background: linear-gradient(135deg, var(--bg3), var(--bg2)); background-size: cover; background-position: center;
+  display: flex; align-items: center; justify-content: center; }
+.proj-cover-emoji { font-size: 40px; opacity: .55; }
+.proj-cover.has-img .proj-cover-emoji { display: none; }
+.proj-cover-status { position: absolute; left: 8px; bottom: 8px; }
+.proj-cover .card-edit-btn { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,.55); color: #fff; border-radius: 8px; min-width: 32px; min-height: 32px; }
+.proj-card-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.proj-sec-head { display: flex; align-items: baseline; gap: 8px; padding: 0 16px; margin: 18px 0 8px; cursor: pointer; user-select: none; min-height: 32px; }
+.proj-sec-head .proj-chev { display: inline-block; transition: .15s; color: var(--text3); }
+.proj-sec-head.collapsed .proj-chev { transform: rotate(-90deg); }
+.proj-sec-peek { flex: 1; min-width: 0; font-size: 12px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.proj-sub-head { padding: 0 16px; margin: 10px 0 6px; font-size: 12px; font-weight: 700; color: var(--text2); }
+@media (max-width: 600px) {
+  .proj-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 0 12px; }
+  .proj-card-body { padding: 8px 10px 10px; gap: 6px; }
+  .proj-card-name { font-size: 13px; }
+  .proj-card-desc, .proj-card-last-task { display: none; }
+}
+
 /* ── Project gallery group headers (Group by Area) ── */
 .proj-group-header {
   padding: 0 16px;
@@ -1610,28 +1631,78 @@ async function mkProjGalleryCard(p, ctx = {}) {
   const done  = tasks.filter(t => t.status === 'completed').length;
   const pct   = tasks.length ? Math.round(done / tasks.length * 100) : 0;
   const last  = _pickLastTask(tasks);
+  const cover = p.imageIds && p.imageIds[0];   // первая картинка = главная (грузится лениво, когда карточка попадает в экран)
 
   return `<div class="proj-card" onclick="showProject('${p.id}')">
-    <div class="proj-card-top">
-      <div class="proj-card-name">${area ? area.emoji + ' ' : '📁 '}${p.name}</div>
-      ${tasks.length ? _progressRing(pct) : `<div class="proj-card-status">${UI.statusBadge(p.status)}</div>`}
+    <div class="proj-cover" ${cover ? `data-cover="${cover}"` : ''}>
+      <span class="proj-cover-emoji">${area ? area.emoji : '📁'}</span>
+      <div class="proj-cover-status">${UI.statusBadge(p.status)}</div>
       <button class="card-edit-btn" onclick="event.stopPropagation();editProj('${p.id}')" aria-label="Edit project" title="Edit">✎</button>
     </div>
-    ${p.budget ? `<div class="proj-card-budget">💰 ${UI.money(p.budget)}</div>` : ''}
-    ${p.description ? `<div class="proj-card-desc">${p.description}</div>` : ''}
-    <div class="proj-card-footer">
-      <div class="proj-card-priority">${UI.priorityBadge(p.priority)}</div>
-      ${tasks.length ? UI.statusBadge(p.status) : ''}
-      ${(p.tags || []).map(t => UI.tagBadge(t)).join('')}
-      ${last ? `<div class="proj-card-last-task" title="${last.name}">${last.status === 'completed' ? '✓' : '▸'} ${last.name}</div>` : ''}
+    <div class="proj-card-body">
+      <div class="proj-card-top">
+        <div class="proj-card-name">${p.name}</div>
+        ${tasks.length ? _progressRing(pct) : ''}
+      </div>
+      ${area ? `<div class="card-meta">${area.emoji || ''} ${area.name}</div>` : ''}
+      ${p.budget ? `<div class="proj-card-budget">💰 ${UI.money(p.budget)}</div>` : ''}
+      ${p.description ? `<div class="proj-card-desc">${p.description}</div>` : ''}
+      <div class="proj-card-footer">
+        <div class="proj-card-priority">${UI.priorityBadge(p.priority)}</div>
+        ${(p.tags || []).map(t => UI.tagBadge(t)).join('')}
+        ${last ? `<div class="proj-card-last-task" title="${last.name}">${last.status === 'completed' ? '✓' : '▸'} ${last.name}</div>` : ''}
+      </div>
     </div>
   </div>`;
+}
+
+// ленивая подгрузка обложек: запрос картинки только когда карточка рядом с экраном
+const _coverCache = new Map();
+let _coverObs = null;
+async function _loadCover(el) {
+  const id = el.dataset.cover;
+  try {
+    let url = _coverCache.get(id);
+    if (!url) { const img = await DB.getImage(id); url = img && img.data; if (url) _coverCache.set(id, url); }
+    if (url) { el.style.backgroundImage = `url("${String(url).replace(/"/g, '%22')}")`; el.classList.add('has-img'); }
+  } catch (e) { /* без картинки остаётся эмодзи зоны */ }
+}
+function hydrateCovers(root) {
+  const els = root.querySelectorAll('[data-cover]');
+  if (!('IntersectionObserver' in window)) { els.forEach(_loadCover); return; }
+  if (!_coverObs) _coverObs = new IntersectionObserver(es => es.forEach(en => {
+    if (en.isIntersecting) { _coverObs.unobserve(en.target); _loadCover(en.target); }
+  }), { rootMargin: '300px' });
+  els.forEach(el => _coverObs.observe(el));
 }
 
 /* ═══════════════════════════════════════════
    PROJECTS PAGE
 ═══════════════════════════════════════════ */
 function toggleProjGroup() { pGroupByArea = !pGroupByArea; renderProjects(); }
+
+// Секции: сначала текущие проекты; идеи и завершённые свёрнуты (состояние помним в браузере)
+const PROJ_SECTIONS = [
+  { key: 'active', title: 'Active',   statuses: ['in_progress', 'planned'] },
+  { key: 'hold',   title: 'On hold',  statuses: ['paused'] },
+  { key: 'ideas',  title: 'Ideas',    statuses: ['idea'] },
+  { key: 'done',   title: 'Finished', statuses: ['completed', 'archived'] },
+];
+function _collapsedSections() {
+  try { const v = JSON.parse(localStorage.getItem('proj-collapsed') || 'null'); if (Array.isArray(v)) return new Set(v); } catch (e) {}
+  return new Set(['ideas', 'done']);
+}
+function toggleProjSection(key) {
+  const s = _collapsedSections(); s.has(key) ? s.delete(key) : s.add(key);
+  try { localStorage.setItem('proj-collapsed', JSON.stringify([...s])); } catch (e) {}
+  renderProjects();
+}
+function _sortProjects(list) {
+  const st = { in_progress: 0, planned: 1, paused: 2, idea: 3, completed: 4, archived: 5 };
+  const pr = v => (v === 'high' || v === 2) ? 0 : (v === 'medium' || v === 1) ? 1 : 2;
+  return [...list].sort((a, b) => (st[a.status] ?? 9) - (st[b.status] ?? 9) || pr(a.priority) - pr(b.priority)
+    || String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+}
 
 async function renderProjects() {
   const statuses = ['all','idea','planned','in_progress','paused','completed','archived'];
@@ -1652,33 +1723,42 @@ async function renderProjects() {
   // Fetch areas/tasks once for the whole gallery instead of per-card.
   const [areas, allTasks] = await Promise.all([DB.getAll('areas'), DB.getAll('tasks')]);
   const areasMap = Object.fromEntries(areas.map(a => [a.id, a]));
+  const ctx = { areasMap, allTasks };
 
-  if (!pGroupByArea) {
-    const cards = await Promise.all(ps.map(p => mkProjGalleryCard(p, { areasMap, allTasks })));
-    el.innerHTML = `<div class="proj-grid">${cards.join('')}</div>`;
-    return;
-  }
+  // сетка карточек: плоская или с подзаголовками зон
+  const gridHtml = async (list, nested) => {
+    if (!pGroupByArea) return `<div class="proj-grid">${(await Promise.all(list.map(p => mkProjGalleryCard(p, ctx)))).join('')}</div>`;
+    const grouped = {};
+    for (const p of list) (grouped[p.areaId || 'none'] = grouped[p.areaId || 'none'] || []).push(p);
+    const keys = Object.keys(grouped).sort((a, b) => a === 'none' ? 1 : b === 'none' ? -1 : (areasMap[a]?.name || '').localeCompare(areasMap[b]?.name || ''));
+    let html = '';
+    for (const k of keys) {
+      const area = areasMap[k];
+      const label = area ? `${area.emoji || '🔹'} ${area.name}` : '📁 No area';
+      html += nested
+        ? `<div class="proj-sub-head">${label} · ${grouped[k].length}</div>`
+        : `<div class="section-header proj-group-header"><span class="section-title">${label}</span><span class="section-count">${grouped[k].length}</span></div>`;
+      html += `<div class="proj-grid">${(await Promise.all(grouped[k].map(p => mkProjGalleryCard(p, ctx)))).join('')}</div>`;
+    }
+    return html;
+  };
 
-  const grouped = {};
-  for (const p of ps) {
-    const k = p.areaId || 'none';
-    (grouped[k] = grouped[k] || []).push(p);
-  }
-  const groupKeys = Object.keys(grouped).sort((a, b) => {
-    if (a === 'none') return 1;
-    if (b === 'none') return -1;
-    return (areasMap[a]?.name || '').localeCompare(areasMap[b]?.name || '');
-  });
+  // выбран конкретный статус — одна сетка без секций
+  if (pFilter !== 'all') { el.innerHTML = await gridHtml(_sortProjects(ps), false); hydrateCovers(el); return; }
 
+  const collapsed = _collapsedSections();
   let html = '';
-  for (const k of groupKeys) {
-    const area = areasMap[k];
-    const label = area ? `${area.emoji || '🔹'} ${area.name}` : '📁 No area';
-    const cards = await Promise.all(grouped[k].map(p => mkProjGalleryCard(p, { areasMap, allTasks })));
-    html += `<div class="section-header proj-group-header"><span class="section-title">${label}</span><span class="section-count">${grouped[k].length}</span></div>`;
-    html += `<div class="proj-grid">${cards.join('')}</div>`;
+  for (const sec of PROJ_SECTIONS) {
+    const list = _sortProjects(ps.filter(p => sec.statuses.includes(p.status)));
+    if (!list.length) continue;
+    const isCollapsed = !q && collapsed.has(sec.key);   // при поиске показываем всё найденное
+    html += `<div class="proj-sec-head${isCollapsed ? ' collapsed' : ''}" onclick="toggleProjSection('${sec.key}')"><span class="proj-chev">▾</span>
+      <span class="section-title">${sec.title}</span><span class="section-count">${list.length}</span>
+      ${isCollapsed ? `<span class="proj-sec-peek">${list.slice(0, 5).map(p => p.name).join(' · ')}</span>` : ''}</div>`;
+    if (!isCollapsed) html += await gridHtml(list, true);
   }
   el.innerHTML = html;
+  hydrateCovers(el);
 }
 
 /* ═══════════════════════════════════════════
