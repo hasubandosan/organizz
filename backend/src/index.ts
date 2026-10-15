@@ -14,6 +14,7 @@ import { purchasesEntities } from './db/schema/purchases.js';
 import { cosplaysEntities } from './db/schema/cosplays.js';
 import { mealsGuards } from './apps/mealsGuards.js';
 import { aiRouter } from './ai/routes.js';
+import { subscriptionRouter } from './subscription.js';
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use('/shared/system-tags', systemTagsRouter);   // системные тег
 app.use('/shared', createEntityRouter('shared', sharedEntities));   // личные теги/зоны пользователя
 app.use('/purchases', createEntityRouter('purchases', purchasesEntities));
 app.use('/cosplays', createEntityRouter('cosplays', cosplaysEntities));
+app.use('/subscription', subscriptionRouter); // тариф пользователя; выдаёт админ (без оплаты)
 app.use('/ai', aiRouter);           // ИИ-разбор рецептов (Gemini, ключ только на сервере)
 app.use('/catalog', catalogRouter); // общий каталог продуктов: чтение всем, модерация — admin
 

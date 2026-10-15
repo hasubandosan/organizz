@@ -57,6 +57,13 @@
       "when": 1791867017726,
       "tag": "0007_catalog_diets",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792040542886,
+      "tag": "0008_auth_subscriptions",
+      "breakpoints": true
     }
   ]
 }

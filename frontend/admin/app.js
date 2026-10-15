@@ -6,6 +6,8 @@ const queuePane = document.getElementById('queuePane');
 const productsPane = document.getElementById('productsPane');
 const tabDiets = document.getElementById('tabDiets');
 const dietsPane = document.getElementById('dietsPane');
+const tabSubs = document.getElementById('tabSubs');
+const subsPane = document.getElementById('subsPane');
 
 function esc(s) {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -14,6 +16,7 @@ function esc(s) {
 tabQueue.addEventListener('click', () => switchTab('queue'));
 tabProducts.addEventListener('click', () => switchTab('products'));
 tabDiets.addEventListener('click', () => switchTab('diets'));
+tabSubs.addEventListener('click', () => switchTab('subs'));
 
 function switchTab(name) {
   tabQueue.classList.toggle('active', name === 'queue');
@@ -22,7 +25,10 @@ function switchTab(name) {
   productsPane.classList.toggle('hidden', name !== 'products');
   tabDiets.classList.toggle('active', name === 'diets');
   dietsPane.classList.toggle('hidden', name !== 'diets');
+  tabSubs.classList.toggle('active', name === 'subs');
+  subsPane.classList.toggle('hidden', name !== 'subs');
   if (name === 'queue') loadQueue();
+  else if (name === 'subs') loadSubs();
   else if (name === 'diets') loadDiets();
   else loadProducts();
 }
@@ -274,3 +280,40 @@ async function deleteDiet(id) {
   }
   loadQueue();
 })();
+
+
+// ───────── Подписки (без оплаты: тариф выдаёт админ по почте) ─────────
+
+async function loadSubs() {
+  subsPane.innerHTML = '<div class="empty">Загрузка…</div>';
+  let d;
+  try { d = await DB.request('/subscription'); }
+  catch (e) { subsPane.innerHTML = `<div class="empty">Ошибка: ${esc(e.message)}</div>`; return; }
+  const plans = d.plans.map(p => `<option value="${esc(p.code)}">${esc(p.name)} (личных режимов: ${p.personalDiets})</option>`).join('');
+  subsPane.innerHTML = `<div class="row-actions" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <input id="subEmail" type="email" placeholder="Почта пользователя" style="flex:1;min-width:200px">
+      <select id="subPlan">${plans}</select>
+      <input id="subUntil" type="date" title="Действует до (пусто — бессрочно)">
+      <button class="btn btn-approve" onclick="grantSub()">Выдать</button></div>
+    <div class="empty" style="text-align:left;font-size:12px">Дата — по желанию: пусто = бессрочно. Чтобы продлить или сменить тариф, выдайте ещё раз на ту же почту.</div>`
+    + (d.items.length ? d.items.map(s => `<div class="card" style="padding:10px;margin-top:8px;display:flex;gap:10px;align-items:center">
+        <div style="flex:1"><b>${esc(s.email)}</b><br><span style="font-size:12px;color:var(--text3)">${esc((d.plans.find(p => p.code === s.plan) || {}).name || s.plan)} · ${s.expiresAt ? 'до ' + esc(new Date(s.expiresAt).toLocaleDateString('ru-RU')) : 'бессрочно'}${s.active ? '' : ' · истекла'}</span></div>
+        <button class="btn" onclick="revokeSub('${esc(s.email)}')">Забрать</button></div>`).join('') : '<div class="empty">Подписок пока нет</div>');
+}
+
+async function grantSub() {
+  const email = document.getElementById('subEmail').value.trim();
+  const plan = document.getElementById('subPlan').value;
+  const until = document.getElementById('subUntil').value;
+  if (!email) return alert('Введите почту');
+  try {
+    await DB.request('/subscription', { method: 'PUT', body: JSON.stringify({ email, plan, expiresAt: until ? until + 'T23:59:59' : null }) });
+    loadSubs();
+  } catch (e) { alert('Ошибка: ' + e.message); }
+}
+
+async function revokeSub(email) {
+  if (!confirm('Забрать подписку у ' + email + '?')) return;
+  try { await DB.request('/subscription/' + encodeURIComponent(email), { method: 'DELETE' }); loadSubs(); }
+  catch (e) { alert('Ошибка: ' + e.message); }
+}

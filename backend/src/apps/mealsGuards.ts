@@ -3,9 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { mealsEntities } from '../db/schema/meals.js';
 import { requireAuth, type AuthedRequest } from '../middleware/auth.js';
-
-/** Максимум личных режимов питания на пользователя (потом — по подписке, поле plan). */
-export const MAX_USER_DIETS = 1;
+import { getUserPlan } from '../subscription.js';
 
 /** PUT /meals/meal_diets/:id — новый режим сверх лимита не создаём (правку существующего — можно). */
 export async function limitUserDiets(req: AuthedRequest, res: Response, next: NextFunction) {
@@ -13,8 +11,9 @@ export async function limitUserDiets(req: AuthedRequest, res: Response, next: Ne
   const rows = await db.select({ id: mealsEntities.id }).from(mealsEntities)
     .where(and(eq(mealsEntities.ownerId, req.userId!), eq(mealsEntities.entityType, 'meal_diets')));
   const id = decodeURIComponent(req.path.split('/')[2]);
-  if (rows.length >= MAX_USER_DIETS && !rows.some((r) => r.id === id)) {
-    return res.status(403).json({ error: 'Личный режим питания можно создать только один' });
+  const { limits } = await getUserPlan(req.userId!);   // лимит зависит от тарифа (выдаёт админ)
+  if (rows.length >= limits.personalDiets && !rows.some((r) => r.id === id)) {
+    return res.status(409).json({ error: limits.personalDiets === 1 ? 'Личный режим питания можно создать только один' : `Лимит личных режимов питания: ${limits.personalDiets}` });
   }
   next();
 }

@@ -1,9 +1,10 @@
-// Кухня — screens/diets.js: режимы питания (системные от админов + один личный). Сейчас работает только бюджет.
+// Кухня — screens/diets.js: режимы питания (системные от админов + личные: сколько — зависит от подписки, которую выдаёт админ).
 'use strict';
 
 const DietsScreen = {
   async render(container) {
-    const diets = await Diets.list();
+    const [diets, sub] = await Promise.all([Diets.list(), Diets.plan()]);
+    const lim = sub.limits.personalDiets;
     const mine = diets.filter(d => !d.system);
     let h = '<div class="lo-page dt-page"><div class="lo-grid" style="--col:240px">';
     for (const d of diets) {
@@ -11,8 +12,9 @@ const DietsScreen = {
         <div class="dt-s">${d.budgetDay ? `${esc(money(d.budgetDay))}/день · ≈ ${esc(money(d.budgetDay * 30))}/мес` : 'без бюджета'}</div></div></div>`;
     }
     h += '</div>';
-    h += mine.length >= MAX_USER_DIETS
-      ? '<div class="kt-empty" style="margin-top:12px">Личный режим уже создан (больше — по подписке, позже). Нажмите на него, чтобы изменить.</div>'
+    h += `<div class="pl-hint" style="margin-top:10px">Тариф: <b>${esc(sub.name)}</b>${sub.expiresAt ? ' до ' + esc(new Date(sub.expiresAt).toLocaleDateString('ru-RU')) : ''} · личных режимов ${mine.length} из ${lim}</div>`;
+    h += mine.length >= lim
+      ? `<div class="kt-empty" style="margin-top:12px">${lim === 1 ? 'Личный режим уже создан. Больше режимов — по подписке (её выдаёт администратор).' : 'Достигнут лимит личных режимов.'} Нажмите на режим, чтобы изменить.</div>`
       : '<button class="kt-main" id="dt-new">＋ Свой режим</button>';
     container.innerHTML = h + '</div>';
     container.querySelectorAll('.dt-card').forEach(c => { c.onclick = () => this._form(c.dataset.id); });
