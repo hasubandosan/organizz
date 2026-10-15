@@ -43,7 +43,7 @@ const PlanScreen = {
     h += '</div>';
 
     // список продуктов плана
-    h += `<section class="kt-sec pl-shop"><div class="kt-h"><h2>🛒 Продукты на неделю</h2><span class="sp"></span><span class="kt-n">${plan.shop.length} поз.</span></div>`;
+    h += `<section class="kt-sec pl-shop"><div class="kt-h"><h2>🛒 Продукты на неделю</h2><span class="sp"></span><span class="kt-n">${plan.shop.length} поз.</span>${plan.shop.some(i => !i.checked) ? '<button class="kt-link" data-act="topurch">→ В покупки</button>' : ''}</div>`;
     if (!plan.shop.length) h += '<div class="kt-empty">Добавьте блюда в план — список соберётся сам</div>';
     else {
       const groups = {};
@@ -52,7 +52,7 @@ const PlanScreen = {
         h += `<div class="pl-cat">${esc(cat)}</div>`;
         for (const i of items) {
           h += `<div class="pl-item${i.checked ? ' done' : ''}" data-act="chk" data-k="${esc(i.key)}"><span class="pl-box">${i.checked ? '✓' : ''}</span>
-            <span class="pl-iname">${esc((i.emoji ? i.emoji + ' ' : '') + i.name)}</span><span class="pl-iqty">${esc(i.qty)} ${esc(i.unit)}</span>
+            <span class="pl-iname">${esc((i.emoji ? i.emoji + ' ' : '') + i.name)}${i.purchaseId ? ' <span title="Уже в Покупках">🛍</span>' : ''}</span><span class="pl-iqty">${esc(i.qty)} ${esc(i.unit)}</span>
             <span class="pl-icost">${i.cost == null ? '—' : esc(money(i.cost))}</span></div>`;
         }
       }
@@ -175,9 +175,24 @@ const PlanScreen = {
     if (a === 'pauto') return guard(async () => { plan.days[+el.dataset.i].people = null; await Plans.save(plan); });
     if (a === 'rm') return guard(async () => { plan.days[+el.dataset.i].slots[el.dataset.t].splice(+el.dataset.k, 1); await Plans.save(plan); });
     if (a === 'add') return this._picker(+el.dataset.i, el.dataset.t);
+    if (a === 'topurch') {
+      el.disabled = true;
+      try {
+        const r = await Plans.sendToPurchases(plan);
+        if (r.empty) toast('Все продукты уже отмечены купленными', 'info');
+        else {
+          const parts = [];
+          if (r.added) parts.push(`добавлено ${r.added}`);
+          if (r.updated) parts.push(`обновлено ${r.updated}`);
+          if (r.already) parts.push(`уже в списке ${r.already}`);
+          toast('Покупки: ' + (parts.join(', ') || 'без изменений'), 'ok', 4000);
+        }
+      } catch (e) { toast('Не удалось отправить в Покупки: ' + (e.message || e), 'err'); }
+      return rerender();
+    }
     if (a === 'chk') {
       const it = plan.shop.find(x => x.key === el.dataset.k); if (!it) return;
-      it.checked = !it.checked; await Plans.saveShop(plan); return rerender();
+      it.checked = !it.checked; await Plans.saveShop(plan); Plans.mirrorChecked(it); return rerender();
     }
     if (a === 'gen') {
       const day = this._mode === 'day';
@@ -192,7 +207,8 @@ const PlanScreen = {
           if (res.over) w.push(`бюджет превышен: ${res.over} дн.`);
           if (res.noMatch) w.push(`нет подходящих рецептов для ${res.noMatch} приём(ов) пищи`);
           if (res.lowKcal) w.push(`меньше минимума ккал: ${res.lowKcal} дн.`);
-          toast(w.length ? 'План составлен, но: ' + w.join('; ') : 'План составлен', w.length ? 'info' : 'ok', w.length ? 6000 : 3000);
+          const sp = res.limit ? ` (${money(res.spent)} из ${money(res.limit)})` : '';
+          toast(w.length ? 'План составлен' + sp + ', но: ' + w.join('; ') : 'План составлен' + sp, w.length ? 'info' : 'ok', w.length ? 6000 : 3500);
         }
       } catch (err) { toast('Ошибка: ' + err.message, 'err'); }
       return rerender();
