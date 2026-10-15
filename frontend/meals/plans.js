@@ -159,9 +159,9 @@ const Plans = {
   async _syncShop(plan, persist) {
     const sid = 'shop-' + plan.id;
     const existing = persist ? await DB.getById(MEAL_COL.shopping, sid) : null;
-    const checked = {};
-    (existing ? existing.items || [] : []).forEach(i => { if (i.checked) checked[i.key] = true; });
-    plan.shop = plan._items.map(i => ({ ...i, checked: !!checked[i.key] }));
+    const checked = {}, linked = {};
+    (existing ? existing.items || [] : []).forEach(i => { if (i.checked) checked[i.key] = true; if (i.purchaseId) linked[i.key] = i.purchaseId; });
+    plan.shop = plan._items.map(i => ({ ...i, checked: !!checked[i.key], ...(linked[i.key] ? { purchaseId: linked[i.key] } : {}) }));
     plan.shopTotal = _r2(plan.shop.reduce((s, i) => s + (i.cost || 0), 0));
     plan.shopUnpriced = plan.shop.filter(i => i.cost == null).length;
     if (persist) await this.saveShop(plan, existing);
@@ -174,6 +174,30 @@ const Plans = {
       if (JSON.stringify(existing.items) === JSON.stringify(data.items)) return;
       await DB.update(MEAL_COL.shopping, sid, data);
     } else if (data.items.length) await DB.create(MEAL_COL.shopping, { id: sid, ...data });
+  },
+
+  // «План → Покупки»: непомеченные «куплено» позиции уходят в модуль Покупки (статус «хочу»).
+  // Повторная отправка не дублирует: позиция, уже созданная из этого плана, обновляется; такая же в списке покупок — пропускается.
+  async sendToPurchases(plan) {
+    const items = plan.shop.filter(i => !i.checked);
+    if (!items.length) return { empty: true };
+    const existing = await DB.getAll('purchases', 'purchases');
+    const byId = Object.fromEntries(existing.map(p => [p.id, p]));
+    const byName = {};
+    existing.filter(p => p.status !== 'in_stock').forEach(p => { byName[String(p.name || '').trim().toLowerCase()] = p; });
+    const range = `${shortDate(plan.weekStart)} — ${shortDate(addDays(plan.weekStart, 6))}`;
+    let added = 0, updated = 0, already = 0;
+    for (const it of items) {
+      const notes = `${it.qty} ${it.unit}${it.cost != null ? ' · ≈' + it.cost + ' ₽' : ''} · из плана питания ${range}`;
+      const ref = `meals:${plan.id}:${it.key}`;
+      const mine = (it.purchaseId && byId[it.purchaseId]) || existing.find(p => p.sourceRef === ref);
+      if (mine) { await DB.update('purchases', mine.id, { notes }, 'purchases'); it.purchaseId = mine.id; updated++; continue; }
+      if (byName[String(it.name).trim().toLowerCase()]) { already++; continue; }
+      const rec = await DB.create('purchases', { name: it.name, status: 'wish', notes, sourceType: 'meals_plan', sourceRef: ref }, 'purchases');
+      it.purchaseId = rec.id; added++;
+    }
+    await this.saveShop(plan);
+    return { added, updated, already };
   },
 
   // авто-составление по бюджету, свойствам и минимуму ккал режима. Бюджет недели делится по дням с переносом остатка, дня — по приёмам пищи (25/40/35%). scope 'day' (di — индекс дня) | 'week'
