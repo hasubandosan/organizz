@@ -258,7 +258,31 @@
 .detail-img-gallery .gimg .cover-btn { position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; border-radius: 50%; border: 0; cursor: pointer;
   background: rgba(0,0,0,.55); color: #fff; font-size: 14px; line-height: 1; display: flex; align-items: center; justify-content: center; }
 .detail-img-gallery .gimg .cover-btn.on { background: var(--accent); color: var(--on-accent, #fff); cursor: default; }
-.detail-cover { width: 100%; max-height: 200px; object-fit: cover; border-radius: var(--r2); margin-bottom: 12px; cursor: pointer; display: block; }
+.detail-cover { width: 100%; max-height: 140px; object-fit: cover; border-radius: var(--r2); margin-bottom: 8px; cursor: pointer; display: block; }
+
+/* ── Страница проекта: шапка (обложка + описание) НЕ закрепляется, обложка компактнее ──
+   В core .detail-header = sticky; для длинного описания и обложки это занимало пол-экрана. */
+.detail-header { position: static; padding: 12px 16px; }
+.detail-header .detail-nav { margin-bottom: 8px; }
+.detail-header .detail-title { font-size: 18px; }
+.detail-header .detail-desc { font-size: 13px; line-height: 1.5; margin-top: 4px;
+  max-height: 4.5em; overflow-y: auto; }
+.detail-section { padding: 12px 16px; }
+.detail-section .budget-box { padding: 10px 12px; margin-bottom: 10px; }
+.detail-section .meta-grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 6px; margin-bottom: 10px; }
+.detail-section .meta-item { padding: 6px 10px; }
+@media (min-width: 720px) { .detail-cover { max-height: 120px; } }
+
+/* ── Плотный список задач: больше задач на экране ── */
+.task-row { padding: 5px 0; gap: 6px; align-items: center; }
+.task-row .task-check { width: 17px; height: 17px; min-width: 17px; border-radius: 5px; margin-top: 0; }
+.task-row .task-title { font-size: 13px; line-height: 1.3; }
+.task-row .task-meta { font-size: 10px; gap: 5px; margin-top: 1px; }
+.task-row .task-edit { padding: 0 6px; font-size: 14px; min-height: 28px; }
+.task-row img { width: 22px !important; height: 22px !important; margin-top: 0 !important; }
+.detail-section .pur-row { padding: 5px 0; gap: 8px; }
+.detail-section .pur-name { font-size: 13px; }
+.detail-section-title { margin-bottom: 6px; }
 
 /* ── Purchase variant editor (mirrors the Purchases module) ── */
 .pv-vars-editor { display: flex; flex-direction: column; gap: 8px; margin-top: 5px; }
@@ -1319,7 +1343,7 @@ async function mkTaskRow(t, allTasks, showChildren = false, depth = 0, projMap =
   const parent   = t.parentId ? allTasks.find(x => x.id === t.parentId) : null;
   const total    = await calcTaskTotalCost(t.id, allTasks);
   const children = allTasks.filter(c => c.parentId === t.id);
-  const indent   = depth > 0 ? `margin-left:${depth * 18}px;border-left:2px solid var(--border);padding-left:8px` : '';
+  const indent   = depth > 0 ? `margin-left:${depth * 14}px;border-left:2px solid var(--border);padding-left:6px` : '';
 
   let costStr = '';
   if (total > 0) {
@@ -1930,12 +1954,12 @@ async function showProject(id) {
     </div>
     <div class="detail-section-title">Tasks (${tot})</div>
     ${tasksH ? `<div class="tt-root-drop" ondragover="event.preventDefault();this.classList.add('tt-drop-target')" ondragleave="this.classList.remove('tt-drop-target')" ondrop="ttDropRoot(event)">⬇ Drag a task here to detach it from its parent</div>` : ''}
-    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:4px 14px;margin-bottom:10px">
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:0 12px;margin-bottom:8px">
       ${tasksH || '<div style="padding:14px 0;text-align:center;color:var(--text3);font-size:13px">No tasks yet</div>'}
     </div>
     <button class="qa-btn" style="margin-bottom:16px" onclick="openTaskModal(null,'${p.id}')">＋ Add Task</button>
     <div class="detail-section-title">Purchases (${purs.length})</div>
-    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:4px 14px;margin-bottom:10px">
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:0 12px;margin-bottom:8px">
       ${purH || '<div style="padding:14px 0;text-align:center;color:var(--text3);font-size:13px">No purchases</div>'}
     </div>
     <button class="qa-btn" onclick="openPurModal(null,'${p.id}')">＋ Add Purchase</button>
